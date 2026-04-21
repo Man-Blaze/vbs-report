@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VBS Daily Report</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <h1>VBS Daily Report</h1>
+    <form id="reportForm">
+        <label>Officer Name:</label>
+        <input name="officer_name" required>
+        
+        <label>Division:</label>
+        <select name="division" required>
+            <option>Provincial</option>
+            <option>Laboratory</option>
+            <option>Packhouse</option>
+            <option>Standards</option>
+            <option>Administration</option>
+        </select>
+        
+        <label>Inspections Conducted:</label>
+        <input name="inspections_conducted" type="number">
+        
+        <label>Non-Compliance Cases:</label>
+        <input name="non_compliance_cases" type="number">
+        
+        <label>Issue Description (if any):</label>
+        <textarea name="issue_description"></textarea>
+        
+        <button type="submit">Submit Report</button>
+    </form>
+    
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        document.getElementById('reportForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.status = 'PENDING';
+            
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/vbs_reports`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                alert('Report submitted! Your manager will review it.');
+                e.target.reset();
+            } else {
+                alert('Error submitting. Please try again.');
+            }
+        };
+    </script>
+</body>
+</html>
