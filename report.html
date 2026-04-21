@@ -1,60 +1,426 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>VBS Daily Report</title>
+    <title>VBS Digital Shield - Daily Report</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 500px; margin: 20px auto; padding: 20px; }
-        input, select, textarea, button { width: 100%; padding: 10px; margin: 10px 0; }
-        button { background-color: green; color: white; border: none; cursor: pointer; }
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c7a4d; margin-top: 0; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #333; }
+        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        textarea { resize: vertical; min-height: 80px; }
+        button { width: 100%; padding: 12px; margin-top: 20px; background-color: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #1e5a38; }
+        .section { border-left: 3px solid #2c7a4d; padding-left: 15px; margin-top: 20px; }
+        .section-title { background: #e8f5e9; padding: 8px; margin-bottom: 15px; border-radius: 5px; }
+        hr { margin: 20px 0; }
     </style>
 </head>
 <body>
-    <h1>VBS Daily Report</h1>
-    <form id="reportForm">
-        <label>Officer Name:</label>
-        <input name="officer_name" required>
-
-        <label>Division:</label>
-        <select name="division" required>
-            <option>Provincial</option>
-            <option>Laboratory</option>
-            <option>Packhouse</option>
-            <option>Standards</option>
-            <option>Administration</option>
-        </select>
-
-        <label>Inspections Conducted:</label>
-        <input name="inspections_conducted" type="number" value="0">
-
-        <label>Non-Compliance Cases:</label>
-        <input name="non_compliance_cases" type="number" value="0">
-
-        <label>Issue Description (if any):</label>
-        <textarea name="issue_description"></textarea>
-
-        <button type="submit">Submit Report</button>
-    </form>
-
+    <div class="container">
+        <h1>VBS Digital Shield</h1>
+        <p>Daily Report Form</p>
+        
+        <form id="reportForm">
+            <!-- ======================================== -->
+            <!-- SECTION: WHO IS REPORTING (Everyone fills this) -->
+            <!-- ======================================== -->
+            <div class="section">
+                <div class="section-title">📋 Who is reporting?</div>
+                
+                <label>Officer Name:</label>
+                <input name="officer_name" required>
+                
+                <label>Division:</label>
+                <select name="division" id="division" required>
+                    <option value="">-- Select Division --</option>
+                    <option value="Provincial">Provincial (Inspections)</option>
+                    <option value="Laboratory">Laboratory</option>
+                    <option value="Packhouse">Packhouse</option>
+                    <option value="Standards">Standards & Certification</option>
+                    <option value="Administration">Administration</option>
+                </select>
+                
+                <label>Report Date:</label>
+                <input name="report_date" type="date" required>
+                
+                <label>Hours Worked Today:</label>
+                <input name="hours_worked" type="number" step="0.5" value="8">
+                
+                <label>Time In (start work):</label>
+                <input name="time_in" type="time">
+                
+                <label>Time Out (end work):</label>
+                <input name="time_out" type="time">
+                
+                <label>Tasks Completed Today:</label>
+                <input name="tasks_completed" type="number" value="0">
+            </div>
+            
+            <!-- ======================================== -->
+            <!-- SECTION: PROVINCIAL DIVISION -->
+            <!-- ======================================== -->
+            <div id="provincialSection" class="section" style="display:none;">
+                <div class="section-title">🌾 Provincial Division - Inspection Report</div>
+                
+                <label>Province:</label>
+                <select name="province">
+                    <option value="">Select Province</option>
+                    <option value="Sanma">Sanma (Santo)</option>
+                    <option value="Malampa">Malampa</option>
+                    <option value="Shefa">Shefa (Port Vila)</option>
+                    <option value="Tafea">Tafea</option>
+                    <option value="Penama">Penama</option>
+                    <option value="Torba">Torba</option>
+                </select>
+                
+                <label>Location:</label>
+                <input name="location" placeholder="Farm, market, or facility name">
+                
+                <label>GPS Coordinates:</label>
+                <input name="gps_coordinates" placeholder="e.g., -15.283, 166.917">
+                
+                <label>Inspection Result:</label>
+                <select name="inspection_result">
+                    <option value="">Select</option>
+                    <option value="Pass">✅ Pass</option>
+                    <option value="Fail">❌ Fail</option>
+                    <option value="Partial">⚠️ Partial Pass</option>
+                </select>
+                
+                <label>Violation Type:</label>
+                <select name="violation_type">
+                    <option value="">Select</option>
+                    <option value="Mold">Mold</option>
+                    <option value="Expired">Expired Product</option>
+                    <option value="Labeling">Labeling Issue</option>
+                    <option value="Storage">Storage Issue</option>
+                    <option value="Pest">Pest Infestation</option>
+                    <option value="Other">Other</option>
+                </select>
+                
+                <label>Inspections Conducted:</label>
+                <input name="inspections_conducted" type="number" value="0">
+                
+                <label>Non-Compliance Cases:</label>
+                <input name="non_compliance_cases" type="number" value="0">
+                
+                <label>Enforcement Actions:</label>
+                <input name="enforcement_actions" type="number" value="0">
+                
+                <label>Farms/Sites Visited:</label>
+                <input name="farms_visited" type="number" value="0">
+                
+                <label>Farmers Engaged:</label>
+                <input name="farmers_engaged" type="number" value="0">
+                
+                <label>Samples Collected:</label>
+                <input name="samples_collected" type="number" value="0">
+                
+                <label>Follow-up Required?</label>
+                <select name="follow_up_required">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                </select>
+                
+                <label>Follow-up Date:</label>
+                <input name="follow_up_date" type="date">
+            </div>
+            
+            <!-- ======================================== -->
+            <!-- SECTION: LABORATORY -->
+            <!-- ======================================== -->
+            <div id="laboratorySection" class="section" style="display:none;">
+                <div class="section-title">🔬 Laboratory - Test Report</div>
+                
+                <label>Lab Location:</label>
+                <select name="lab_location">
+                    <option value="Santo">Santo Laboratory</option>
+                    <option value="Port Vila">Port Vila Laboratory</option>
+                </select>
+                
+                <label>Sample ID:</label>
+                <input name="sample_id" placeholder="e.g., LAB-2409-001">
+                
+                <label>Sample Type:</label>
+                <select name="sample_type">
+                    <option value="Food">Food</option>
+                    <option value="Water">Water</option>
+                    <option value="Soil">Soil</option>
+                    <option value="Other">Other</option>
+                </select>
+                
+                <label>Test Type:</label>
+                <select name="test_type">
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="Chemical">Chemical</option>
+                    <option value="DNA/GMO">DNA/GMO</option>
+                    <option value="Other">Other</option>
+                </select>
+                
+                <label>Test Result:</label>
+                <select name="test_result">
+                    <option value="Pass">✅ Pass</option>
+                    <option value="Fail">❌ Fail</option>
+                    <option value="Inconclusive">⚠️ Inconclusive</option>
+                </select>
+                
+                <label>Lab Tests Conducted:</label>
+                <input name="lab_tests_conducted" type="number" value="0">
+                
+                <label>Date Sample Received:</label>
+                <input name="date_sample_received" type="date">
+                
+                <label>Date Result Completed:</label>
+                <input name="date_result_completed" type="date">
+                
+                <label>Turnaround Days:</label>
+                <input name="turnaround_days" type="number" step="0.5">
+                
+                <label>Certificate Number:</label>
+                <input name="certificate_number">
+                
+                <label>Reagent Status:</label>
+                <select name="reagent_status">
+                    <option value="Good">✅ Good</option>
+                    <option value="Low">⚠️ Low</option>
+                    <option value="Critical">❌ Critical</option>
+                </select>
+                
+                <label>Equipment Issues:</label>
+                <textarea name="equipment_issues" placeholder="Describe any equipment problems"></textarea>
+                
+                <label>Calibration Due Date:</label>
+                <input name="calibration_due_date" type="date">
+            </div>
+            
+            <!-- ======================================== -->
+            <!-- SECTION: PACKHOUSE -->
+            <!-- ======================================== -->
+            <div id="packhouseSection" class="section" style="display:none;">
+                <div class="section-title">📦 Packhouse - Daily Report</div>
+                
+                <label>Volume Received (kg):</label>
+                <input name="volume_received_kg" type="number" value="0">
+                
+                <label>Volume Processed (kg):</label>
+                <input name="volume_processed_kg" type="number" value="0">
+                
+                <label>Volume Exported (kg):</label>
+                <input name="volume_exported_kg" type="number" value="0">
+                
+                <label>Waste (%):</label>
+                <input name="waste_percent" type="number" step="0.1" value="0">
+                
+                <label>Rejection Rate (%):</label>
+                <input name="rejection_rate_percent" type="number" step="0.1" value="0">
+                
+                <label>Farmers Supplied:</label>
+                <input name="farmers_supplied" type="number" value="0">
+                
+                <label>Cold Room Temperature (°C):</label>
+                <input name="cold_room_temp_c" type="number" step="0.1">
+                
+                <label>Equipment Status:</label>
+                <select name="equipment_status">
+                    <option value="All normal">✅ All normal</option>
+                    <option value="Minor issue">⚠️ Minor issue</option>
+                    <option value="Major breakdown">❌ Major breakdown</option>
+                </select>
+                
+                <label>Staff on Duty:</label>
+                <input name="staff_on_duty" type="number" value="0">
+            </div>
+            
+            <!-- ======================================== -->
+            <!-- SECTION: STANDARDS & CERTIFICATION -->
+            <!-- ======================================== -->
+            <div id="standardsSection" class="section" style="display:none;">
+                <div class="section-title">📜 Standards & Certification</div>
+                
+                <label>Standard Name:</label>
+                <input name="standard_name">
+                
+                <label>Standard Type:</label>
+                <select name="standard_type">
+                    <option value="National">National</option>
+                    <option value="Regional">Regional</option>
+                    <option value="International">International</option>
+                </select>
+                
+                <label>Standard Stage:</label>
+                <select name="standard_stage">
+                    <option value="Draft">Draft</option>
+                    <option value="Under review">Under review</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Adopted">Adopted</option>
+                </select>
+                
+                <label>Standards Developed:</label>
+                <input name="standards_developed" type="number" value="0">
+                
+                <label>Standards Adopted:</label>
+                <input name="standards_adopted" type="number" value="0">
+                
+                <label>Business Name (for certification):</label>
+                <input name="business_name">
+                
+                <label>Certification Type:</label>
+                <input name="certification_type">
+                
+                <label>Certifications Issued:</label>
+                <input name="certifications_issued" type="number" value="0">
+                
+                <label>Certificate Number:</label>
+                <input name="certificate_number">
+                
+                <label>Date Issued:</label>
+                <input name="date_issued" type="date">
+                
+                <label>Expiry Date:</label>
+                <input name="expiry_date" type="date">
+                
+                <label>Awareness Activities:</label>
+                <input name="awareness_activities" type="number" value="0">
+                
+                <label>Stakeholders Engaged:</label>
+                <input name="stakeholders_engaged" type="number" value="0">
+            </div>
+            
+            <!-- ======================================== -->
+            <!-- SECTION: ADMINISTRATION -->
+            <!-- ======================================== -->
+            <div id="adminSection" class="section" style="display:none;">
+                <div class="section-title">📋 Administration</div>
+                
+                <label>Leave Type:</label>
+                <select name="leave_type">
+                    <option value="">None</option>
+                    <option value="Annual">Annual Leave</option>
+                    <option value="Sick">Sick Leave</option>
+                    <option value="Emergency">Emergency Leave</option>
+                </select>
+                
+                <label>Leave Start Date:</label>
+                <input name="leave_start_date" type="date">
+                
+                <label>Leave End Date:</label>
+                <input name="leave_end_date" type="date">
+                
+                <label>Health Status:</label>
+                <select name="health_status">
+                    <option value="Fit">✅ Fit for duty</option>
+                    <option value="Sick">❌ Sick</option>
+                    <option value="Partial">⚠️ Partial</option>
+                </select>
+                
+                <label>Budget Utilization (%):</label>
+                <input name="budget_utilization_percent" type="number" step="0.1">
+                
+                <label>Revenue Collected (VT):</label>
+                <input name="revenue_collected_vt" type="number" value="0">
+                
+                <label>Program Spending (VT):</label>
+                <input name="program_spending_vt" type="number" value="0">
+            </div>
+            
+            <!-- ======================================== -->
+            <!-- SECTION: SHARED (All divisions) -->
+            <!-- ======================================== -->
+            <div class="section">
+                <div class="section-title">📝 Additional Information</div>
+                
+                <label>Issue Description:</label>
+                <textarea name="issue_description" placeholder="Describe any issues found"></textarea>
+                
+                <label>Action Required:</label>
+                <textarea name="action_required" placeholder="What action is needed?"></textarea>
+                
+                <label>Inspector Notes:</label>
+                <textarea name="inspector_notes" placeholder="Any additional notes"></textarea>
+                
+                <label>Export Volume (tons):</label>
+                <input name="export_volume_tons" type="number" step="0.1">
+                
+                <label>Export Value (VT):</label>
+                <input name="export_value_vt" type="number">
+                
+                <label>Destination Market:</label>
+                <input name="destination_market" placeholder="e.g., Australia, NZ, EU">
+            </div>
+            
+            <button type="submit">Submit Report</button>
+        </form>
+    </div>
+    
     <script>
-        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.com';
+        // ========================================
+        // SUPABASE CONNECTION
+        // ========================================
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-
+        
+        // ========================================
+        // CONDITIONAL LOGIC
+        // ========================================
+        const divisionSelect = document.getElementById('division');
+        const provincialSection = document.getElementById('provincialSection');
+        const laboratorySection = document.getElementById('laboratorySection');
+        const packhouseSection = document.getElementById('packhouseSection');
+        const standardsSection = document.getElementById('standardsSection');
+        const adminSection = document.getElementById('adminSection');
+        
+        divisionSelect.addEventListener('change', function() {
+            provincialSection.style.display = 'none';
+            laboratorySection.style.display = 'none';
+            packhouseSection.style.display = 'none';
+            standardsSection.style.display = 'none';
+            adminSection.style.display = 'none';
+            
+            if (this.value === 'Provincial') provincialSection.style.display = 'block';
+            else if (this.value === 'Laboratory') laboratorySection.style.display = 'block';
+            else if (this.value === 'Packhouse') packhouseSection.style.display = 'block';
+            else if (this.value === 'Standards') standardsSection.style.display = 'block';
+            else if (this.value === 'Administration') adminSection.style.display = 'block';
+        });
+        
+        // ========================================
+        // FORM SUBMISSION
+        // ========================================
         document.getElementById('reportForm').onsubmit = async (e) => {
             e.preventDefault();
-
+            
             const formData = new FormData(e.target);
             const data = {};
             formData.forEach((value, key) => {
-                data[key] = value;
+                if (value !== '' && value !== null) {
+                    data[key] = value;
+                }
             });
+            
+            // Set metadata
             data.status = 'PENDING';
-            data.report_date = new Date().toISOString().split('T')[0];
-
-            // Convert to numbers
-            data.inspections_conducted = parseInt(data.inspections_conducted) || 0;
-            data.non_compliance_cases = parseInt(data.non_compliance_cases) || 0;
-
+            data.created_at = new Date().toISOString();
+            
+            // Convert boolean
+            if (data.follow_up_required === 'true') data.follow_up_required = true;
+            if (data.follow_up_required === 'false') data.follow_up_required = false;
+            
+            // Convert number fields
+            const numberFields = ['hours_worked', 'tasks_completed', 'inspections_conducted', 
+                'non_compliance_cases', 'enforcement_actions', 'farms_visited', 'farmers_engaged',
+                'samples_collected', 'lab_tests_conducted', 'turnaround_days', 'standards_developed',
+                'standards_adopted', 'certifications_issued', 'awareness_activities', 
+                'stakeholders_engaged', 'volume_received_kg', 'volume_processed_kg', 
+                'volume_exported_kg', 'waste_percent', 'rejection_rate_percent', 'farmers_supplied',
+                'staff_on_duty', 'budget_utilization_percent', 'revenue_collected_vt', 
+                'program_spending_vt', 'export_volume_tons', 'export_value_vt'];
+            
+            numberFields.forEach(field => {
+                if (data[field]) data[field] = parseFloat(data[field]) || 0;
+            });
+            
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/vbs_reports`, {
                     method: 'POST',
@@ -66,10 +432,16 @@
                     },
                     body: JSON.stringify(data)
                 });
-
+                
                 if (response.ok) {
-                    alert('✅ Report submitted! Manager will review.');
+                    alert('✅ Report submitted! Your manager will review it.');
                     document.getElementById('reportForm').reset();
+                    provincialSection.style.display = 'none';
+                    laboratorySection.style.display = 'none';
+                    packhouseSection.style.display = 'none';
+                    standardsSection.style.display = 'none';
+                    adminSection.style.display = 'none';
+                    document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
                 } else {
                     const error = await response.text();
                     alert('❌ Error: ' + error);
@@ -78,6 +450,9 @@
                 alert('❌ Connection error: ' + error.message);
             }
         };
+        
+        // Set default date
+        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
     </script>
 </body>
 </html>
