@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VBS - General Activity Log</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 550px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 10px; }
+        h1 { color: #2c7a4d; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        textarea { min-height: 80px; }
+        button { width: 100%; padding: 12px; margin-top: 20px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .note { font-size: 12px; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 General Activity Log</h1>
+        <p>For ANY officer doing ANY task with stakeholders (meetings, training, coordination, outreach, etc.)</p>
+        
+        <form id="reportForm">
+            <label>Officer Name:</label>
+            <input name="officer_name" required>
+            
+            <label>Division:</label>
+            <select name="division" required>
+                <option value="">Select Division</option>
+                <option value="Provincial">Provincial</option>
+                <option value="Laboratory">Laboratory</option>
+                <option value="Packhouse">Packhouse</option>
+                <option value="Standards">Standards & Certification</option>
+                <option value="Administration">Administration</option>
+            </select>
+            
+            <label>Report Date:</label>
+            <input name="report_date" type="date" required>
+            
+            <label>Activity Type:</label>
+            <select name="activity_type" required>
+                <option value="">Select Activity Type</option>
+                <option value="Meeting">Meeting (Internal)</option>
+                <option value="Stakeholder Meeting">Meeting with External Stakeholder</option>
+                <option value="Training">Training Attended</option>
+                <option value="Training Delivered">Training Delivered</option>
+                <option value="Awareness">Awareness Campaign</option>
+                <option value="Coordination">Coordination with Partners</option>
+                <option value="Field Visit">Field Visit (non-inspection)</option>
+                <option value="Reporting">Report Writing / Documentation</option>
+                <option value="Planning">Planning / Strategy Session</option>
+                <option value="Administrative">Administrative Task</option>
+                <option value="Procurement">Procurement / Supply</option>
+                <option value="Maintenance">Maintenance / Repair</option>
+                <option value="Travel">Travel (official)</option>
+                <option value="Other">Other</option>
+            </select>
+            
+            <label>Activity Name / Title:</label>
+            <input name="activity_name" placeholder="e.g., Taro Export Meeting, VCBN Coordination" required>
+            
+            <label>Activity Description:</label>
+            <textarea name="activity_description" placeholder="What was done? What was discussed?" required></textarea>
+            
+            <label>Location:</label>
+            <input name="location" placeholder="e.g., Port Vila, Santo, Online (Zoom)">
+            
+            <label>Stakeholder Type:</label>
+            <select name="stakeholder_type">
+                <option value="">Select (if applicable)</option>
+                <option value="Government">Government Agency</option>
+                <option value="NGO">NGO / Development Partner</option>
+                <option value="Private Sector">Private Sector / Business</option>
+                <option value="Farmer">Farmer / Cooperative</option>
+                <option value="Exporter">Exporter</option>
+                <option value="Importer">Importer</option>
+                <option value="International">International Partner</option>
+                <option value="Other">Other</option>
+            </select>
+            
+            <label>Stakeholder Name:</label>
+            <input name="stakeholder_name" placeholder="e.g., MALFB, VCBN, Marketplace Fresh">
+            
+            <label>Stakeholder Organization:</label>
+            <input name="stakeholder_organization" placeholder="Organization name">
+            
+            <label>Outcome / Deliverable:</label>
+            <textarea name="outcome" placeholder="What was achieved? Any agreements, decisions, or outputs?"></textarea>
+            
+            <label>Next Steps / Action Items:</label>
+            <textarea name="next_steps" placeholder="What needs to happen next? Who is responsible?"></textarea>
+            
+            <label>Reference Document URL (optional):</label>
+            <input name="reference_document_url" placeholder="Link to report, minutes, or file">
+            
+            <label>Officer Notes:</label>
+            <textarea name="officer_notes" placeholder="Any additional observations or reflections"></textarea>
+            
+            <label>Hours Worked (total today):</label>
+            <input name="hours_worked" type="number" step="0.5" value="8">
+            
+            <label>Time In:</label>
+            <input name="time_in" type="time">
+            
+            <label>Time Out:</label>
+            <input name="time_out" type="time">
+            
+            <button type="submit">Submit Activity Log</button>
+        </form>
+    </div>
+    
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        document.getElementById('reportForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {};
+            formData.forEach((value, key) => {
+                if (value !== '' && value !== null) {
+                    data[key] = value;
+                }
+            });
+            
+            data.status = 'PENDING';
+            
+            const numberFields = ['hours_worked', 'tasks_completed'];
+            numberFields.forEach(field => {
+                if (data[field]) data[field] = parseFloat(data[field]) || 0;
+            });
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/general_activity_log`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    alert('✅ Activity logged! Manager will review.');
+                    document.getElementById('reportForm').reset();
+                    document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+                } else {
+                    const error = await response.text();
+                    alert('❌ Error: ' + error);
+                }
+            } catch (error) {
+                alert('❌ Connection error: ' + error.message);
+            }
+        };
+        
+        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
