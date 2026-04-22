@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VBS Activity Tracker - Who Did What</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a3a5a 0%, #2c5a7a 100%);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c5a7a;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* Filter Bar */
+        .filter-bar {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        select, input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        
+        .refresh-btn {
+            background: #2c5a7a;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        .refresh-btn:hover {
+            background: #1a3a5a;
+        }
+        
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow-x: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 14px 10px;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 1px solid #e0e0e0;
+            position: sticky;
+            top: 0;
+        }
+        
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+            color: #333;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-approved {
+            background: #d4edda;
+            color: #155724;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .badge-table {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-family: monospace;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .export-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        .export-btn:hover {
+            background: #1e7e34;
+        }
+        
+        @media (max-width: 768px) {
+            th, td { padding: 8px 6px; font-size: 11px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 VBS Activity Tracker</h1>
+            <p>Complete audit trail - who submitted, who approved, and when</p>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalReports">0</div>
+                <div class="stat-label">Total Reports</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalApproved">0</div>
+                <div class="stat-label">Approved</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalPending">0</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalOfficers">0</div>
+                <div class="stat-label">Active Officers</div>
+            </div>
+        </div>
+        
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>📋 Division:</label>
+                <select id="divisionFilter">
+                    <option value="all">All Divisions</option>
+                    <option value="provincial">Provincial</option>
+                    <option value="laboratory">Laboratory</option>
+                    <option value="packhouse">Packhouse</option>
+                    <option value="standards">Standards</option>
+                    <option value="administration">Administration</option>
+                    <option value="conformity">Conformity</option>
+                    <option value="general">General Activity</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>📅 Status:</label>
+                <select id="statusFilter">
+                    <option value="all">All</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="REJECTED">Rejected</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>👤 Officer:</label>
+                <input type="text" id="officerFilter" placeholder="Search officer..." style="width: 150px;">
+            </div>
+            <div class="filter-group">
+                <button class="refresh-btn" onclick="loadAllReports()">🔄 Refresh</button>
+                <button class="export-btn" onclick="exportToCSV()">📎 Export CSV</button>
+            </div>
+        </div>
+        
+        <!-- Table -->
+        <div class="table-container">
+            <div id="reportsTable">
+                <div class="loading">Loading reports...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        const tableMap = {
+            provincial: 'provincial_reports',
+            laboratory: 'laboratory_reports',
+            packhouse: 'packhouse_reports',
+            standards: 'standards_reports',
+            administration: 'administration_reports',
+            conformity: 'conformity_assessment',
+            general: 'general_activity_log'
+        };
+        
+        let allReports = [];
+        
+        async function loadAllReports() {
+            const divisionFilter = document.getElementById('divisionFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const officerFilter = document.getElementById('officerFilter').value.toLowerCase();
+            
+            document.getElementById('reportsTable').innerHTML = '<div class="loading">Loading reports...</div>';
+            
+            allReports = [];
+            
+            const tablesToLoad = divisionFilter === 'all' 
+                ? Object.keys(tableMap) 
+                : [divisionFilter];
+            
+            for (const division of tablesToLoad) {
+                const table = tableMap[division];
+                try {
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?order=created_at.desc&limit=500`, {
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                    });
+                    const data = await response.json();
+                    data.forEach(r => {
+                        allReports.push({
+                            ...r,
+                            _division: division,
+                            _table: table
+                        });
+                    });
+                } catch (e) {
+                    console.error(`Error loading ${table}:`, e);
+                }
+            }
+            
+            // Apply filters
+            let filtered = allReports;
+            if (statusFilter !== 'all') {
+                filtered = filtered.filter(r => r.status === statusFilter);
+            }
+            if (officerFilter) {
+                filtered = filtered.filter(r => (r.officer_name || '').toLowerCase().includes(officerFilter));
+            }
+            
+            // Update stats
+            document.getElementById('totalReports').innerText = allReports.length;
+            document.getElementById('totalApproved').innerText = allReports.filter(r => r.status === 'APPROVED').length;
+            document.getElementById('totalPending').innerText = allReports.filter(r => r.status === 'PENDING').length;
+            const uniqueOfficers = new Set(allReports.map(r => r.officer_name).filter(Boolean));
+            document.getElementById('totalOfficers').innerText = uniqueOfficers.size;
+            
+            // Build table
+            if (filtered.length === 0) {
+                document.getElementById('reportsTable').innerHTML = '<div class="loading">📭 No reports found</div>';
+                return;
+            }
+            
+            let html = `<table>
+                <thead>
+                    <tr>
+                        <th>📅 Date</th>
+                        <th>👤 Officer</th>
+                        <th>📋 Division</th>
+                        <th>📊 Status</th>
+                        <th>✅ Approved By</th>
+                        <th>⏰ Approved At</th>
+                        <th>💬 Comment</th>
+                        <th>🔗 ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+            
+            for (const report of filtered.slice(0, 500)) {
+                const reportDate = report.report_date || (report.created_at ? report.created_at.split('T')[0] : 'N/A');
+                const approvedAt = report.approved_at ? new Date(report.approved_at).toLocaleString() : '-';
+                const statusClass = report.status === 'APPROVED' ? 'status-approved' : (report.status === 'PENDING' ? 'status-pending' : 'status-rejected');
+                
+                html += `
+                    <tr>
+                        <td>${reportDate}</td>
+                        <td><strong>${report.officer_name || 'N/A'}</strong></td>
+                        <td><span class="badge-table">${report._division}</span></td>
+                        <td><span class="${statusClass}">${report.status || 'PENDING'}</span></td>
+                        <td>${report.approved_by || '-'}</td>
+                        <td>${approvedAt}</td>
+                        <td style="max-width: 200px; word-break: break-word;">${report.manager_comment || '-'}</td>
+                        <td><span class="badge-table">${report.id}</span></td>
+                    </tr>
+                `;
+            }
+            html += '</tbody></table>';
+            document.getElementById('reportsTable').innerHTML = html;
+        }
+        
+        function exportToCSV() {
+            if (allReports.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            
+            const headers = ['ID', 'Division', 'Officer', 'Date', 'Status', 'Approved By', 'Approved At', 'Comment', 'Created At'];
+            const rows = allReports.map(r => [
+                r.id,
+                r._division,
+                r.officer_name || '',
+                r.report_date || (r.created_at ? r.created_at.split('T')[0] : ''),
+                r.status || 'PENDING',
+                r.approved_by || '',
+                r.approved_at || '',
+                r.manager_comment || '',
+                r.created_at || ''
+            ]);
+            
+            const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vbs_activity_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Add event listeners
+        document.getElementById('divisionFilter').addEventListener('change', loadAllReports);
+        document.getElementById('statusFilter').addEventListener('change', loadAllReports);
+        document.getElementById('officerFilter').addEventListener('input', loadAllReports);
+        
+        // Load on page start
+        loadAllReports();
+    </script>
+</body>
+</html>
