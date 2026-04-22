@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VBS Manager Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #2c7a4d; color: white; }
+        button { padding: 5px 10px; margin: 2px; cursor: pointer; }
+        .approve { background: green; color: white; border: none; }
+        .reject { background: red; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VBS Manager Dashboard</h1>
+        <p>Select your division to see pending reports:</p>
+        
+        <select id="divisionSelect" onchange="loadReports()">
+            <option value="provincial">Provincial</option>
+            <option value="laboratory">Laboratory</option>
+            <option value="packhouse">Packhouse</option>
+            <option value="standards">Standards</option>
+            <option value="administration">Administration</option>
+        </select>
+        
+        <div id="reportsTable">Loading...</div>
+    </div>
+    
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        async function loadReports() {
+            const division = document.getElementById('divisionSelect').value;
+            const table = `${division}_reports`;
+            
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?status=eq.PENDING`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+            });
+            const data = await response.json();
+            
+            if (data.length === 0) {
+                document.getElementById('reportsTable').innerHTML = '<p>✅ No pending reports</p>';
+                return;
+            }
+            
+            let html = '<table><tr><th>Date</th><th>Officer</th><th>Summary</th><th>Action</th></tr>';
+            for (let report of data) {
+                html += `
+                    <tr>
+                        <td>${report.report_date}</td>
+                        <td>${report.officer_name}</td>
+                        <td>${report.inspector_notes || report.sample_id || 'Report submitted'}</td>
+                        <td>
+                            <button class="approve" onclick="approve('${table}', ${report.id})">Approve</button>
+                            <button class="reject" onclick="reject('${table}', ${report.id})">Reject</button>
+                        </td>
+                    </tr>
+                `;
+            }
+            html += '</table>';
+            document.getElementById('reportsTable').innerHTML = html;
+        }
+        
+        async function approve(table, id) {
+            await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+                method: 'PATCH',
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'APPROVED', approved_by: 'Manager', approved_at: new Date().toISOString() })
+            });
+            loadReports();
+            alert('✅ Report approved');
+        }
+        
+        async function reject(table, id) {
+            const reason = prompt('Reason for rejection:');
+            if (reason) {
+                await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+                    method: 'PATCH',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'REJECTED', manager_comment: reason })
+                });
+                loadReports();
+                alert('❌ Report rejected');
+            }
+        }
+        
+        loadReports();
+    </script>
+</body>
+</html>
