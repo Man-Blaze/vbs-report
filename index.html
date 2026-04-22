@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VBS Digital Shield - Central Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a5a3a 0%, #0d3b24 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            color: white;
+            padding: 40px 20px;
+        }
+        
+        .header h1 {
+            font-size: 42px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        
+        .badge {
+            background: #ffc107;
+            color: #333;
+            padding: 5px 15px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 15px;
+        }
+        
+        /* Role Cards */
+        .role-section {
+            margin-bottom: 30px;
+        }
+        
+        .role-title {
+            color: white;
+            font-size: 24px;
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: #333;
+            display: block;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .card-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .card-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #1a5a3a;
+        }
+        
+        .card-desc {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.4;
+        }
+        
+        .card-badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2c7a4d;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-top: 12px;
+            font-weight: bold;
+        }
+        
+        /* Manager Card Special */
+        .manager-card {
+            background: linear-gradient(135deg, #1a3a5a 0%, #2c5a7a 100%);
+            color: white;
+        }
+        
+        .manager-card .card-title {
+            color: white;
+        }
+        
+        .manager-card .card-desc {
+            color: #d0e0f0;
+        }
+        
+        .manager-card .card-badge {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        /* CEO Card Special */
+        .ceo-card {
+            background: linear-gradient(135deg, #2c3e50 0%, #1a2a3a 100%);
+            color: white;
+        }
+        
+        .ceo-card .card-title {
+            color: #ffc107;
+        }
+        
+        .ceo-card .card-desc {
+            color: #ccc;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            padding: 30px;
+            font-size: 12px;
+        }
+        
+        hr {
+            margin: 20px 0;
+            border: none;
+            height: 1px;
+            background: rgba(255,255,255,0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 { font-size: 28px; }
+            .card-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🛡️ VBS Digital Shield</h1>
+            <p>Vanuatu Bureau of Standards - Digital Reporting System</p>
+            <div class="badge">🔒 Sovereign Data • Real-time • Audit Ready</div>
+        </div>
+        
+        <!-- ======================================== -->
+        <!-- OFFICERS SECTION (Submit Reports) -->
+        <!-- ======================================== -->
+        <div class="role-section">
+            <div class="role-title">📝 Officers - Submit Daily Reports</div>
+            <div class="card-grid">
+                
+                <a href="https://Man-Blaze.github.io/vbs-report/provincial.html" class="card">
+                    <div class="card-icon">🌾</div>
+                    <div class="card-title">Provincial Division</div>
+                    <div class="card-desc">Daily inspection reports, farm visits, non-compliance tracking</div>
+                    <div class="card-badge">Inspectors • Sanma/Malampa</div>
+                </a>
+                
+                <a href="https://Man-Blaze.github.io/vbs-report/laboratory.html" class="card">
+                    <div class="card-icon">🔬</div>
+                    <div class="card-title">Laboratory</div>
+                    <div class="card-desc">Test results, sample tracking, equipment status, reagent levels</div>
+                    <div class="card-badge">Santo • Port Vila Labs</div>
+                </a>
+                
+                <a href="https://Man-Blaze.github.io/vbs-report/packhouse.html" class="card">
+                    <div class="card-icon">📦</div>
+                    <div class="card-title">Packhouse</div>
+                    <div class="card-desc">Volume received/processed/exported, waste, temperature, staff</div>
+                    <div class="card-badge">Santo Packhouse</div>
+                </a>
+                
+                <a href="https://Man-Blaze.github.io/vbs-report/standards.html" class="card">
+                    <div class="card-icon">📜</div>
+                    <div class="card-title">Standards & Certification</div>
+                    <div class="card-desc">Standards development, certifications issued, stakeholder engagement</div>
+                    <div class="card-badge">S&C Division</div>
+                </a>
+                
+                <a href="https://Man-Blaze.github.io/vbs-report/administration.html" class="card">
+                    <div class="card-icon">📋</div>
+                    <div class="card-title">Administration</div>
+                    <div class="card-desc">Leave requests, health check-ins, budget, supplies, vehicles</div>
+                    <div class="card-badge">HR • Finance • Operations</div>
+                </a>
+                
+                <a href="https://Man-Blaze.github.io/vbs-report/conformity.html" class="card">
+                    <div class="card-icon">✅</div>
+                    <div class="card-title">Conformity Assessment</div>
+                    <div class="card-desc">Compliance checks, entity inspections, enforcement actions</div>
+                    <div class="card-badge">Inspectors • Quality Assurance</div>
+                </a>
+                
+                <a href="https://Man-Blaze.github.io/vbs-report/general_activity.html" class="card">
+                    <div class="card-icon">📝</div>
+                    <div class="card-title">General Activity Log</div>
+                    <div class="card-desc">Meetings, training, stakeholder coordination, any other task</div>
+                    <div class="card-badge">All Divisions</div>
+                </a>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <!-- ======================================== -->
+        <!-- MANAGERS SECTION (Approve Reports) -->
+        <!-- ======================================== -->
+        <div class="role-section">
+            <div class="role-title">👔 Managers - Review & Approve</div>
+            <div class="card-grid">
+                <a href="https://Man-Blaze.github.io/vbs-report/manager_dashboard.html" class="card manager-card">
+                    <div class="card-icon">✅</div>
+                    <div class="card-title">Manager Approval Dashboard</div>
+                    <div class="card-desc">Review pending reports from your division. Approve or reject with comments.</div>
+                    <div class="card-badge">⚠️ Managers Only</div>
+                </a>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <!-- ======================================== -->
+        <!-- CEO SECTION (View Dashboard) -->
+        <!-- ======================================== -->
+        <div class="role-section">
+            <div class="role-title">👑 CEO & Leadership - Live Dashboard</div>
+            <div class="card-grid">
+                <a href="#" class="card ceo-card" id="powerBILink">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">Power BI Dashboard</div>
+                    <div class="card-desc">Live CEO dashboard - export volumes, pass rates, staff performance, trends</div>
+                    <div class="card-badge">⚠️ CEO Only • Connect to Supabase</div>
+                </a>
+                
+                <a href="https://Man-Blaze.github.io/vbs-report/tracking.html" class="card ceo-card">
+                    <div class="card-icon">🔍</div>
+                    <div class="card-title">Activity Tracker</div>
+                    <div class="card-desc">Complete audit trail - who submitted, who approved, and when</div>
+                    <div class="card-badge">CEO • Managers • Audit</div>
+                </a>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <!-- ======================================== -->
+        <!-- QUICK REFERENCE -->
+        <!-- ======================================== -->
+        <div class="role-section">
+            <div class="role-title">📌 Quick Reference</div>
+            <div class="card-grid">
+                <div class="card" style="background: #f8f9fa; cursor: default;">
+                    <div class="card-icon">⏰</div>
+                    <div class="card-title">Daily Schedule</div>
+                    <div class="card-desc">
+                        <strong>4:00 PM</strong> - Officers submit reports<br>
+                        <strong>8:00 AM</strong> - Managers review and approve<br>
+                        <strong>9:00 AM</strong> - CEO views live dashboard
+                    </div>
+                </div>
+                
+                <div class="card" style="background: #f8f9fa; cursor: default;">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">Status Meanings</div>
+                    <div class="card-desc">
+                        <span style="background:#fff3cd; padding:2px 6px;">🟡 PENDING</span> - Waiting for manager<br>
+                        <span style="background:#d4edda; padding:2px 6px;">🟢 APPROVED</span> - Sent to CEO<br>
+                        <span style="background:#f8d7da; padding:2px 6px;">🔴 REJECTED</span> - Fix and resubmit
+                    </div>
+                </div>
+                
+                <div class="card" style="background: #f8f9fa; cursor: default;">
+                    <div class="card-icon">📞</div>
+                    <div class="card-title">Support</div>
+                    <div class="card-desc">
+                        <strong>IT Support:</strong> Polo<br>
+                        <strong>Email:</strong> pishmael@vbs.gov.vu
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>© 2026 Vanuatu Bureau of Standards • Data stored in sovereign Supabase database • Audit ready</p>
+            <p style="margin-top: 10px;">Version 1.0 • Live since 22 April 2026</p>
+        </div>
+    </div>
+    
+    <script>
+        // Power BI link - replace with your actual Power BI workspace link when ready
+        document.getElementById('powerBILink').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Power BI dashboard coming soon.\n\nConnect Power BI Desktop to:\nServer: db.pdwctzueksfuspwwumdy.supabase.co\nDatabase: postgres\nTable: Use vbs_approved_reports view');
+        });
+    </script>
+</body>
+</html>
