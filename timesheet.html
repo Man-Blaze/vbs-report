@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VBS Timesheet - Clock In/Out</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; max-width: 500px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 10px; }
+        h1 { color: #2c7a4d; }
+        button { width: 100%; padding: 15px; margin: 10px 0; font-size: 18px; border: none; border-radius: 8px; cursor: pointer; }
+        .clock-in { background: #2c7a4d; color: white; }
+        .clock-out { background: #dc3545; color: white; }
+        .status { text-align: center; padding: 10px; background: #e8f5e9; border-radius: 8px; margin: 15px 0; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏰ VBS Timesheet</h1>
+        <p>Clock in when you start work. Clock out when you finish.</p>
+        
+        <div class="status" id="statusMsg">Ready to clock in</div>
+        
+        <form id="timesheetForm">
+            <label>Officer Name:</label>
+            <input name="officer_name" id="officerName" required>
+            
+            <label>Division:</label>
+            <select name="division" required>
+                <option>Provincial</option>
+                <option>Laboratory</option>
+                <option>Packhouse</option>
+                <option>Standards</option>
+                <option>Administration</option>
+            </select>
+            
+            <label>Date:</label>
+            <input name="report_date" type="date" required>
+            
+            <input type="hidden" name="time_in" id="timeIn">
+            <input type="hidden" name="time_out" id="timeOut">
+            <input type="hidden" name="hours_worked" id="hoursWorked">
+            
+            <button type="button" class="clock-in" onclick="clockIn()">✅ Clock In - Start Work</button>
+            <button type="button" class="clock-out" onclick="clockOut()">❌ Clock Out - End Work</button>
+        </form>
+        
+        <div id="todayRecord" style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px;"></div>
+    </div>
+    
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        let currentTimeIn = null;
+        
+        document.getElementById('officerName').value = localStorage.getItem('vbs_officer') || '';
+        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+        
+        // Auto-save officer name
+        document.getElementById('officerName').onchange = () => {
+            localStorage.setItem('vbs_officer', document.getElementById('officerName').value);
+        };
+        
+        async function clockIn() {
+            const officer = document.getElementById('officerName').value;
+            if (!officer) { alert('Enter your name first'); return; }
+            
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            document.getElementById('timeIn').value = timeStr;
+            currentTimeIn = now;
+            
+            document.getElementById('statusMsg').innerHTML = `✅ Clocked in at ${timeStr}`;
+            document.getElementById('statusMsg').style.background = '#d4edda';
+            
+            // Save to Supabase
+            const data = {
+                officer_name: officer,
+                division: document.querySelector('[name="division"]').value,
+                report_date: document.querySelector('[name="report_date"]').value,
+                time_in: timeStr,
+                status: 'PENDING'
+            };
+            
+            await fetch(`${SUPABASE_URL}/rest/v1/general_activity_log`, {
+                method: 'POST',
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            loadTodayRecord();
+        }
+        
+        async function clockOut() {
+            const officer = document.getElementById('officerName').value;
+            if (!officer) { alert('Enter your name first'); return; }
+            
+            const now = new Date();
+            const timeOutStr = now.toLocaleTimeString();
+            document.getElementById('timeOut').value = timeOutStr;
+            
+            if (currentTimeIn) {
+                const hours = (now - currentTimeIn) / 3600000;
+                document.getElementById('hoursWorked').value = hours.toFixed(1);
+            }
+            
+            document.getElementById('statusMsg').innerHTML = `❌ Clocked out at ${timeOutStr} | Hours: ${document.getElementById('hoursWorked').value || '?'}`;
+            document.getElementById('statusMsg').style.background = '#f8d7da';
+            
+            // Update the record with clock out time
+            const date = document.querySelector('[name="report_date"]').value;
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/general_activity_log?officer_name=eq.${officer}&report_date=eq.${date}&order=created_at.desc&limit=1`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+            });
+            const records = await response.json();
+            
+            if (records.length > 0) {
+                await fetch(`${SUPABASE_URL}/rest/v1/general_activity_log?id=eq.${records[0].id}`, {
+                    method: 'PATCH',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ time_out: timeOutStr, hours_worked: document.getElementById('hoursWorked').value })
+                });
+            }
+            
+            loadTodayRecord();
+        }
+        
+        async function loadTodayRecord() {
+            const officer = document.getElementById('officerName').value;
+            const date = document.querySelector('[name="report_date"]').value;
+            if (!officer) return;
+            
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/general_activity_log?officer_name=eq.${officer}&report_date=eq.${date}&order=created_at.desc&limit=1`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+            });
+            const records = await response.json();
+            
+            if (records.length > 0) {
+                const r = records[0];
+                document.getElementById('todayRecord').innerHTML = `
+                    <strong>Today's Record:</strong><br>
+                    Clock In: ${r.time_in || 'Not yet'}<br>
+                    Clock Out: ${r.time_out || 'Not yet'}<br>
+                    Hours: ${r.hours_worked || 'Pending'}
+                `;
+            } else {
+                document.getElementById('todayRecord').innerHTML = 'No record for today. Click Clock In.';
+            }
+        }
+        
+        loadTodayRecord();
+    </script>
+</body>
+</html>
