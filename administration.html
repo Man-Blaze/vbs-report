@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VBS - Administration Report</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>body { font-family: Arial, sans-serif; max-width: 500px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+    .container { background: white; padding: 20px; border-radius: 10px; }
+    h1 { color: #2c7a4d; } label { display: block; margin-top: 15px; font-weight: bold; }
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; }
+    button { width: 100%; padding: 12px; margin-top: 20px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Administration Report</h1>
+        <form id="reportForm">
+            <label>Officer Name:</label><input name="officer_name" required>
+            <label>Report Date:</label><input name="report_date" type="date" required>
+            <label>Leave Type:</label><select name="leave_type"><option></option><option>Annual</option><option>Sick</option><option>Emergency</option></select>
+            <label>Leave Start Date:</label><input name="leave_start_date" type="date">
+            <label>Leave End Date:</label><input name="leave_end_date" type="date">
+            <label>Health Status:</label><select name="health_status"><option>Fit</option><option>Sick</option><option>Partial</option></select>
+            <label>Budget Utilization (%):</label><input name="budget_utilization_percent" type="number" step="0.1">
+            <label>Revenue Collected (VT):</label><input name="revenue_collected_vt" type="number" value="0">
+            <label>Program Spending (VT):</label><input name="program_spending_vt" type="number" value="0">
+            <label>Overtime Hours:</label><input name="overtime_hours" type="number" step="0.5" value="0">
+            <label>Vehicle Destination:</label><input name="vehicle_destination">
+            <label>Supply Item Requested:</label><input name="supply_item_name">
+            <label>Supply Quantity:</label><input name="supply_quantity" type="number">
+            <label>Hours Worked:</label><input name="hours_worked" type="number" step="0.5" value="8">
+            <label>Tasks Completed:</label><input name="tasks_completed" type="number" value="0">
+            <label>Notes:</label><textarea name="inspector_notes"></textarea>
+            <button type="submit">Submit Report</button>
+        </form>
+    </div>
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        document.getElementById('reportForm').onsubmit = async (e) => {
+            e.preventDefault(); const formData = new FormData(e.target); const data = {};
+            formData.forEach((v,k) => { if(v) data[k] = v; });
+            data.status = 'PENDING';
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/administration_reports`, {
+                method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            alert(response.ok ? '✅ Report submitted!' : '❌ Error');
+            if(response.ok) e.target.reset();
+        };
+        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
