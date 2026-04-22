@@ -4,28 +4,37 @@
     <title>VBS Manager Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        body { font-family: Arial; max-width: 1200px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
         .container { background: white; padding: 20px; border-radius: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; overflow-x: auto; display: block; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background: #2c7a4d; color: white; }
         button { padding: 5px 10px; margin: 2px; cursor: pointer; }
-        .approve { background: green; color: white; border: none; }
-        .reject { background: red; color: white; border: none; }
+        .approve { background: green; color: white; border: none; border-radius: 3px; }
+        .reject { background: red; color: white; border: none; border-radius: 3px; }
+        .pending-count { background: #ffc107; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px; }
+        select, button.filter { padding: 8px; margin: 5px; }
+        .filters { margin: 15px 0; padding: 10px; background: #e8f5e9; border-radius: 5px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>VBS Manager Dashboard</h1>
-        <p>Select your division to see pending reports:</p>
+        <p>Review and approve pending reports from your division</p>
         
-        <select id="divisionSelect" onchange="loadReports()">
-            <option value="provincial">Provincial</option>
-            <option value="laboratory">Laboratory</option>
-            <option value="packhouse">Packhouse</option>
-            <option value="standards">Standards</option>
-            <option value="administration">Administration</option>
-        </select>
+        <div class="filters">
+            <label>Select Division:</label>
+            <select id="divisionSelect" onchange="loadReports()">
+                <option value="provincial">Provincial (Inspections)</option>
+                <option value="laboratory">Laboratory</option>
+                <option value="packhouse">Packhouse</option>
+                <option value="standards">Standards & Certification</option>
+                <option value="administration">Administration</option>
+                <option value="conformity">Conformity Assessment</option>
+                <option value="general">General Activity Log</option>
+            </select>
+            <span id="pendingCount" style="margin-left: 15px;"></span>
+        </div>
         
         <div id="reportsTable">Loading...</div>
     </div>
@@ -34,61 +43,136 @@
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
+        // Map divisions to their tables
+        const tableMap = {
+            provincial: 'provincial_reports',
+            laboratory: 'laboratory_reports',
+            packhouse: 'packhouse_reports',
+            standards: 'standards_reports',
+            administration: 'administration_reports',
+            conformity: 'conformity_assessment',
+            general: 'general_activity_log'
+        };
+        
+        // Get summary text for each report type
+        function getSummary(report, division) {
+            switch(division) {
+                case 'provincial':
+                    return `${report.location || 'No location'} | Result: ${report.inspection_result || 'N/A'} | Non-compliance: ${report.non_compliance_cases || 0}`;
+                case 'laboratory':
+                    return `Sample: ${report.sample_id || 'N/A'} | Test: ${report.test_type || 'N/A'} | Result: ${report.test_result || 'N/A'}`;
+                case 'packhouse':
+                    return `Volume: ${report.volume_processed_kg || 0} kg | Waste: ${report.waste_percent || 0}% | Rejection: ${report.rejection_rate_percent || 0}%`;
+                case 'standards':
+                    return `Standard: ${report.standard_name || 'N/A'} | Stage: ${report.standard_stage || 'N/A'} | Certifications: ${report.certifications_issued || 0}`;
+                case 'administration':
+                    return `Leave: ${report.leave_type || 'None'} | Health: ${report.health_status || 'Fit'} | Budget: ${report.budget_utilization_percent || 0}%`;
+                case 'conformity':
+                    return `Entity: ${report.entity_name || 'N/A'} | Result: ${report.assessment_result || 'N/A'} | Non-compliance: ${report.non_compliance_type || 'None'}`;
+                case 'general':
+                    return `Activity: ${report.activity_type || 'N/A'} | ${report.activity_name || ''} | Stakeholder: ${report.stakeholder_name || 'None'}`;
+                default:
+                    return report.inspector_notes || report.notes || 'Report submitted';
+            }
+        }
+        
         async function loadReports() {
             const division = document.getElementById('divisionSelect').value;
-            const table = `${division}_reports`;
+            const table = tableMap[division];
             
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?status=eq.PENDING`, {
-                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-            });
-            const data = await response.json();
-            
-            if (data.length === 0) {
-                document.getElementById('reportsTable').innerHTML = '<p>✅ No pending reports</p>';
-                return;
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?status=eq.PENDING&order=report_date.desc`, {
+                    headers: { 
+                        'apikey': SUPABASE_KEY, 
+                        'Authorization': `Bearer ${SUPABASE_KEY}` 
+                    }
+                });
+                const data = await response.json();
+                
+                const pendingCount = data.length;
+                document.getElementById('pendingCount').innerHTML = `<span class="pending-count">${pendingCount} pending</span>`;
+                
+                if (data.length === 0) {
+                    document.getElementById('reportsTable').innerHTML = '<p>✅ No pending reports. Good job!</p>';
+                    return;
+                }
+                
+                let html = `<tr>
+                    <th>Date</th>
+                    <th>Officer</th>
+                    <th>Details</th>
+                    <th>Actions</th>
+                </tr>`;
+                
+                for (let report of data) {
+                    const summary = getSummary(report, division);
+                    html += `
+                        <tr>
+                            <td>${report.report_date || report.created_at?.split('T')[0] || 'N/A'}</td>
+                            <td>${report.officer_name || 'Unknown'}</td>
+                            <td>${summary}</td>
+                            <td>
+                                <button class="approve" onclick="approve('${table}', ${report.id})">✅ Approve</button>
+                                <button class="reject" onclick="reject('${table}', ${report.id})">❌ Reject</button>
+                            </td>
+                        </tr>
+                    `;
+                }
+                html += '</table>';
+                document.getElementById('reportsTable').innerHTML = html;
+            } catch (error) {
+                document.getElementById('reportsTable').innerHTML = `<p>❌ Error loading: ${error.message}</p>`;
             }
-            
-            let html = '<table><tr><th>Date</th><th>Officer</th><th>Summary</th><th>Action</th></tr>';
-            for (let report of data) {
-                html += `
-                    <tr>
-                        <td>${report.report_date}</td>
-                        <td>${report.officer_name}</td>
-                        <td>${report.inspector_notes || report.sample_id || 'Report submitted'}</td>
-                        <td>
-                            <button class="approve" onclick="approve('${table}', ${report.id})">Approve</button>
-                            <button class="reject" onclick="reject('${table}', ${report.id})">Reject</button>
-                        </td>
-                    </tr>
-                `;
-            }
-            html += '</table>';
-            document.getElementById('reportsTable').innerHTML = html;
         }
         
         async function approve(table, id) {
-            await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
-                method: 'PATCH',
-                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'APPROVED', approved_by: 'Manager', approved_at: new Date().toISOString() })
-            });
-            loadReports();
-            alert('✅ Report approved');
+            try {
+                await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'apikey': SUPABASE_KEY, 
+                        'Authorization': `Bearer ${SUPABASE_KEY}`, 
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({ 
+                        status: 'APPROVED', 
+                        approved_by: 'Manager', 
+                        approved_at: new Date().toISOString() 
+                    })
+                });
+                alert('✅ Report approved');
+                loadReports();
+            } catch (error) {
+                alert('❌ Error approving: ' + error.message);
+            }
         }
         
         async function reject(table, id) {
             const reason = prompt('Reason for rejection:');
             if (reason) {
-                await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
-                    method: 'PATCH',
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'REJECTED', manager_comment: reason })
-                });
-                loadReports();
-                alert('❌ Report rejected');
+                try {
+                    await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+                        method: 'PATCH',
+                        headers: { 
+                            'apikey': SUPABASE_KEY, 
+                            'Authorization': `Bearer ${SUPABASE_KEY}`, 
+                            'Content-Type': 'application/json' 
+                        },
+                        body: JSON.stringify({ 
+                            status: 'REJECTED', 
+                            manager_comment: reason,
+                            approved_by: null
+                        })
+                    });
+                    alert('❌ Report rejected');
+                    loadReports();
+                } catch (error) {
+                    alert('❌ Error rejecting: ' + error.message);
+                }
             }
         }
         
+        // Load reports on page load
         loadReports();
     </script>
 </body>
