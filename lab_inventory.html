@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lab Inventory Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; max-width: 1200px; margin: 20px auto; padding: 20px; background: #f0f2f5; }
+        .container { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        h1 { color: #2c7a4d; }
+        h2 { color: #1a5a3a; margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; background: #e0e0e0; border: none; border-radius: 8px; cursor: pointer; }
+        .tab.active { background: #2c7a4d; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; overflow-x: auto; display: block; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 13px; }
+        th { background: #2c7a4d; color: white; }
+        input, select, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #2c7a4d; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-danger { background: #dc3545; }
+        .btn-warning { background: #ffc107; color: #333; }
+        .low-stock { background: #f8d7da; color: #721c24; }
+        .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        .form-row > div { flex: 1; min-width: 150px; }
+        .alert { background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 Laboratory Inventory Management</h1>
+        <p>Focal Points: Galana Siro (Santo) | Rollina Kelep (Port Vila)</p>
+        
+        <div id="lowStockAlert" class="alert" style="display:none;"></div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('chemicals')">🧪 Chemicals</button>
+            <button class="tab" onclick="showTab('glassware')">🔍 Glassware</button>
+            <button class="tab" onclick="showTab('equipment')">⚙️ Equipment</button>
+            <button class="tab" onclick="showTab('usage')">📝 Record Usage</button>
+            <button class="tab" onclick="showTab('reports')">📊 Reports</button>
+        </div>
+        
+        <!-- Chemicals Tab -->
+        <div id="chemicalsTab" class="tab-content active">
+            <h2>Chemical Inventory</h2>
+            <button onclick="showAddChemicalForm()">+ Add Chemical</button>
+            <div id="addChemicalForm" style="display:none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <h3>Add New Chemical</h3>
+                <div class="form-row">
+                    <div><label>Chemical Name:</label><input id="chem_name" placeholder="e.g., Ethanol"></div>
+                    <div><label>CAS Number:</label><input id="chem_cas" placeholder="64-17-5"></div>
+                    <div><label>Grade:</label><input id="chem_grade" placeholder="Analytical Grade"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Manufacturer:</label><input id="chem_manufacturer"></div>
+                    <div><label>Physical State:</label><select id="chem_state"><option>Liquid</option><option>Solid</option><option>Gas</option></select></div>
+                    <div><label>Unit:</label><select id="chem_unit"><option>mL</option><option>g</option><option>L</option><option>kg</option></select></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Current Amount:</label><input id="chem_amount" type="number" step="0.01"></div>
+                    <div><label>Minimum Stock Level:</label><input id="chem_min" type="number" step="0.01"></div>
+                    <div><label>Hazard Class:</label><input id="chem_hazard" placeholder="Flammable, Toxic"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Storage Location:</label><input id="chem_location" placeholder="Cabinet A2"></div>
+                    <div><label>Expiry Date:</label><input id="chem_expiry" type="date"></div>
+                </div>
+                <button onclick="addChemical()">Save Chemical</button>
+            </div>
+            <div id="chemicalsTable">Loading...</div>
+        </div>
+        
+        <!-- Glassware Tab -->
+        <div id="glasswareTab" class="tab-content">
+            <h2>Glassware Inventory</h2>
+            <button onclick="showAddGlasswareForm()">+ Add Glassware</button>
+            <div id="addGlasswareForm" style="display:none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <div class="form-row">
+                    <div><label>Item Name:</label><input id="glass_name" placeholder="e.g., Beaker 250ml"></div>
+                    <div><label>Material:</label><input id="glass_material" placeholder="Borosilicate"></div>
+                    <div><label>Capacity:</label><input id="glass_capacity" placeholder="250ml"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Quantity on Hand:</label><input id="glass_qty" type="number"></div>
+                    <div><label>Minimum Stock:</label><input id="glass_min" type="number"></div>
+                    <div><label>Storage Location:</label><input id="glass_location"></div>
+                </div>
+                <button onclick="addGlassware()">Save Glassware</button>
+            </div>
+            <div id="glasswareTable">Loading...</div>
+        </div>
+        
+        <!-- Equipment Tab -->
+        <div id="equipmentTab" class="tab-content">
+            <h2>Equipment Inventory</h2>
+            <button onclick="showAddEquipmentForm()">+ Add Equipment</button>
+            <div id="addEquipmentForm" style="display:none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <div class="form-row">
+                    <div><label>Equipment Name:</label><input id="eq_name" placeholder="e.g., Analytical Balance"></div>
+                    <div><label>Manufacturer:</label><input id="eq_manufacturer"></div>
+                    <div><label>Model:</label><input id="eq_model"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Serial Number:</label><input id="eq_serial"></div>
+                    <div><label>Internal ID:</label><input id="eq_id"></div>
+                    <div><label>Status:</label><select id="eq_status"><option>In use</option><option>Under maintenance</option><option>Broken</option><option>Retired</option></select></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Last Calibration:</label><input id="eq_calibration" type="date"></div>
+                    <div><label>Next Service Due:</label><input id="eq_service" type="date"></div>
+                    <div><label>Location:</label><input id="eq_location"></div>
+                </div>
+                <button onclick="addEquipment()">Save Equipment</button>
+            </div>
+            <div id="equipmentTable">Loading...</div>
+        </div>
+        
+        <!-- Usage Tab -->
+        <div id="usageTab" class="tab-content">
+            <h2>Record Usage (Deduct from Stock)</h2>
+            <div class="form-row">
+                <div><label>Item Type:</label><select id="usage_type" onchange="loadUsageItems()"><option>chemical</option><option>glassware</option></select></div>
+                <div><label>Select Item:</label><select id="usage_item"></select></div>
+                <div><label>Quantity Used:</label><input id="usage_qty" type="number" step="0.01"></div>
+            </div>
+            <div class="form-row">
+                <div><label>Test Name:</label><input id="usage_test" placeholder="e.g., Microbial Test"></div>
+                <div><label>Sample ID:</label><input id="usage_sample"></div>
+                <div><label>Used By:</label><input id="usage_by" placeholder="Your name"></div>
+            </div>
+            <button onclick="recordUsage()">Record Usage & Deduct Stock</button>
+            <div id="usageMessage"></div>
+        </div>
+        
+        <!-- Reports Tab -->
+        <div id="reportsTab" class="tab-content">
+            <h2>Stock Reports</h2>
+            <button onclick="generateReport()">Generate Low Stock Report</button>
+            <div id="reportsContent"></div>
+        </div>
+    </div>
+    
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        let chemicals = [];
+        let glassware = [];
+        let equipment = [];
+        
+        async function loadChemicals() {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/lab_chemicals?order=chemical_name.asc`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+            });
+            chemicals = await response.json();
+            let html = '<table><tr><th>Name</th><th>Amount</th><th>Unit</th><th>Min Stock</th><th>Location</th><th>Expiry</th><th>Actions</th></tr>';
+            for (let c of chemicals) {
+                const lowStock = c.current_amount <= c.minimum_stock_level;
+                html += `<tr class="${lowStock ? 'low-stock' : ''}">
+                    <td>${c.chemical_name}</td>
+                    <td>${c.current_amount}</td>
+                    <td>${c.unit}</td>
+                    <td>${c.minimum_stock_level}</td>
+                    <td>${c.storage_location || '-'}</td>
+                    <td>${c.expiry_date || '-'}</td>
+                    <td><button onclick="updateChemical(${c.id}, 'current_amount', prompt('New amount:'))">Update</button></td>
+                </tr>`;
+            }
+            document.getElementById('chemicalsTable').innerHTML = html;
+            checkLowStock();
+        }
+        
+        async function loadGlassware() {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/lab_glassware?order=item_name.asc`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+            });
+            glassware = await response.json();
+            let html = '<table><tr><th>Item</th><th>Quantity</th><th>Min Stock</th><th>Location</th><th>Condition</th><th>Actions</th></tr>';
+            for (let g of glassware) {
+                const lowStock = g.quantity_on_hand <= g.minimum_stock_level;
+                html += `<tr class="${lowStock ? 'low-stock' : ''}">
+                    <td>${g.item_name}</td>
+                    <td>${g.quantity_on_hand}</td>
+                    <td>${g.minimum_stock_level}</td>
+                    <td>${g.storage_location || '-'}</td>
+                    <td>${g.condition_status || 'Good'}</td>
+                    <td><button onclick="updateGlassware(${g.id}, 'quantity_on_hand', prompt('New quantity:'))">Update</button></td>
+                </tr>`;
+            }
+            document.getElementById('glasswareTable').innerHTML = html;
+        }
+        
+        async function loadEquipment() {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/lab_equipment?order=equipment_name.asc`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+            });
+            equipment = await response.json();
+            let html = '<table><tr><th>Equipment</th><th>Model</th><th>Serial</th><th>Status</th><th>Last Calibration</th><th>Next Service</th><th>Actions</th></tr>';
+            for (let e of equipment) {
+                html += `<tr>
+                    <td>${e.equipment_name}</td>
+                    <td>${e.model || '-'}</td>
+                    <td>${e.serial_number || '-'}</td>
+                    <td><select onchange="updateEquipment(${e.id}, 'status', this.value)"><option ${e.status === 'In use' ? 'selected' : ''}>In use</option><option ${e.status === 'Under maintenance' ? 'selected' : ''}>Under maintenance</option><option ${e.status === 'Broken' ? 'selected' : ''}>Broken</option></select></td>
+                    <td><input type="date" value="${e.last_calibration || ''}" onchange="updateEquipment(${e.id}, 'last_calibration', this.value)"></td>
+                    <td><input type="date" value="${e.next_service_due || ''}" onchange="updateEquipment(${e.id}, 'next_service_due', this.value)"></td>
+                    <td><button onclick="updateEquipment(${e.id}, 'manual_link', prompt('Manual link:'))">Manual</button></td>
+                </tr>`;
+            }
+            document.getElementById('equipmentTable').innerHTML = html;
+        }
+        
+        async function addChemical() {
+            const data = {
+                chemical_name: document.getElementById('chem_name').value,
+                cas_number: document.getElementById('chem_cas').value,
+                grade: document.getElementById('chem_grade').value,
+                manufacturer: document.getElementById('chem_manufacturer').value,
+                physical_state: document.getElementById('chem_state').value,
+                unit: document.getElementById('chem_unit').value,
+                current_amount: parseFloat(document.getElementById('chem_amount').value),
+                minimum_stock_level: parseFloat(document.getElementById('chem_min').value),
+                hazard_class: document.getElementById('chem_hazard').value,
+                storage_location: document.getElementById('chem_location').value,
+                expiry_date: document.getElementById('chem_expiry').value,
+                updated_by: 'Focal Point'
+            };
+            await fetch(`${SUPABASE_URL}/rest/v1/lab_chemicals`, {
+                method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            alert('Chemical added');
+            loadChemicals();
+            document.getElementById('addChemicalForm').style.display = 'none';
+        }
+        
+        async function addGlassware() {
+            const data = {
+                item_name: document.getElementById('glass_name').value,
+                material_type: document.getElementById('glass_material').value,
+                capacity: document.getElementById('glass_capacity').value,
+                quantity_on_hand: parseInt(document.getElementById('glass_qty').value),
+                minimum_stock_level: parseInt(document.getElementById('glass_min').value),
+                storage_location: document.getElementById('glass_location').value,
+                updated_by: 'Focal Point'
+            };
+            await fetch(`${SUPABASE_URL}/rest/v1/lab_glassware`, {
+                method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            alert('Glassware added');
+            loadGlassware();
+            document.getElementById('addGlasswareForm').style.display = 'none';
+        }
+        
+        async function addEquipment() {
+            const data = {
+                equipment_name: document.getElementById('eq_name').value,
+                manufacturer: document.getElementById('eq_manufacturer').value,
+                model: document.getElementById('eq_model').value,
+                serial_number: document.getElementById('eq_serial').value,
+                internal_id: document.getElementById('eq_id').value,
+                status: document.getElementById('eq_status').value,
+                last_calibration: document.getElementById('eq_calibration').value,
+                next_service_due: document.getElementById('eq_service').value,
+                location: document.getElementById('eq_location').value,
+                updated_by: 'Focal Point'
+            };
+            await fetch(`${SUPABASE_URL}/rest/v1/lab_equipment`, {
+                method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            alert('Equipment added');
+            loadEquipment();
+            document.getElementById('addEquipmentForm').style.display = 'none';
+        }
+        
+        async function updateChemical(id, field, value) {
+            await fetch(`${SUPABASE_URL}/rest/v1/lab_chemicals?id=eq.${id}`, {
+                method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [field]: parseFloat(value), last_updated: new Date().toISOString() })
+            });
+            loadChemicals();
+        }
+        
+        async function updateGlassware(id, field, value) {
+            await fetch(`${SUPABASE_URL}/rest/v1/lab_glassware?id=eq.${id}`, {
+                method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [field]: parseInt(value), last_updated: new Date().toISOString() })
+            });
+            loadGlassware();
+        }
+        
+        async function updateEquipment(id, field, value) {
+            await fetch(`${SUPABASE_URL}/rest/v1/lab_equipment?id=eq.${id}`, {
+                method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [field]: value, last_updated: new Date().toISOString() })
+            });
+            loadEquipment();
+        }
+        
+        async function loadUsageItems() {
+            const type = document.getElementById('usage_type').value;
+            const items = type === 'chemical' ? chemicals : glassware;
+            const select = document.getElementById('usage_item');
+            select.innerHTML = '<option>Select item</option>';
+            for (let item of items) {
+                const name = type === 'chemical' ? item.chemical_name : item.item_name;
+                select.innerHTML += `<option value="${item.id}">${name}</option>`;
+            }
+        }
+        
+        async function recordUsage() {
+            const type = document.getElementById('usage_type').value;
+            const itemId = document.getElementById('usage_item').value;
+            const qty = parseFloat(document.getElementById('usage_qty').value);
+            const testName = document.getElementById('usage_test').value;
+            const sampleId = document.getElementById('usage_sample').value;
+            const usedBy = document.getElementById('usage_by').value;
+            
+            if (type === 'chemical') {
+                const chemical = chemicals.find(c => c.id == itemId);
+                const newAmount = chemical.current_amount - qty;
+                if (newAmount < 0) { alert('Not enough stock!'); return; }
+                await updateChemical(itemId, 'current_amount', newAmount);
+                await fetch(`${SUPABASE_URL}/rest/v1/lab_reagent_usage`, {
+                    method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_type: 'chemical', item_id: itemId, item_name: chemical.chemical_name, quantity_used: qty, unit: chemical.unit, test_name: testName, sample_id: sampleId, used_by: usedBy })
+                });
+                alert('Usage recorded and stock deducted');
+            } else {
+                const glass = glassware.find(g => g.id == itemId);
+                const newQty = glass.quantity_on_hand - qty;
+                if (newQty < 0) { alert('Not enough stock!'); return; }
+                await updateGlassware(itemId, 'quantity_on_hand', newQty);
+                alert('Usage recorded');
+            }
+            loadUsageItems();
+        }
+        
+        function checkLowStock() {
+            const lowChem = chemicals.filter(c => c.current_amount <= c.minimum_stock_level);
+            const lowGlass = glassware.filter(g => g.quantity_on_hand <= g.minimum_stock_level);
+            if (lowChem.length > 0 || lowGlass.length > 0) {
+                let msg = '<strong>⚠️ Low Stock Alert!</strong><br>';
+                lowChem.forEach(c => msg += `• ${c.chemical_name}: ${c.current_amount} ${c.unit} left<br>`);
+                lowGlass.forEach(g => msg += `• ${g.item_name}: ${g.quantity_on_hand} units left<br>`);
+                document.getElementById('lowStockAlert').innerHTML = msg;
+                document.getElementById('lowStockAlert').style.display = 'block';
+            } else {
+                document.getElementById('lowStockAlert').style.display = 'none';
+            }
+        }
+        
+        function generateReport() {
+            const lowChem = chemicals.filter(c => c.current_amount <= c.minimum_stock_level);
+            const lowGlass = glassware.filter(g => g.quantity_on_hand <= g.minimum_stock_level);
+            const dueCalibration = equipment.filter(e => {
+                if (!e.next_service_due) return false;
+                const due = new Date(e.next_service_due);
+                const today = new Date();
+                const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+                return diffDays <= 30 && diffDays >= 0;
+            });
+            
+            let html = '<h3>Low Stock Report</h3>';
+            html += '<h4>Chemicals Low Stock:</h4><ul>';
+            lowChem.forEach(c => html += `<li>${c.chemical_name}: ${c.current_amount} ${c.unit} (min: ${c.minimum_stock_level})</li>`);
+            html += lowChem.length === 0 ? '<li>None</li>' : '';
+            html += '</ul><h4>Glassware Low Stock:</h4><ul>';
+            lowGlass.forEach(g => html += `<li>${g.item_name}: ${g.quantity_on_hand} units (min: ${g.minimum_stock_level})</li>`);
+            html += lowGlass.length === 0 ? '<li>None</li>' : '';
+            html += '</ul><h4>Equipment Calibration Due (Next 30 Days):</h4><ul>';
+            dueCalibration.forEach(e => html += `<li>${e.equipment_name} - Service due: ${e.next_service_due}</li>`);
+            html += dueCalibration.length === 0 ? '<li>None</li>' : '';
+            html += '</ul>';
+            document.getElementById('reportsContent').innerHTML = html;
+        }
+        
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+            if (tabName === 'chemicals') loadChemicals();
+            if (tabName === 'glassware') loadGlassware();
+            if (tabName === 'equipment') loadEquipment();
+            if (tabName === 'usage') loadUsageItems();
+        }
+        
+        function showAddChemicalForm() { document.getElementById('addChemicalForm').style.display = 'block'; }
+        function showAddGlasswareForm() { document.getElementById('addGlasswareForm').style.display = 'block'; }
+        function showAddEquipmentForm() { document.getElementById('addEquipmentForm').style.display = 'block'; }
+        
+        loadChemicals();
+        loadGlassware();
+        loadEquipment();
+    </script>
+</body>
+</html>
