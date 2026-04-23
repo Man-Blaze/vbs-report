@@ -294,6 +294,7 @@
                     <option value="administration">📋 Administration</option>
                     <option value="conformity">✅ Conformity Assessment</option>
                     <option value="general">📝 General Activity Log</option>
+                    <option value="timesheet">⏰ Timesheet / Attendance</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -324,7 +325,8 @@
             standards: 'standards_reports',
             administration: 'administration_reports',
             conformity: 'conformity_assessment',
-            general: 'general_activity_log'
+            general: 'general_activity_log,
+            timesheet: 'timesheet'
         };
         
         function getDetailHTML(report, division) {
@@ -382,6 +384,13 @@
                         ${report.stakeholder_name ? `<span>🤝 ${report.stakeholder_name}</span>` : ''}
                         <div style="margin-top:5px;">📝 ${(report.activity_description || report.outcome || 'No description').substring(0, 80)}</div>
                     </div>`;
+
+                case 'timesheet':
+                    return `<div class="detail-preview">
+                        <span>⏰ ${report.time_in || '—'} → ${report.time_out || '—'}</span>
+                        <span>📅 Hours: ${report.hours_worked || '0'}</span>
+                       <span>📍 ${report.location || 'No location'}</span>
+                   </div>`;
                     
                 default:
                     return `<div class="detail-preview">${report.inspector_notes || report.notes || 'Report submitted'}</div>`;
