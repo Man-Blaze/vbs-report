@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Team Reports - VBS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; max-width: 1200px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 10px; }
+        h1 { color: #2c7a4d; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; vertical-align: top; }
+        th { background: #2c7a4d; color: white; }
+        .status-approved { background: #d4edda; color: #155724; padding: 3px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
+        .status-rejected { background: #f8d7da; color: #721c24; padding: 3px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
+        .status-pending { background: #fff3cd; color: #856404; padding: 3px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
+        .comment-box { background: #f8f9fa; padding: 8px; border-radius: 5px; margin-top: 5px; font-size: 12px; border-left: 3px solid #2c7a4d; }
+        .filters { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .filters input, .filters select { padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
+        .btn-search { background: #2c7a4d; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; }
+        .btn-reset { background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; }
+        .btn-resubmit { background: #ffc107; color: #333; border: none; padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 5px; }
+        .btn-resubmit:hover { background: #e0a800; }
+        .note { background: #e8f5e9; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px; }
+        .officer-name { font-weight: bold; color: #2c7a4d; }
+        .rejected-row { background: #fff3f3; }
+        .form-link { display: inline-block; margin-top: 15px; color: #2c7a4d; }
+        @media (max-width: 768px) {
+            th, td { font-size: 11px; padding: 6px; }
+            .filters { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Team Reports</h1>
+        <p>View all reports from your division. Click "Resubmit" to fix rejected reports.</p>
+        
+        <div class="note">
+            💡 <strong>Note:</strong> Rejected reports show the manager's comment. Click <strong>Resubmit</strong> to fix and send a new report.
+        </div>
+        
+        <div class="filters">
+            <select id="divisionFilter">
+                <option value="">All Divisions</option>
+                <option value="provincial">🌾 Provincial</option>
+                <option value="laboratory">🔬 Laboratory</option>
+                <option value="packhouse">📦 Packhouse</option>
+                <option value="standards">📜 Standards & Certification</option>
+                <option value="administration">📋 Administration</option>
+                <option value="conformity">✅ Conformity Assessment</option>
+                <option value="general">📝 General Activity</option>
+                <option value="timesheet">⏰ Timesheet</option>
+            </select>
+            <select id="statusFilter">
+                <option value="">All Status</option>
+                <option value="APPROVED">✅ Approved</option>
+                <option value="REJECTED">❌ Rejected</option>
+                <option value="PENDING">⏳ Pending</option>
+            </select>
+            <input type="text" id="officerFilter" placeholder="Filter by officer name">
+            <button class="btn-search" onclick="loadReports()">🔍 Search</button>
+            <button class="btn-reset" onclick="resetFilters()">Reset</button>
+        </div>
+        
+        <div id="reportsTable">Select a division to view reports</div>
+        
+        <hr>
+        <div class="form-link">
+            📝 <a href="https://Man-Blaze.github.io/vbs-report/">Go to Central Hub to submit new reports</a>
+        </div>
+    </div>
+    
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        const tableMap = {
+            provincial: 'provincial_reports',
+            laboratory: 'laboratory_reports',
+            packhouse: 'packhouse_reports',
+            standards: 'standards_reports',
+            administration: 'administration_reports',
+            conformity: 'conformity_assessment',
+            general: 'general_activity_log',
+            timesheet: 'timesheet'
+        };
+        
+        // Map division to form URL
+        const formUrls = {
+            provincial: 'https://Man-Blaze.github.io/vbs-report/provincial.html',
+            laboratory: 'https://Man-Blaze.github.io/vbs-report/laboratory.html',
+            packhouse: 'https://Man-Blaze.github.io/vbs-report/packhouse.html',
+            standards: 'https://Man-Blaze.github.io/vbs-report/standards.html',
+            administration: 'https://Man-Blaze.github.io/vbs-report/administration.html',
+            conformity: 'https://Man-Blaze.github.io/vbs-report/conformity.html',
+            general: 'https://Man-Blaze.github.io/vbs-report/general_activity.html',
+            timesheet: 'https://Man-Blaze.github.io/vbs-report/timesheet.html'
+        };
+        
+        function resubmitReport(report, division) {
+            // Store the rejected report data in localStorage so the form can pre-fill
+            localStorage.setItem('resubmit_data', JSON.stringify({
+                report: report,
+                division: division,
+                comment: report.manager_comment
+            }));
+            localStorage.setItem('resubmit_mode', 'true');
+            
+            // Redirect to the correct form
+            const formUrl = formUrls[division];
+            if (formUrl) {
+                window.location.href = formUrl + '?resubmit=true';
+            } else {
+                alert('Form not found for this division');
+            }
+        }
+        
+        async function loadReports() {
+            const division = document.getElementById('divisionFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const officerFilter = document.getElementById('officerFilter').value.toLowerCase();
+            
+            if (!division) {
+                document.getElementById('reportsTable').innerHTML = '<p>⚠️ Please select a division first</p>';
+                return;
+            }
+            
+            document.getElementById('reportsTable').innerHTML = '<p>Loading...</p>';
+            
+            const table = tableMap[division];
+            let url = `${SUPABASE_URL}/rest/v1/${table}?order=created_at.desc&limit=200`;
+            
+            try {
+                const response = await fetch(url, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                let data = await response.json();
+                
+                if (statusFilter) {
+                    data = data.filter(r => r.status === statusFilter);
+                }
+                if (officerFilter) {
+                    data = data.filter(r => (r.officer_name || '').toLowerCase().includes(officerFilter));
+                }
+                
+                if (data.length === 0) {
+                    document.getElementById('reportsTable').innerHTML = '<p>📭 No reports found</p>';
+                    return;
+                }
+                
+                const total = data.length;
+                const approved = data.filter(r => r.status === 'APPROVED').length;
+                const rejected = data.filter(r => r.status === 'REJECTED').length;
+                const pending = data.filter(r => r.status === 'PENDING').length;
+                
+                let html = `
+                    <div style="background: #f0f2f5; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 20px; flex-wrap: wrap;">
+                        <span>📊 <strong>Total:</strong> ${total}</span>
+                        <span style="color:#155724;">✅ <strong>Approved:</strong> ${approved}</span>
+                        <span style="color:#856404;">⏳ <strong>Pending:</strong> ${pending}</span>
+                        <span style="color:#721c24;">❌ <strong>Rejected:</strong> ${rejected}</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Officer</th>
+                                <th>Report Details</th>
+                                <th>Status</th>
+                                <th>Manager Comment</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                for (let r of data) {
+                    const status = r.status || 'PENDING';
+                    let statusClass = 'status-pending';
+                    let statusText = '⏳ PENDING';
+                    if (status === 'APPROVED') { statusClass = 'status-approved'; statusText = '✅ APPROVED'; }
+                    if (status === 'REJECTED') { statusClass = 'status-rejected'; statusText = '❌ REJECTED'; }
+                    
+                    const rowClass = status === 'REJECTED' ? 'rejected-row' : '';
+                    let summary = getSummary(r, division);
+                    const comment = r.manager_comment ? `<div class="comment-box">📌 ${r.manager_comment}</div>` : '-';
+                    
+                    let actionButton = '';
+                    if (status === 'REJECTED') {
+                        actionButton = `<button class="btn-resubmit" onclick="resubmitReport(${JSON.stringify(r).replace(/"/g, '&quot;')}, '${division}')">🔄 Resubmit</button>`;
+                    } else {
+                        actionButton = '-';
+                    }
+                    
+                    html += `<tr class="${rowClass}">
+                        <td>${r.report_date || r.created_at?.split('T')[0] || 'N/A'}</td>
+                        <td><span class="officer-name">${r.officer_name || 'Unknown'}</span></td>
+                        <td style="max-width:300px">${summary}</td>
+                        <td><span class="${statusClass}">${statusText}</span></td>
+                        <td style="max-width:250px">${comment}</td>
+                        <td style="text-align:center">${actionButton}</td>
+                    </table>`;
+                }
+                html += '</tbody></table>';
+                document.getElementById('reportsTable').innerHTML = html;
+                
+            } catch (error) {
+                document.getElementById('reportsTable').innerHTML = `<p>❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        function getSummary(report, division) {
+            switch(division) {
+                case 'provincial':
+                    return `${report.location || 'No location'} - ${report.inspection_result || 'N/A'} (NC: ${report.non_compliance_cases || 0})`;
+                case 'laboratory':
+                    return `${report.sample_id || 'No ID'} - ${report.test_type || 'N/A'} - ${report.test_result_status || report.test_result || 'N/A'}`;
+                case 'packhouse':
+                    return `${report.volume_processed_kg || 0} kg processed - ${report.waste_percent || 0}% waste`;
+                case 'standards':
+                    return `${report.standard_name || 'No standard'} - ${report.standard_stage || 'Draft'} - Certs: ${report.certifications_issued || 0}`;
+                case 'administration':
+                    return `${report.leave_type || 'No leave'} - ${report.health_status || 'Fit'}`;
+                case 'conformity':
+                    return `${report.entity_name || 'No entity'} - ${report.assessment_result || 'N/A'} - ${report.non_compliance_type || 'None'}`;
+                case 'general':
+                    return `${report.activity_type || 'N/A'} - ${report.activity_name || 'No name'} - ${report.stakeholder_name || ''}`;
+                case 'timesheet':
+                    return `${report.time_in || '—'} → ${report.time_out || '—'} (${report.hours_worked || 0} hrs)`;
+                default:
+                    return report.inspector_notes || report.notes || 'Report submitted';
+            }
+        }
+        
+        function resetFilters() {
+            document.getElementById('divisionFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('officerFilter').value = '';
+            document.getElementById('reportsTable').innerHTML = '<p>Select a division to view reports</p>';
+        }
+        
+        document.getElementById('divisionFilter').addEventListener('change', loadReports);
+        document.getElementById('statusFilter').addEventListener('change', loadReports);
+        document.getElementById('officerFilter').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') loadReports();
+        });
+    </script>
+</body>
+</html>
