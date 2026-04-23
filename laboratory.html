@@ -3,51 +3,165 @@
 <head>
     <title>VBS - Laboratory Report</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>body { font-family: Arial, sans-serif; max-width: 500px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
-    .container { background: white; padding: 20px; border-radius: 10px; }
-    h1 { color: #2c7a4d; } label { display: block; margin-top: 15px; font-weight: bold; }
-    input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; }
-    button { width: 100%; padding: 12px; margin-top: 20px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 550px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 10px; }
+        h1 { color: #2c7a4d; }
+        h3 { color: #1a5a3a; margin-bottom: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        label { display: block; margin-top: 12px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        textarea { min-height: 60px; }
+        button { width: 100%; padding: 12px; margin-top: 20px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .section { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔬 Laboratory Report</h1>
+        <p>Santo Lab (Galana Siro) | Port Vila Lab (Rollina Kelep)</p>
+        
         <form id="reportForm">
-            <label>Officer Name:</label><input name="officer_name" required>
-            <label>Report Date:</label><input name="report_date" type="date" required>
-            <label>Lab Location:</label><select name="lab_location"><option>Santo</option><option>Port Vila</option></select>
-            <label>Sample ID:</label><input name="sample_id">
-            <label>Sample Type:</label><select name="sample_type"><option>Food</option><option>Water</option><option>Soil</option></select>
-            <label>Test Type:</label><select name="test_type"><option>Microbiology</option><option>Chemical</option><option>DNA/GMO</option></select>
-            <label>Test Result:</label><select name="test_result"><option>Pass</option><option>Fail</option><option>Inconclusive</option></select>
-            <label>Lab Tests Conducted:</label><input name="lab_tests_conducted" type="number" value="0">
-            <label>Non-Compliance Cases:</label><input name="non_compliance_cases" type="number" value="0">
-            <label>Date Sample Received:</label><input name="date_sample_received" type="date">
-            <label>Date Result Completed:</label><input name="date_result_completed" type="date">
-            <label>Certificate Number:</label><input name="certificate_number">
-            <label>Reagent Status:</label><select name="reagent_status"><option>Good</option><option>Low</option><option>Critical</option></select>
-            <label>Equipment Issues:</label><textarea name="equipment_issues"></textarea>
-            <label>Hours Worked:</label><input name="hours_worked" type="number" step="0.5" value="8">
-            <label>Tasks Completed:</label><input name="tasks_completed" type="number" value="0">
-            <label>Notes:</label><textarea name="inspector_notes"></textarea>
-            <button type="submit">Submit Report</button>
+            <!-- Basic Info -->
+            <div class="section">
+                <h3>📋 Basic Information</h3>
+                <label>Officer Name:</label>
+                <input name="officer_name" required>
+                
+                <label>Report Date:</label>
+                <input name="report_date" type="date" required>
+                
+                <label>Lab Location:</label>
+                <select name="lab_location" required>
+                    <option value="Santo">Santo Laboratory</option>
+                    <option value="Port Vila">Port Vila Laboratory</option>
+                </select>
+            </div>
+            
+            <!-- Sample Information -->
+            <div class="section">
+                <h3>🧪 Sample Information</h3>
+                <label>Sample ID:</label>
+                <input name="sample_id" placeholder="e.g., LAB-2409-001" required>
+                
+                <label>Sample Name:</label>
+                <input name="sample_name" placeholder="e.g., Taro, Kava, Water Sample">
+                
+                <label>Sample Type:</label>
+                <select name="sample_type" required>
+                    <option value="Food">Food</option>
+                    <option value="Water">Water</option>
+                    <option value="Soil">Soil</option>
+                    <option value="Cosmetic">Cosmetic</option>
+                    <option value="Beverages">Beverages</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            
+            <!-- Test Details -->
+            <div class="section">
+                <h3>🔬 Test Details</h3>
+                <label>Test Type:</label>
+                <select name="test_type" required>
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="Chemical">Chemical</option>
+                    <option value="DNA/GMO">DNA/GMO</option>
+                </select>
+                
+                <label>Lab Tests Conducted:</label>
+                <select name="lab_tests_conducted" multiple size="8" style="height: auto;">
+                    <option value="Microbial Test">Microbial Test</option>
+                    <option value="Nobility Test">Nobility Test</option>
+                    <option value="NIP Test">NIP Test</option>
+                    <option value="Cocoa Quality Test">Cocoa Quality Test</option>
+                    <option value="Copra Quality Test">Copra Quality Test</option>
+                    <option value="Shelf-life Test">Shelf-life Test</option>
+                    <option value="AMR (Antimicrobial Resistance)">AMR (Antimicrobial Resistance)</option>
+                    <option value="Heavy Metal">Heavy Metal</option>
+                    <option value="Other">Other</option>
+                </select>
+                <small>Hold Ctrl (Windows) or Cmd (Mac) to select multiple tests</small>
+                
+                <label>Other Test (if Other selected):</label>
+                <input name="other_test" placeholder="Specify other test conducted">
+                
+                <label>Test Result Status:</label>
+                <select name="test_result_status" required>
+                    <option value="Completed">Completed</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Pending">Pending</option>
+                </select>
+            </div>
+            
+            <!-- Dates -->
+            <div class="section">
+                <h3>📅 Dates</h3>
+                <label>Date Sample Received:</label>
+                <input name="date_sample_received" type="date">
+                
+                <label>Expected Result Date:</label>
+                <input name="expected_result_date" type="date">
+            </div>
+            
+            <!-- Comments -->
+            <div class="section">
+                <h3>📝 Comments & Analysis</h3>
+                <label>Comment on Overall Analysis:</label>
+                <textarea name="inspector_notes" placeholder="Enter your analysis comments here..."></textarea>
+            </div>
+            
+            <button type="submit">Submit Laboratory Report</button>
         </form>
     </div>
+    
     <script>
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
         document.getElementById('reportForm').onsubmit = async (e) => {
-            e.preventDefault(); const formData = new FormData(e.target); const data = {};
-            formData.forEach((v,k) => { if(v) data[k] = v; });
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {};
+            
+            // Handle multiple select for lab tests
+            const testsSelect = document.querySelector('select[name="lab_tests_conducted"]');
+            const selectedTests = Array.from(testsSelect.selectedOptions).map(opt => opt.value);
+            data.lab_tests_conducted = selectedTests.join(', ');
+            
+            // Handle all other fields
+            for (let [key, value] of formData.entries()) {
+                if (key !== 'lab_tests_conducted' && value) {
+                    data[key] = value;
+                }
+            }
+            
             data.status = 'PENDING';
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/laboratory_reports`, {
-                method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            alert(response.ok ? '✅ Report submitted!' : '❌ Error');
-            if(response.ok) e.target.reset();
+            data.created_at = new Date().toISOString();
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/laboratory_reports`, {
+                    method: 'POST',
+                    headers: { 
+                        'apikey': SUPABASE_KEY, 
+                        'Authorization': `Bearer ${SUPABASE_KEY}`, 
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    alert('✅ Laboratory report submitted! Manager will review.');
+                    document.getElementById('reportForm').reset();
+                    document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+                } else {
+                    const error = await response.text();
+                    alert('❌ Error: ' + error);
+                }
+            } catch (error) {
+                alert('❌ Connection error: ' + error.message);
+            }
         };
+        
+        // Set default date
         document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
     </script>
 </body>
