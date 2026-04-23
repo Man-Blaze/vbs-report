@@ -164,5 +164,34 @@
         // Set default date
         document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
     </script>
+
+    <script>
+    // Check if this is a resubmit from a rejected report
+    window.onload = function() {
+        const resubmitMode = localStorage.getItem('resubmit_mode');
+        if (resubmitMode === 'true') {
+            const resubmitData = JSON.parse(localStorage.getItem('resubmit_data'));
+            if (resubmitData) {
+                // Show alert with manager comment
+                alert(`⚠️ This report was previously rejected.\n\nManager comment: ${resubmitData.comment || 'No comment'}\n\nPlease fix the issue and resubmit.`);
+                
+                // Optionally pre-fill the form with old data (implementation varies by form)
+                const form = document.getElementById('reportForm');
+                if (form && resubmitData.report) {
+                    for (let key in resubmitData.report) {
+                        let field = form.querySelector(`[name="${key}"]`);
+                        if (field && key !== 'id' && key !== 'created_at' && key !== 'status') {
+                            field.value = resubmitData.report[key];
+                        }
+                    }
+                }
+                
+                // Clear resubmit mode after loading
+                localStorage.removeItem('resubmit_mode');
+                localStorage.removeItem('resubmit_data');
+            }
+        }
+    };
+</script>
 </body>
 </html>
