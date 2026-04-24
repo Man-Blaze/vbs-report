@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ============================================
-# VBS CEO DASHBOARD - SINGLE SCREEN VERSION
+# VBS CEO DASHBOARD - ALL DIVISIONS
 # For flat screen TV in CEO office
 # ============================================
 
@@ -17,7 +17,7 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Page config - WIDE mode for TV screen
+# Page config
 st.set_page_config(page_title="VBS CEO Dashboard", page_icon="📊", layout="wide")
 
 # Hide Streamlit branding
@@ -58,7 +58,7 @@ def get_stats():
         'Standards': 'standards_reports',
         'Administration': 'administration_reports',
         'Conformity': 'conformity_assessment',
-        'General': 'general_activity_log',
+        'General Activity': 'general_activity_log',
         'Timesheet': 'timesheet'
     }
     stats = {}
@@ -92,10 +92,11 @@ if total_pending > 0:
     pending_df = pd.DataFrame([{'Division': d, 'Pending': s['pending']} for d, s in stats.items() if s['pending'] > 0])
     pending_df = pending_df.sort_values('Pending', ascending=False)
     st.error(f"⚠️ {total_pending} REPORTS PENDING MANAGER APPROVAL")
-    cols = st.columns(len(pending_df))
-    for i, row in pending_df.iterrows():
-        with cols[i]:
-            st.warning(f"**{row['Division']}**\n{row['Pending']} pending")
+    cols = st.columns(min(len(pending_df), 4))
+    for i, (idx, row) in enumerate(pending_df.iterrows()):
+        if i < 4:
+            with cols[i]:
+                st.warning(f"**{row['Division']}**\n{row['Pending']} pending")
 
 # ============================================
 # ROW 3: TWO MAIN CHARTS
@@ -161,9 +162,10 @@ with col2:
         st.info("No data yet")
 
 # ============================================
-# ROW 5: LABORATORY AND STAFF
+# ROW 5: LABORATORY AND STANDARDS
 # ============================================
 laboratory = load_table('laboratory_reports', 'APPROVED')
+standards = load_table('standards_reports', 'APPROVED')
 
 col1, col2 = st.columns(2)
 
@@ -183,24 +185,110 @@ with col1:
         st.info("No data yet")
 
 with col2:
-    st.subheader("👥 Top Officers")
-    all_officers = []
-    for table in ['provincial_reports']:
-        df = load_table(table, 'APPROVED')
-        if not df.empty and 'officer_name' in df.columns:
-            all_officers.extend(df['officer_name'].tolist())
-    if all_officers:
-        officer_counts = pd.Series(all_officers).value_counts().head(5).reset_index()
-        officer_counts.columns = ['Officer', 'Reports']
-        fig = px.bar(officer_counts, x='Officer', y='Reports', color='Reports',
-                     color_continuous_scale='Greens')
-        fig.update_layout(height=250, margin=dict(l=0, r=0, t=30, b=0), showlegend=False)
-        st.plotly_chart(fig, use_container_width=True)
+    st.subheader("📜 Standards & Certification")
+    if not standards.empty:
+        standards_dev = standards['standards_developed'].sum() if 'standards_developed' in standards.columns else 0
+        certs_issued = standards['certifications_issued'].sum() if 'certifications_issued' in standards.columns else 0
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("📋 Standards Developed", standards_dev)
+        with col_b:
+            st.metric("📜 Certifications Issued", certs_issued)
+        st.caption(f"Total Reports: {len(standards)}")
     else:
         st.info("No data yet")
 
 # ============================================
-# ROW 6: QUICK LINKS (Footer)
+# ROW 6: ADMINISTRATION AND CONFORMITY
+# ============================================
+administration = load_table('administration_reports', 'APPROVED')
+conformity = load_table('conformity_assessment', 'APPROVED')
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("📋 Administration")
+    if not administration.empty:
+        total_leave = administration['leave_type'].count() if 'leave_type' in administration.columns else 0
+        total_overtime = administration['overtime_hours'].sum() if 'overtime_hours' in administration.columns else 0
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("📝 Leave Requests", total_leave)
+        with col_b:
+            st.metric("⏰ Overtime Hours", f"{total_overtime:.1f}")
+        st.caption(f"Total Reports: {len(administration)}")
+    else:
+        st.info("No data yet")
+
+with col2:
+    st.subheader("✅ Conformity Assessment")
+    if not conformity.empty:
+        compliant = (conformity['assessment_result'] == 'Compliant').sum() if 'assessment_result' in conformity.columns else 0
+        non_compliant = len(conformity) - compliant
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("✅ Compliant", compliant)
+        with col_b:
+            st.metric("❌ Non-Compliant", non_compliant)
+        st.caption(f"Total Assessments: {len(conformity)}")
+    else:
+        st.info("No data yet")
+
+# ============================================
+# ROW 7: GENERAL ACTIVITY AND TIMESHEET
+# ============================================
+general = load_table('general_activity_log', 'APPROVED')
+timesheet = load_table('timesheet', 'APPROVED')
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("📝 General Activity")
+    if not general.empty:
+        activity_types = general['activity_type'].value_counts().head(3) if 'activity_type' in general.columns else pd.Series()
+        st.write("**Top Activities:**")
+        for act, count in activity_types.items():
+            st.write(f"- {act}: {count}")
+        st.caption(f"Total Activities: {len(general)}")
+    else:
+        st.info("No data yet")
+
+with col2:
+    st.subheader("⏰ Timesheet")
+    if not timesheet.empty:
+        total_hours = timesheet['hours_worked'].sum() if 'hours_worked' in timesheet.columns else 0
+        total_entries = len(timesheet)
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("👥 Total Entries", total_entries)
+        with col_b:
+            st.metric("🕐 Total Hours", f"{total_hours:.1f}")
+    else:
+        st.info("No data yet")
+
+# ============================================
+# ROW 8: TOP OFFICERS
+# ============================================
+st.subheader("👥 Top Officers")
+
+all_officers = []
+for table in ['provincial_reports', 'laboratory_reports', 'packhouse_reports', 'standards_reports', 'administration_reports']:
+    df = load_table(table, 'APPROVED')
+    if not df.empty and 'officer_name' in df.columns:
+        all_officers.extend(df['officer_name'].tolist())
+
+if all_officers:
+    officer_counts = pd.Series(all_officers).value_counts().head(5).reset_index()
+    officer_counts.columns = ['Officer', 'Reports']
+    fig = px.bar(officer_counts, x='Officer', y='Reports', color='Reports',
+                 color_continuous_scale='Greens')
+    fig.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0), showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("No officer data yet")
+
+# ============================================
+# ROW 9: QUICK LINKS (Footer)
 # ============================================
 st.divider()
 col1, col2, col3, col4 = st.columns(4)
@@ -213,4 +301,4 @@ with col3:
 with col4:
     st.markdown(f"🕐 Last Updated: {datetime.now().strftime('%H:%M:%S')}")
 
-st.caption("© 2026 Vanuatu Bureau of Standards | Auto-refreshes every 60 seconds")
+st.caption("© 2026 Vanuatu Bureau of Standards | Auto-refreshes every 60 seconds | All 8 Divisions: Provincial, Lab, Packhouse, Standards, Admin, Conformity, General, Timesheet")
