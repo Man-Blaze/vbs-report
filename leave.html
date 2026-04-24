@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VBS Leave Application</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; max-width: 700px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 10px; }
+        h1 { color: #2c7a4d; }
+        h3 { color: #1a5a3a; margin-bottom: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        label { display: block; margin-top: 12px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; margin-top: 20px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .section { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .row { display: flex; gap: 15px; }
+        .row > div { flex: 1; }
+        .signature { border: 1px dashed #ccc; padding: 15px; text-align: center; margin-top: 15px; }
+        @media (max-width: 600px) { .row { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 VBS Leave Application</h1>
+        <p>For planned leave, submit 2 weeks in advance. For sick leave, submit upon return.</p>
+        
+        <form id="leaveForm">
+            <!-- EMPLOYEE INFORMATION -->
+            <div class="section">
+                <h3>👤 Employee Information</h3>
+                <div class="row">
+                    <div><label>Full Name:</label><input name="officer_name" id="officerName" required></div>
+                    <div><label>Position/Title:</label><input name="position"></div>
+                </div>
+                <div class="row">
+                    <div><label>Division:</label>
+                        <select name="division" required>
+                            <option>Provincial</option><option>Laboratory</option><option>Packhouse</option>
+                            <option>Standards</option><option>Administration</option>
+                        </select>
+                    </div>
+                    <div><label>Employee ID:</label><input name="employee_id"></div>
+                </div>
+                <label>Supervisor's Name:</label><input name="supervisor_name" required>
+            </div>
+            
+            <!-- TYPE OF LEAVE -->
+            <div class="section">
+                <h3>📌 Type of Leave</h3>
+                <div class="row">
+                    <div><label>Leave Type:</label>
+                        <select name="leave_type" id="leaveType" required>
+                            <option value="">Select</option>
+                            <option value="Annual">Annual Leave</option>
+                            <option value="Sick">Sick Leave</option>
+                            <option value="Maternity">Maternity Leave</option>
+                            <option value="Paternity">Paternity Leave</option>
+                            <option value="Compassionate">Compassionate (Bereavement)</option>
+                            <option value="Study">Study Leave</option>
+                            <option value="Unpaid">Unpaid Leave</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div id="otherDiv" style="display:none;"><label>Please specify:</label><input name="other_leave_type"></div>
+                </div>
+                <div id="compassionateDiv" style="display:none;"><label>Relationship to Deceased:</label><input name="relationship_to_deceased"></div>
+                <div id="studyDiv" style="display:none;"><label>Course/Program:</label><input name="study_course"></div>
+                <div id="maternityDiv" style="display:none;"><label>Expected Date of Birth:</label><input name="expected_dob" type="date"></div>
+            </div>
+            
+            <!-- LEAVE DATES -->
+            <div class="section">
+                <h3>📅 Leave Dates</h3>
+                <div class="row">
+                    <div><label>Start Date:</label><input name="start_date" type="date" id="startDate" required></div>
+                    <div><label>End Date:</label><input name="end_date" type="date" id="endDate" required></div>
+                </div>
+                <label>Total Number of Days:</label><input name="total_days" id="totalDays" readonly style="background:#f0f0f0;">
+                <label>Reason for Leave:</label><textarea name="reason" rows="3"></textarea>
+            </div>
+            
+            <!-- SICK LEAVE SPECIFIC -->
+            <div id="sickSection" class="section" style="display:none;">
+                <h3>🩺 Sick Leave Details</h3>
+                <div class="row">
+                    <div><label>Notified supervisor?</label><select name="notified_supervisor"><option value="false">No</option><option value="true">Yes</option></select></div>
+                    <div><label>Submitting after return?</label><select name="submitted_after_return"><option value="false">No</option><option value="true">Yes</option></select></div>
+                </div>
+                <label>Medical Certificate (if any):</label><input name="medical_certificate_url" placeholder="Link to uploaded medical certificate">
+                <p class="small" style="font-size:12px; color:#666;">Note: For absences longer than 3 consecutive days, a medical certificate is required.</p>
+            </div>
+            
+            <!-- HR USE ONLY (Hidden from normal users, shown to HR) -->
+            <div id="hrSection" class="section" style="display:none; background:#e8f5e9;">
+                <h3>🏢 HR Use Only</h3>
+                <div class="row">
+                    <div><label>Leave Balance Checked:</label><select name="hr_balance_checked"><option value="false">No</option><option value="true">Yes</option></select></div>
+                    <div><label>Recorded in System:</label><select name="hr_recorded_system"><option value="false">No</option><option value="true">Yes</option></select></div>
+                </div>
+                <label>Processed by:</label><input name="hr_processed_by">
+                <label>Date Processed:</label><input name="hr_processed_date" type="date">
+            </div>
+            
+            <!-- DIGITAL SIGNATURE -->
+            <div class="signature">
+                <label>Digital Signature (Type your full name):</label>
+                <input name="signature" placeholder="Type your name as signature" required>
+                <p style="font-size:11px; color:#999;">By typing your name, you confirm the information is accurate and complete.</p>
+            </div>
+            
+            <button type="submit">Submit Leave Application</button>
+        </form>
+        <div id="message"></div>
+    </div>
+    
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        // Calculate total days
+        function calculateDays() {
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            if (start && end) {
+                const diff = (new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24) + 1;
+                document.getElementById('totalDays').value = diff > 0 ? diff : 0;
+            }
+        }
+        document.getElementById('startDate').addEventListener('change', calculateDays);
+        document.getElementById('endDate').addEventListener('change', calculateDays);
+        
+        // Show/hide conditional fields
+        document.getElementById('leaveType').addEventListener('change', function() {
+            const type = this.value;
+            document.getElementById('sickSection').style.display = type === 'Sick' ? 'block' : 'none';
+            document.getElementById('compassionateDiv').style.display = type === 'Compassionate' ? 'block' : 'none';
+            document.getElementById('studyDiv').style.display = type === 'Study' ? 'block' : 'none';
+            document.getElementById('maternityDiv').style.display = type === 'Maternity' ? 'block' : 'none';
+            document.getElementById('otherDiv').style.display = type === 'Other' ? 'block' : 'none';
+        });
+        
+        // Set default date
+        document.getElementById('startDate').valueAsDate = new Date();
+        
+        // HR section - only show if user has HR role (simple check)
+        // In production, use Supabase auth roles
+        const userEmail = localStorage.getItem('user_email') || '';
+        if (userEmail.includes('hr@') || userEmail.includes('admin@')) {
+            document.getElementById('hrSection').style.display = 'block';
+        }
+        
+        // Save name
+        document.getElementById('officerName').addEventListener('change', function() {
+            localStorage.setItem('leave_name', this.value);
+        });
+        const savedName = localStorage.getItem('leave_name');
+        if (savedName) document.getElementById('officerName').value = savedName;
+        
+        // Submit form
+        document.getElementById('leaveForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {};
+            formData.forEach((v,k) => { if(v) data[k] = v; });
+            data.status = 'PENDING';
+            data.created_at = new Date().toISOString();
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/leave_requests`, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    alert('✅ Leave application submitted! Your supervisor will review.');
+                    document.getElementById('leaveForm').reset();
+                    document.getElementById('startDate').valueAsDate = new Date();
+                    document.getElementById('officerName').value = localStorage.getItem('leave_name') || '';
+                } else {
+                    const error = await response.text();
+                    alert('❌ Error: ' + error);
+                }
+            } catch (error) {
+                alert('❌ Connection error: ' + error.message);
+            }
+        };
+    </script>
+</body>
+</html>
