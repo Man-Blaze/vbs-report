@@ -22,7 +22,6 @@
             margin: 0 auto;
         }
         
-        /* Header */
         .header {
             background: linear-gradient(135deg, #1a5a3a 0%, #2c7a4d 100%);
             color: white;
@@ -42,7 +41,6 @@
             font-size: 14px;
         }
         
-        /* Stats Cards */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -75,7 +73,6 @@
             margin-top: 5px;
         }
         
-        /* Filter Bar */
         .filter-bar {
             background: white;
             padding: 20px;
@@ -108,7 +105,7 @@
             font-size: 14px;
             background: white;
             cursor: pointer;
-            min-width: 200px;
+            min-width: 220px;
         }
         
         .pending-badge {
@@ -135,7 +132,6 @@
             background: #1e5a38;
         }
         
-        /* Reports Table */
         .reports-section {
             background: white;
             border-radius: 12px;
@@ -189,7 +185,6 @@
             color: #999;
         }
         
-        /* Buttons */
         .btn-approve {
             background: #2c7a4d;
             color: white;
@@ -223,7 +218,6 @@
             background: #b02a37;
         }
         
-        /* Detail Card (inside table cell) */
         .detail-preview {
             background: #f8f9fa;
             padding: 6px 10px;
@@ -242,14 +236,12 @@
             margin-right: 5px;
         }
         
-        /* Loading */
         .loading {
             text-align: center;
             padding: 40px;
             color: #999;
         }
         
-        /* Responsive */
         @media (max-width: 768px) {
             .header h1 { font-size: 22px; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -260,13 +252,11 @@
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- Header -->
         <div class="header">
             <h1>📋 VBS Manager Dashboard</h1>
             <p>Review, approve, or reject reports from your team. Only approved data reaches the CEO.</p>
         </div>
         
-        <!-- Stats Cards -->
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
                 <div class="stat-number" id="totalPending">0</div>
@@ -277,12 +267,11 @@
                 <div class="stat-label">Approved Today</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="divisionsCount">7</div>
+                <div class="stat-number" id="divisionsCount">10</div>
                 <div class="stat-label">Divisions</div>
             </div>
         </div>
         
-        <!-- Filter Bar -->
         <div class="filter-bar">
             <div class="filter-group">
                 <label>📂 Division:</label>
@@ -295,6 +284,8 @@
                     <option value="conformity">✅ Conformity Assessment</option>
                     <option value="general">📝 General Activity Log</option>
                     <option value="timesheet">⏰ Timesheet / Attendance</option>
+                    <option value="leave">📋 Leave Requests</option>
+                    <option value="admin_report">💰 Administration Report</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -303,7 +294,6 @@
             </div>
         </div>
         
-        <!-- Reports Table -->
         <div class="reports-section">
             <div class="section-title">
                 📊 Pending Reports
@@ -326,7 +316,9 @@
             administration: 'administration_reports',
             conformity: 'conformity_assessment',
             general: 'general_activity_log',
-            timesheet: 'timesheet'
+            timesheet: 'timesheet',
+            leave: 'leave_requests',
+            admin_report: 'administration_reports'
         };
         
         function getDetailHTML(report, division) {
@@ -336,7 +328,7 @@
                         <span>📍 ${report.location || 'No location'}</span>
                         <span>📊 ${report.inspection_result || 'N/A'}</span>
                         <span>⚠️ ${report.non_compliance_cases || 0} NC</span>
-                        ${report.inspector_notes ? `<div style="margin-top:5px;">📝 ${report.inspector_notes.substring(0, 80)}${report.inspector_notes.length > 80 ? '...' : ''}</div>` : ''}
+                        ${report.inspector_notes ? `<div style="margin-top:5px;">📝 ${report.inspector_notes.substring(0, 80)}</div>` : ''}
                     </div>`;
                     
                 case 'laboratory':
@@ -389,8 +381,25 @@
                     return `<div class="detail-preview">
                         <span>⏰ ${report.time_in || '—'} → ${report.time_out || '—'}</span>
                         <span>📅 Hours: ${report.hours_worked || '0'}</span>
-                       <span>📍 ${report.location || 'No location'}</span>
-                   </div>`;
+                        <span>📍 ${report.location || 'No location'}</span>
+                    </div>`;
+
+                case 'leave':
+                    return `<div class="detail-preview">
+                        <span>📋 ${report.leave_type || 'Annual'} Leave</span>
+                        <span>📅 ${report.start_date || '?'} to ${report.end_date || '?'}</span>
+                        <span>⏱️ ${report.total_days || '?'} days</span>
+                        <span>📝 ${report.reason ? report.reason.substring(0, 60) : 'No reason'}</span>
+                        <span>👤 Supervisor: ${report.supervisor_name || 'Not specified'}</span>
+                    </div>`;
+
+                case 'admin_report':
+                    return `<div class="detail-preview">
+                        <span>💰 Budget: ${report.budget_utilization_percent || 0}%</span>
+                        <span>📦 Revenue: VT ${(report.revenue_collected_vt || 0).toLocaleString()}</span>
+                        <span>🚗 Vehicle: ${report.vehicle_destination || 'None'}</span>
+                        <span>📝 ${report.inspector_notes ? report.inspector_notes.substring(0, 60) : 'No notes'}</span>
+                    </div>`;
                     
                 default:
                     return `<div class="detail-preview">${report.inspector_notes || report.notes || 'Report submitted'}</div>`;
@@ -406,7 +415,7 @@
             reportsDiv.innerHTML = '<div class="loading">⏳ Loading reports...</div>';
             
             try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?status=eq.PENDING&order=report_date.desc`, {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?status=eq.PENDING&order=created_at.desc`, {
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
                 });
                 const data = await response.json();
@@ -417,13 +426,13 @@
                 if (data.length === 0) {
                     reportsDiv.innerHTML = `
                         <table>
-                            <tr class="empty-row"><td>✅ No pending reports. Good job!</td></tr>
+                            <tr class="empty-row"><td>✅ No pending reports. Good job!</td>
                         </table>
                     `;
                     return;
                 }
                 
-                let html = `<table>
+                let html = `<tr>
                     <thead>
                         <tr>
                             <th>📅 Date</th>
@@ -436,7 +445,7 @@
                 `;
                 
                 for (let report of data) {
-                    const reportDate = report.report_date || (report.created_at ? report.created_at.split('T')[0] : 'N/A');
+                    const reportDate = report.report_date || report.created_at?.split('T')[0] || 'N/A';
                     html += `
                         <tr>
                             <td>${reportDate}</td>
@@ -490,7 +499,6 @@
             }
         }
         
-        // Load on page start
         loadReports();
     </script>
 </body>
