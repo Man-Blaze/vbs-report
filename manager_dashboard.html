@@ -12,13 +12,13 @@
         }
         
         body {
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            background: #f0f2f8;
+            font-family: 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif;
+            background: #f5f7fb;
             padding: 24px;
         }
         
         .dashboard-container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
         }
         
@@ -36,7 +36,7 @@
         
         .header p {
             font-size: 14px;
-            color: #6c757d;
+            color: #6c7a8a;
         }
         
         /* Stats Cards */
@@ -49,22 +49,22 @@
         
         .stat-card {
             background: white;
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 20px 24px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
-            border: 1px solid #e9ecef;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            border: 1px solid #eef2f6;
         }
         
-        .stat-card .stat-number {
+        .stat-number {
             font-size: 36px;
             font-weight: 700;
             color: #1a5a3a;
             line-height: 1.2;
         }
         
-        .stat-card .stat-label {
+        .stat-label {
             font-size: 14px;
-            color: #6c757d;
+            color: #6c7a8a;
             margin-top: 8px;
         }
         
@@ -79,7 +79,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            border: 1px solid #e9ecef;
+            border: 1px solid #eef2f6;
         }
         
         .filter-group {
@@ -91,13 +91,13 @@
         .filter-group label {
             font-weight: 500;
             font-size: 14px;
-            color: #495057;
+            color: #334155;
         }
         
         select {
-            padding: 8px 32px 8px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 10px;
+            padding: 8px 32px 8px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
             font-size: 14px;
             background: white;
             cursor: pointer;
@@ -106,41 +106,36 @@
         }
         
         .pending-badge {
-            background: #e6f7e6;
-            color: #1a5a3a;
-            padding: 5px 12px;
-            border-radius: 30px;
+            background: #fef3c7;
+            color: #b45309;
+            padding: 6px 14px;
+            border-radius: 40px;
             font-size: 13px;
             font-weight: 500;
         }
         
         .refresh-btn {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            padding: 8px 16px;
-            border-radius: 10px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 8px 20px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 13px;
             font-weight: 500;
-            color: #495057;
+            color: #334155;
             transition: all 0.2s;
         }
         
         .refresh-btn:hover {
-            background: #e9ecef;
+            background: #e2e8f0;
         }
         
-        /* Reports Cards Grid */
-        .reports-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-        
+        /* Report Card */
         .report-card {
             background: white;
-            border-radius: 16px;
-            border: 1px solid #e9ecef;
+            border-radius: 20px;
+            border: 1px solid #eef2f6;
+            margin-bottom: 16px;
             overflow: hidden;
             transition: box-shadow 0.2s;
         }
@@ -149,100 +144,142 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
         
-        .report-header {
+        /* Card Header */
+        .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 16px 24px;
-            background: #fafbfc;
-            border-bottom: 1px solid #e9ecef;
+            background: #fafcff;
+            border-bottom: 1px solid #eef2f6;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .officer-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .officer-avatar {
+            width: 40px;
+            height: 40px;
+            background: #e8f5e9;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .officer-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #1e293b;
         }
         
         .report-date {
             font-size: 13px;
-            font-weight: 500;
-            color: #6c757d;
+            color: #6c7a8a;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         
-        .report-officer {
-            font-weight: 600;
-            font-size: 16px;
-            color: #212529;
-        }
-        
-        .report-status {
-            font-size: 12px;
-            padding: 4px 10px;
-            border-radius: 30px;
-            font-weight: 500;
-        }
-        
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .report-body {
+        /* Card Body */
+        .card-body {
             padding: 20px 24px;
+        }
+        
+        /* Detail Grid - Clean and Readable */
+        .detail-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
         
         .detail-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 16px;
-            margin-bottom: 16px;
+            gap: 24px;
+            align-items: flex-start;
         }
         
-        .detail-item {
-            background: #f8f9fa;
-            padding: 8px 14px;
-            border-radius: 10px;
-            font-size: 13px;
-            display: inline-flex;
+        .detail-field {
+            display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            min-width: 180px;
         }
         
-        .detail-item .icon {
-            font-size: 16px;
+        .field-icon {
+            font-size: 18px;
+            width: 28px;
+            color: #1a5a3a;
         }
         
-        .detail-item .label {
-            color: #6c757d;
-        }
-        
-        .detail-item .value {
-            font-weight: 500;
-            color: #212529;
-        }
-        
-        .report-notes {
-            background: #f8f9fa;
-            padding: 12px 16px;
-            border-radius: 12px;
-            margin-top: 12px;
+        .field-label {
             font-size: 13px;
-            color: #495057;
+            color: #6c7a8a;
+            font-weight: 500;
+            min-width: 100px;
+        }
+        
+        .field-value {
+            font-size: 14px;
+            color: #1e293b;
+            font-weight: 500;
+        }
+        
+        .field-value.large {
+            font-weight: 600;
+            color: #1a5a3a;
+        }
+        
+        /* Notes Section */
+        .notes-section {
+            margin-top: 16px;
+            padding: 14px 16px;
+            background: #f8fafc;
+            border-radius: 14px;
             border-left: 3px solid #1a5a3a;
         }
         
-        .report-footer {
+        .notes-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1a5a3a;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .notes-text {
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.5;
+        }
+        
+        /* Card Footer */
+        .card-footer {
             display: flex;
             justify-content: flex-end;
             gap: 12px;
             padding: 16px 24px;
-            background: #fafbfc;
-            border-top: 1px solid #e9ecef;
+            background: #fafcff;
+            border-top: 1px solid #eef2f6;
         }
         
         .btn-approve {
             background: #1a5a3a;
             color: white;
             border: none;
-            padding: 8px 20px;
-            border-radius: 30px;
+            padding: 10px 24px;
+            border-radius: 40px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 500;
             transition: background 0.2s;
         }
@@ -253,27 +290,28 @@
         
         .btn-reject {
             background: white;
-            color: #dc3545;
-            border: 1px solid #dc3545;
-            padding: 8px 20px;
-            border-radius: 30px;
+            color: #dc2626;
+            border: 1px solid #dc2626;
+            padding: 10px 24px;
+            border-radius: 40px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 500;
             transition: all 0.2s;
         }
         
         .btn-reject:hover {
-            background: #dc3545;
+            background: #dc2626;
             color: white;
         }
         
+        /* Empty & Loading States */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
             background: white;
-            border-radius: 16px;
-            border: 1px solid #e9ecef;
+            border-radius: 20px;
+            border: 1px solid #eef2f6;
         }
         
         .empty-state .icon {
@@ -284,19 +322,25 @@
         .empty-state h3 {
             font-size: 18px;
             font-weight: 500;
-            color: #212529;
+            color: #1e293b;
             margin-bottom: 8px;
         }
         
         .empty-state p {
-            color: #6c757d;
+            color: #6c7a8a;
             font-size: 14px;
         }
         
         .loading {
             text-align: center;
             padding: 60px;
-            color: #6c757d;
+            color: #6c7a8a;
+        }
+        
+        /* Rejected row highlight */
+        .rejected-highlight {
+            background: #fef2f2;
+            border-left: 3px solid #dc2626;
         }
         
         @media (max-width: 768px) {
@@ -304,9 +348,11 @@
             .stats-grid { grid-template-columns: 1fr; gap: 12px; }
             .filter-bar { flex-direction: column; align-items: stretch; }
             .filter-group { justify-content: space-between; }
-            .report-header { flex-direction: column; gap: 8px; align-items: flex-start; }
-            .report-footer { justify-content: stretch; }
-            .btn-approve, .btn-reject { flex: 1; text-align: center; }
+            .card-header { flex-direction: column; align-items: flex-start; }
+            .detail-field { min-width: 100%; }
+            .detail-row { flex-direction: column; gap: 12px; }
+            .card-footer { flex-direction: column; }
+            .btn-approve, .btn-reject { text-align: center; }
         }
     </style>
 </head>
@@ -314,7 +360,7 @@
     <div class="dashboard-container">
         <div class="header">
             <h1>Manager Dashboard</h1>
-            <p>Review and approve pending reports from your team</p>
+            <p>Review pending reports from your team</p>
         </div>
         
         <div class="stats-grid">
@@ -334,28 +380,28 @@
         
         <div class="filter-bar">
             <div class="filter-group">
-                <label>📂 Select Division</label>
+                <label>📂 Division</label>
                 <select id="divisionSelect" onchange="loadReports()">
-                    <option value="provincial">🌾 Provincial</option>
-                    <option value="laboratory">🔬 Laboratory</option>
-                    <option value="packhouse">📦 Packhouse</option>
-                    <option value="standards">📜 Standards & Certification</option>
-                    <option value="administration">📋 Administration</option>
-                    <option value="conformity">✅ Conformity Assessment</option>
-                    <option value="general">📝 General Activity</option>
-                    <option value="timesheet">⏰ Timesheet</option>
-                    <option value="leave">📋 Leave Requests</option>
-                    <option value="admin_report">💰 Administration Report</option>
+                    <option value="provincial">Provincial</option>
+                    <option value="laboratory">Laboratory</option>
+                    <option value="packhouse">Packhouse</option>
+                    <option value="standards">Standards & Certification</option>
+                    <option value="administration">Administration</option>
+                    <option value="conformity">Conformity Assessment</option>
+                    <option value="general">General Activity</option>
+                    <option value="timesheet">Timesheet</option>
+                    <option value="leave">Leave Requests</option>
+                    <option value="admin_report">Administration Report</option>
                 </select>
             </div>
             <div class="filter-group">
                 <span id="pendingBadge" class="pending-badge">0 pending</span>
-                <button class="refresh-btn" onclick="loadReports()">⟳ Refresh</button>
+                <button class="refresh-btn" onclick="loadReports()">↻ Refresh</button>
             </div>
         </div>
         
-        <div id="reportsContainer" class="reports-grid">
-            <div class="loading">Loading reports...</div>
+        <div id="reportsContainer">
+            <div class="loading">Loading...</div>
         </div>
     </div>
     
@@ -376,80 +422,64 @@
             admin_report: 'administration_reports'
         };
         
-        function getDetailsHTML(report, division) {
+        function getDetailFields(report, division) {
             switch(division) {
                 case 'provincial':
                     return `
-                        <div class="detail-item"><span class="icon">📍</span><span class="label">Location:</span><span class="value">${report.location || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="icon">📊</span><span class="label">Result:</span><span class="value">${report.inspection_result || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="icon">⚠️</span><span class="label">Non-Compliance:</span><span class="value">${report.non_compliance_cases || 0}</span></div>
-                        ${report.inspector_notes ? `<div class="report-notes">📝 ${report.inspector_notes}</div>` : ''}
+                        <div class="detail-field"><span class="field-icon">📍</span><span class="field-label">Location</span><span class="field-value">${report.location || 'Not specified'}</span></div>
+                        <div class="detail-field"><span class="field-icon">📊</span><span class="field-label">Result</span><span class="field-value ${report.inspection_result === 'Pass' ? 'large' : ''}">${report.inspection_result || 'N/A'}</span></div>
+                        <div class="detail-field"><span class="field-icon">⚠️</span><span class="field-label">Non-Compliance</span><span class="field-value">${report.non_compliance_cases || 0} cases</span></div>
+                        <div class="detail-field"><span class="field-icon">👥</span><span class="field-label">Farmers Engaged</span><span class="field-value">${report.farmers_engaged || 0}</span></div>
+                        ${report.inspector_notes ? `<div class="notes-section"><div class="notes-label">📝 Inspector Notes</div><div class="notes-text">${report.inspector_notes}</div></div>` : ''}
                     `;
+                    
                 case 'laboratory':
                     return `
-                        <div class="detail-item"><span class="icon">🧪</span><span class="label">Sample ID:</span><span class="value">${report.sample_id || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="icon">🔬</span><span class="label">Test Type:</span><span class="value">${report.test_type || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="icon">📊</span><span class="label">Result:</span><span class="value">${report.test_result || 'N/A'}</span></div>
-                        ${report.equipment_issues ? `<div class="report-notes">⚠️ Equipment: ${report.equipment_issues}</div>` : ''}
+                        <div class="detail-field"><span class="field-icon">🧪</span><span class="field-label">Sample ID</span><span class="field-value">${report.sample_id || 'Not specified'}</span></div>
+                        <div class="detail-field"><span class="field-icon">🔬</span><span class="field-label">Test Type</span><span class="field-value">${report.test_type || 'N/A'}</span></div>
+                        <div class="detail-field"><span class="field-icon">📊</span><span class="field-label">Result</span><span class="field-value ${report.test_result === 'Pass' ? 'large' : ''}">${report.test_result || 'N/A'}</span></div>
+                        <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">Turnaround</span><span class="field-value">${report.turnaround_days || 0} days</span></div>
+                        ${report.equipment_issues ? `<div class="notes-section"><div class="notes-label">⚠️ Equipment Issues</div><div class="notes-text">${report.equipment_issues}</div></div>` : ''}
                     `;
+                    
                 case 'packhouse':
                     return `
-                        <div class="detail-item"><span class="icon">📦</span><span class="label">Processed:</span><span class="value">${(report.volume_processed_kg || 0).toLocaleString()} kg</span></div>
-                        <div class="detail-item"><span class="icon">🗑️</span><span class="label">Waste:</span><span class="value">${report.waste_percent || 0}%</span></div>
-                        <div class="detail-item"><span class="icon">📉</span><span class="label">Rejection:</span><span class="value">${report.rejection_rate_percent || 0}%</span></div>
-                        <div class="detail-item"><span class="icon">👥</span><span class="label">Staff:</span><span class="value">${report.staff_on_duty || 0}</span></div>
+                        <div class="detail-field"><span class="field-icon">📦</span><span class="field-label">Volume Processed</span><span class="field-value">${(report.volume_processed_kg || 0).toLocaleString()} kg</span></div>
+                        <div class="detail-field"><span class="field-icon">🗑️</span><span class="field-label">Waste</span><span class="field-value">${report.waste_percent || 0}%</span></div>
+                        <div class="detail-field"><span class="field-icon">📉</span><span class="field-label">Rejection Rate</span><span class="field-value">${report.rejection_rate_percent || 0}%</span></div>
+                        <div class="detail-field"><span class="field-icon">👥</span><span class="field-label">Staff on Duty</span><span class="field-value">${report.staff_on_duty || 0}</span></div>
+                        <div class="detail-field"><span class="field-icon">🌡️</span><span class="field-label">Cold Room Temp</span><span class="field-value">${report.cold_room_temp_c || 'N/A'}°C</span></div>
                     `;
-                case 'standards':
-                    return `
-                        <div class="detail-item"><span class="icon">📄</span><span class="label">Standard:</span><span class="value">${report.standard_name || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="icon">📌</span><span class="label">Stage:</span><span class="value">${report.standard_stage || 'Draft'}</span></div>
-                        <div class="detail-item"><span class="icon">🎓</span><span class="label">Certifications:</span><span class="value">${report.certifications_issued || 0}</span></div>
-                    `;
-                case 'timesheet':
-                    return `
-                        <div class="detail-item"><span class="icon">⏰</span><span class="label">Clock In:</span><span class="value">${report.time_in || '—'}</span></div>
-                        <div class="detail-item"><span class="icon">⏰</span><span class="label">Clock Out:</span><span class="value">${report.time_out || '—'}</span></div>
-                        <div class="detail-item"><span class="icon">📅</span><span class="label">Hours:</span><span class="value">${report.hours_worked || 0}</span></div>
-                        <div class="detail-item"><span class="icon">📍</span><span class="label">Location:</span><span class="value">${report.location || 'N/A'}</span></div>
-                    `;
+                    
                 case 'leave':
                     return `
-                        <div class="detail-item"><span class="icon">📋</span><span class="label">Leave Type:</span><span class="value">${report.leave_type || 'Annual'}</span></div>
-                        <div class="detail-item"><span class="icon">📅</span><span class="label">Dates:</span><span class="value">${report.start_date || '?'} → ${report.end_date || '?'}</span></div>
-                        <div class="detail-item"><span class="icon">⏱️</span><span class="label">Duration:</span><span class="value">${report.total_days || '?'} days</span></div>
-                        <div class="detail-item"><span class="icon">👤</span><span class="label">Supervisor:</span><span class="value">${report.supervisor_name || 'Not specified'}</span></div>
-                        ${report.reason ? `<div class="report-notes">📝 Reason: ${report.reason}</div>` : ''}
+                        <div class="detail-field"><span class="field-icon">📋</span><span class="field-label">Leave Type</span><span class="field-value">${report.leave_type || 'Annual'}</span></div>
+                        <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">Start Date</span><span class="field-value">${report.start_date || 'Not set'}</span></div>
+                        <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">End Date</span><span class="field-value">${report.end_date || 'Not set'}</span></div>
+                        <div class="detail-field"><span class="field-icon">⏱️</span><span class="field-label">Duration</span><span class="field-value">${report.total_days || 0} days</span></div>
+                        <div class="detail-field"><span class="field-icon">👤</span><span class="field-label">Supervisor</span><span class="field-value">${report.supervisor_name || 'Not specified'}</span></div>
+                        ${report.reason ? `<div class="notes-section"><div class="notes-label">📝 Reason</div><div class="notes-text">${report.reason}</div></div>` : ''}
                     `;
+                    
+                case 'timesheet':
+                    return `
+                        <div class="detail-field"><span class="field-icon">⏰</span><span class="field-label">Clock In</span><span class="field-value">${report.time_in || 'Not clocked in'}</span></div>
+                        <div class="detail-field"><span class="field-icon">⏰</span><span class="field-label">Clock Out</span><span class="field-value">${report.time_out || 'Not clocked out'}</span></div>
+                        <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">Hours Worked</span><span class="field-value">${report.hours_worked || 0} hours</span></div>
+                        <div class="detail-field"><span class="field-icon">📍</span><span class="field-label">Location</span><span class="field-value">${report.location || 'Not specified'}</span></div>
+                    `;
+                    
                 case 'admin_report':
                     return `
-                        <div class="detail-item"><span class="icon">💰</span><span class="label">Budget:</span><span class="value">${report.budget_utilization_percent || 0}%</span></div>
-                        <div class="detail-item"><span class="icon">📦</span><span class="label">Revenue:</span><span class="value">VT ${(report.revenue_collected_vt || 0).toLocaleString()}</span></div>
-                        <div class="detail-item"><span class="icon">🚗</span><span class="label">Vehicle:</span><span class="value">${report.vehicle_destination || 'None'}</span></div>
-                        <div class="detail-item"><span class="icon">📦</span><span class="label">Supply:</span><span class="value">${report.supply_item_name || 'None'}</span></div>
-                        ${report.inspector_notes ? `<div class="report-notes">📝 Notes: ${report.inspector_notes}</div>` : ''}
+                        <div class="detail-field"><span class="field-icon">💰</span><span class="field-label">Budget Utilization</span><span class="field-value">${report.budget_utilization_percent || 0}%</span></div>
+                        <div class="detail-field"><span class="field-icon">📦</span><span class="field-label">Revenue Collected</span><span class="field-value">VT ${(report.revenue_collected_vt || 0).toLocaleString()}</span></div>
+                        <div class="detail-field"><span class="field-icon">🚗</span><span class="field-label">Vehicle Destination</span><span class="field-value">${report.vehicle_destination || 'None'}</span></div>
+                        <div class="detail-field"><span class="field-icon">📦</span><span class="field-label">Supply Request</span><span class="field-value">${report.supply_item_name || 'None'} ${report.supply_quantity ? `(${report.supply_quantity} ${report.supply_unit})` : ''}</span></div>
+                        ${report.inspector_notes ? `<div class="notes-section"><div class="notes-label">📝 Notes</div><div class="notes-text">${report.inspector_notes}</div></div>` : ''}
                     `;
-                case 'general':
-                    return `
-                        <div class="detail-item"><span class="icon">📌</span><span class="label">Type:</span><span class="value">${report.activity_type || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="icon">🏷️</span><span class="label">Name:</span><span class="value">${report.activity_name || 'No name'}</span></div>
-                        ${report.stakeholder_name ? `<div class="detail-item"><span class="icon">🤝</span><span class="label">Stakeholder:</span><span class="value">${report.stakeholder_name}</span></div>` : ''}
-                        ${report.activity_description ? `<div class="report-notes">📝 ${report.activity_description.substring(0, 120)}</div>` : ''}
-                    `;
-                case 'conformity':
-                    return `
-                        <div class="detail-item"><span class="icon">🏢</span><span class="label">Entity:</span><span class="value">${report.entity_name || 'No entity'}</span></div>
-                        <div class="detail-item"><span class="icon">📊</span><span class="label">Result:</span><span class="value">${report.assessment_result || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="icon">⚠️</span><span class="label">Non-Compliance:</span><span class="value">${report.non_compliance_type || 'None'}</span></div>
-                        ${report.non_compliance_description ? `<div class="report-notes">📝 ${report.non_compliance_description}</div>` : ''}
-                    `;
-                case 'administration':
-                    return `
-                        <div class="detail-item"><span class="icon">🏖️</span><span class="label">Leave:</span><span class="value">${report.leave_type || 'No leave'}</span></div>
-                        <div class="detail-item"><span class="icon">💚</span><span class="label">Health:</span><span class="value">${report.health_status || 'Fit'}</span></div>
-                        <div class="detail-item"><span class="icon">💰</span><span class="label">Budget:</span><span class="value">${report.budget_utilization_percent || 0}%</span></div>
-                    `;
+                    
                 default:
-                    return `<div class="report-notes">${report.inspector_notes || report.notes || 'Report submitted'}</div>`;
+                    return `<div class="notes-section"><div class="notes-text">${report.inspector_notes || report.notes || 'Report submitted'}</div></div>`;
             }
         }
         
@@ -458,7 +488,7 @@
             const table = tableMap[division];
             const container = document.getElementById('reportsContainer');
             
-            container.innerHTML = '<div class="loading">Loading reports...</div>';
+            container.innerHTML = '<div class="loading">Loading...</div>';
             
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?status=eq.PENDING&order=created_at.desc`, {
@@ -473,8 +503,8 @@
                     container.innerHTML = `
                         <div class="empty-state">
                             <div class="icon">✅</div>
-                            <h3>No pending reports</h3>
-                            <p>All reports have been reviewed. Good job!</p>
+                            <h3>All caught up!</h3>
+                            <p>No pending reports for this division</p>
                         </div>
                     `;
                     return;
@@ -483,20 +513,29 @@
                 let html = '';
                 for (let report of data) {
                     const reportDate = report.report_date || report.created_at?.split('T')[0] || 'N/A';
+                    const avatarIcon = report.division === 'Laboratory' ? '🔬' : 
+                                       report.division === 'Packhouse' ? '📦' : 
+                                       report.division === 'Standards' ? '📜' : '👤';
+                    
                     html += `
                         <div class="report-card">
-                            <div class="report-header">
-                                <div>
-                                    <span class="report-officer">👤 ${report.officer_name || 'Unknown'}</span>
+                            <div class="card-header">
+                                <div class="officer-info">
+                                    <div class="officer-avatar">${avatarIcon}</div>
+                                    <div class="officer-name">${report.officer_name || 'Unknown'}</div>
                                 </div>
-                                <div class="report-date">📅 ${reportDate}</div>
-                            </div>
-                            <div class="report-body">
-                                <div class="detail-row">
-                                    ${getDetailsHTML(report, division)}
+                                <div class="report-date">
+                                    <span>📅</span> ${reportDate}
                                 </div>
                             </div>
-                            <div class="report-footer">
+                            <div class="card-body">
+                                <div class="detail-grid">
+                                    <div class="detail-row">
+                                        ${getDetailFields(report, division)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
                                 <button class="btn-approve" onclick="approveReport('${table}', ${report.id})">✓ Approve</button>
                                 <button class="btn-reject" onclick="rejectReport('${table}', ${report.id})">✗ Reject</button>
                             </div>
@@ -512,34 +551,32 @@
         
         async function approveReport(table, id) {
             if (!confirm('Approve this report?')) return;
-            
             try {
                 await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
                     method: 'PATCH',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'APPROVED', approved_by: 'Manager', approved_at: new Date().toISOString() })
                 });
-                alert('✅ Report approved');
+                alert('✓ Report approved');
                 loadReports();
             } catch (error) {
-                alert('❌ Error: ' + error.message);
+                alert('Error: ' + error.message);
             }
         }
         
         async function rejectReport(table, id) {
-            const reason = prompt('Reason for rejection (will be visible to the officer):');
+            const reason = prompt('Reason for rejection:');
             if (!reason) return;
-            
             try {
                 await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
                     method: 'PATCH',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'REJECTED', manager_comment: reason })
                 });
-                alert('❌ Report rejected');
+                alert('✗ Report rejected');
                 loadReports();
             } catch (error) {
-                alert('❌ Error: ' + error.message);
+                alert('Error: ' + error.message);
             }
         }
         
