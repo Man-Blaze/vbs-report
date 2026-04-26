@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Team Reports - VBS</title>
+    <title>My Reports - VBS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial; max-width: 1200px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        body { font-family: Arial; max-width: 1400px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
         .container { background: white; padding: 20px; border-radius: 10px; }
         h1 { color: #2c7a4d; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -24,6 +24,14 @@
         .officer-name { font-weight: bold; color: #2c7a4d; }
         .rejected-row { background: #fff3f3; }
         .form-link { display: inline-block; margin-top: 15px; color: #2c7a4d; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #ddd; }
+        .tab { padding: 10px 20px; cursor: pointer; background: #f0f2f5; border: none; border-radius: 8px 8px 0 0; }
+        .tab.active { background: #2c7a4d; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .audit-log { font-family: monospace; font-size: 12px; max-height: 500px; overflow-y: auto; }
+        .audit-log table { font-size: 11px; }
+        .audit-log th { font-size: 11px; background: #343a40; }
         @media (max-width: 768px) {
             th, td { font-size: 11px; padding: 6px; }
             .filters { flex-direction: column; align-items: stretch; }
@@ -32,41 +40,63 @@
 </head>
 <body>
     <div class="container">
-        <h1>📋 Team Reports</h1>
-        <p>View all reports from your division. Click "Resubmit" to fix rejected reports.</p>
+        <h1>📋 VBS My Reports & Audit</h1>
+        <p>View your reports. Resubmit rejected reports. All actions are logged.</p>
         
-        <div class="note">
-            💡 <strong>Note:</strong> Rejected reports show the manager's comment. Click <strong>Resubmit</strong> to fix and send a new report.
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('reports')">📋 My Reports</button>
+            <button class="tab" onclick="showTab('audit')">🔍 Audit Log</button>
         </div>
         
-        <div class="filters">
-            <select id="divisionFilter">
-                <option value="">All Divisions</option>
-                <option value="provincial">🌾 Provincial</option>
-                <option value="laboratory">🔬 Laboratory</option>
-                <option value="packhouse">📦 Packhouse</option>
-                <option value="standards">📜 Standards & Certification</option>
-                <option value="administration">📋 Administration</option>
-                <option value="conformity">✅ Conformity Assessment</option>
-                <option value="general">📝 General Activity</option>
-                <option value="timesheet">⏰ Timesheet</option>
-            </select>
-            <select id="statusFilter">
-                <option value="">All Status</option>
-                <option value="APPROVED">✅ Approved</option>
-                <option value="REJECTED">❌ Rejected</option>
-                <option value="PENDING">⏳ Pending</option>
-            </select>
-            <input type="text" id="officerFilter" placeholder="Filter by officer name">
-            <button class="btn-search" onclick="loadReports()">🔍 Search</button>
-            <button class="btn-reset" onclick="resetFilters()">Reset</button>
+        <!-- Reports Tab -->
+        <div id="reportsTab" class="tab-content active">
+            <div class="note">
+                💡 <strong>Note:</strong> Rejected reports show the manager's comment. Click <strong>Resubmit</strong> to fix and send a new report.
+            </div>
+            
+            <div class="filters">
+                <select id="divisionFilter">
+                    <option value="">All Divisions</option>
+                    <option value="provincial">🌾 Provincial</option>
+                    <option value="laboratory">🔬 Laboratory</option>
+                    <option value="packhouse">📦 Packhouse</option>
+                    <option value="standards">📜 Standards & Certification</option>
+                    <option value="administration">📋 Administration</option>
+                    <option value="conformity">✅ Conformity Assessment</option>
+                    <option value="general">📝 General Activity</option>
+                    <option value="timesheet">⏰ Timesheet</option>
+                    <option value="leave">📋 Leave Request</option>
+                </select>
+                <select id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="APPROVED">✅ Approved</option>
+                    <option value="REJECTED">❌ Rejected</option>
+                    <option value="PENDING">⏳ Pending</option>
+                </select>
+                <input type="text" id="officerFilter" placeholder="Filter by officer name">
+                <button class="btn-search" onclick="loadReports()">🔍 Search</button>
+                <button class="btn-reset" onclick="resetFilters()">Reset</button>
+            </div>
+            
+            <div id="reportsTable">Select a division to view reports</div>
         </div>
         
-        <div id="reportsTable">Select a division to view reports</div>
+        <!-- Audit Log Tab -->
+        <div id="auditTab" class="tab-content">
+            <div class="note">
+                🔍 <strong>Audit Log:</strong> Every action (view, approve, reject, resubmit) is recorded with timestamp and user.
+            </div>
+            <div class="filters">
+                <input type="text" id="auditFilter" placeholder="Filter by action, user, or report ID" style="width: 300px;">
+                <button class="btn-search" onclick="loadAuditLog()">🔍 Search</button>
+                <button class="btn-reset" onclick="resetAuditFilter()">Reset</button>
+            </div>
+            <div id="auditTable" class="audit-log">Loading audit log...</div>
+        </div>
         
         <hr>
         <div class="form-link">
-            📝 <a href="https://Man-Blaze.github.io/vbs-report/">Go to Central Hub to submit new reports</a>
+            📝 <a href="https://Man-Blaze.github.io/vbs-report/index.html">Go to Central Hub to submit new reports</a>
         </div>
     </div>
     
@@ -82,10 +112,10 @@
             administration: 'administration_reports',
             conformity: 'conformity_assessment',
             general: 'general_activity_log',
-            timesheet: 'timesheet'
+            timesheet: 'timesheet',
+            leave: 'leave_requests'
         };
         
-        // Map division to form URL
         const formUrls = {
             provincial: 'https://Man-Blaze.github.io/vbs-report/provincial.html',
             laboratory: 'https://Man-Blaze.github.io/vbs-report/laboratory.html',
@@ -94,11 +124,108 @@
             administration: 'https://Man-Blaze.github.io/vbs-report/administration.html',
             conformity: 'https://Man-Blaze.github.io/vbs-report/conformity.html',
             general: 'https://Man-Blaze.github.io/vbs-report/general_activity.html',
-            timesheet: 'https://Man-Blaze.github.io/vbs-report/timesheet.html'
+            timesheet: 'https://Man-Blaze.github.io/vbs-report/timesheet.html',
+            leave: 'https://Man-Blaze.github.io/vbs-report/leave.html'
         };
         
+        // ============================================
+        // AUDIT LOG FUNCTIONS
+        // ============================================
+        
+        async function logAction(action, tableName, recordId, details, officerName = null) {
+            const officer = officerName || localStorage.getItem('vbs_officer_name') || 'Unknown';
+            const userAgent = navigator.userAgent;
+            const screenSize = `${window.screen.width}x${window.screen.height}`;
+            
+            const auditData = {
+                action: action,
+                table_name: tableName,
+                record_id: recordId,
+                officer_name: officer,
+                details: details,
+                user_agent: userAgent.substring(0, 200),
+                screen_size: screenSize,
+                ip_address: 'client-side',
+                timestamp: new Date().toISOString()
+            };
+            
+            try {
+                await fetch(`${SUPABASE_URL}/rest/v1/audit_log`, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(auditData)
+                });
+                console.log('✅ Audit logged:', action);
+            } catch (error) {
+                console.error('❌ Audit log failed:', error);
+            }
+        }
+        
+        async function loadAuditLog() {
+            const filter = document.getElementById('auditFilter')?.value.toLowerCase() || '';
+            const auditDiv = document.getElementById('auditTable');
+            auditDiv.innerHTML = 'Loading audit log...';
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/audit_log?order=timestamp.desc&limit=500`, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                let logs = await response.json();
+                
+                if (filter) {
+                    logs = logs.filter(log => 
+                        (log.action || '').toLowerCase().includes(filter) ||
+                        (log.officer_name || '').toLowerCase().includes(filter) ||
+                        (log.table_name || '').toLowerCase().includes(filter) ||
+                        String(log.record_id || '').includes(filter)
+                    );
+                }
+                
+                if (logs.length === 0) {
+                    auditDiv.innerHTML = '<p>📭 No audit records found</p>';
+                    return;
+                }
+                
+                let html = `<tr>
+                    <thead>
+                        <tr><th>Timestamp</th><th>Officer</th><th>Action</th><th>Table</th><th>Record ID</th><th>Details</th></tr>
+                    </thead>
+                    <tbody>
+                `;
+                for (let log of logs) {
+                    const timestamp = new Date(log.timestamp).toLocaleString();
+                    html += `<tr>
+                        <td style="white-space:nowrap">${timestamp}</td>
+                        <td>${log.officer_name || '?'}</td>
+                        <td><strong>${log.action}</strong></td>
+                        <td>${log.table_name || '?'}</td>
+                        <td>${log.record_id || '?'}</td>
+                        <td style="max-width:300px; word-break:break-word;">${log.details || '-'}</td>
+                    </tr>`;
+                }
+                html += '</tbody></table>';
+                auditDiv.innerHTML = html;
+                
+            } catch (error) {
+                auditDiv.innerHTML = `<p>❌ Error loading audit log: ${error.message}</p>`;
+            }
+        }
+        
+        function resetAuditFilter() {
+            document.getElementById('auditFilter').value = '';
+            loadAuditLog();
+        }
+        
+        // ============================================
+        // REPORTS FUNCTIONS
+        // ============================================
+        
         function resubmitReport(report, division) {
-            // Store the rejected report data in localStorage so the form can pre-fill
+            // Log the resubmit action
+            const tableName = tableMap[division];
+            logAction('RESUBMIT', tableName, report.id, `Resubmitting rejected report. Original comment: ${report.manager_comment || 'None'}`);
+            
+            // Store resubmit data
             localStorage.setItem('resubmit_data', JSON.stringify({
                 report: report,
                 division: division,
@@ -106,7 +233,6 @@
             }));
             localStorage.setItem('resubmit_mode', 'true');
             
-            // Redirect to the correct form
             const formUrl = formUrls[division];
             if (formUrl) {
                 window.location.href = formUrl + '?resubmit=true';
@@ -129,6 +255,9 @@
             
             const table = tableMap[division];
             let url = `${SUPABASE_URL}/rest/v1/${table}?order=created_at.desc&limit=200`;
+            
+            // Log the VIEW action
+            await logAction('VIEW_REPORTS', table, null, `Viewed ${division} reports with filters: status=${statusFilter || 'all'}, officer=${officerFilter || 'all'}`);
             
             try {
                 const response = await fetch(url, {
@@ -160,7 +289,7 @@
                         <span style="color:#856404;">⏳ <strong>Pending:</strong> ${pending}</span>
                         <span style="color:#721c24;">❌ <strong>Rejected:</strong> ${rejected}</span>
                     </div>
-                    <table>
+                    <table style="width:100%">
                         <thead>
                             <tr>
                                 <th>Date</th>
@@ -187,7 +316,7 @@
                     
                     let actionButton = '';
                     if (status === 'REJECTED') {
-                        actionButton = `<button class="btn-resubmit" onclick="resubmitReport(${JSON.stringify(r).replace(/"/g, '&quot;')}, '${division}')">🔄 Resubmit</button>`;
+                        actionButton = `<button class="btn-resubmit" onclick='resubmitReport(${JSON.stringify(r).replace(/'/g, "&#39;")}, "${division}")'>🔄 Resubmit</button>`;
                     } else {
                         actionButton = '-';
                     }
@@ -195,11 +324,11 @@
                     html += `<tr class="${rowClass}">
                         <td>${r.report_date || r.created_at?.split('T')[0] || 'N/A'}</td>
                         <td><span class="officer-name">${r.officer_name || 'Unknown'}</span></td>
-                        <td style="max-width:300px">${summary}</td>
+                        <td style="max-width:350px">${summary}</td>
                         <td><span class="${statusClass}">${statusText}</span></td>
-                        <td style="max-width:250px">${comment}</td>
+                        <td>${comment}</td>
                         <td style="text-align:center">${actionButton}</td>
-                    </table>`;
+                    </tr>`;
                 }
                 html += '</tbody></table>';
                 document.getElementById('reportsTable').innerHTML = html;
@@ -227,6 +356,8 @@
                     return `${report.activity_type || 'N/A'} - ${report.activity_name || 'No name'} - ${report.stakeholder_name || ''}`;
                 case 'timesheet':
                     return `${report.time_in || '—'} → ${report.time_out || '—'} (${report.hours_worked || 0} hrs)`;
+                case 'leave':
+                    return `${report.leave_type || 'Annual'} Leave - ${report.start_date || '?'} to ${report.end_date || '?'} (${report.total_hours || report.total_days || '?'} ${report.total_hours ? 'hrs' : 'days'})`;
                 default:
                     return report.inspector_notes || report.notes || 'Report submitted';
             }
@@ -239,6 +370,21 @@
             document.getElementById('reportsTable').innerHTML = '<p>Select a division to view reports</p>';
         }
         
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            if (tabName === 'reports') {
+                document.querySelector('.tab').classList.add('active');
+                document.getElementById('reportsTab').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('auditTab').classList.add('active');
+                loadAuditLog();
+            }
+        }
+        
+        // Event listeners
         document.getElementById('divisionFilter').addEventListener('change', loadReports);
         document.getElementById('statusFilter').addEventListener('change', loadReports);
         document.getElementById('officerFilter').addEventListener('keypress', function(e) {
