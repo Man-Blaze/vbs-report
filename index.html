@@ -23,7 +23,6 @@
             margin: 0 auto;
         }
         
-        /* Header */
         .header {
             text-align: center;
             color: white;
@@ -52,7 +51,6 @@
             margin-top: 15px;
         }
         
-        /* Role Cards */
         .role-section {
             margin-bottom: 30px;
         }
@@ -118,7 +116,6 @@
             font-weight: bold;
         }
         
-        /* Manager Card Special */
         .manager-card {
             background: linear-gradient(135deg, #1a3a5a 0%, #2c5a7a 100%);
             color: white;
@@ -137,7 +134,6 @@
             color: #333;
         }
         
-        /* CEO Card Special */
         .ceo-card {
             background: linear-gradient(135deg, #2c3e50 0%, #1a2a3a 100%);
             color: white;
@@ -151,7 +147,6 @@
             color: #ccc;
         }
         
-        /* Footer */
         .footer {
             text-align: center;
             color: rgba(255,255,255,0.7);
@@ -174,7 +169,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <h1>🛡️ VBS Digital Shield</h1>
             <p>Vanuatu Bureau of Standards - Digital Reporting System</p>
@@ -237,13 +231,6 @@
                     <div class="card-badge">All Divisions</div>
                 </a>
 
-                <a href="https://Man-Blaze.github.io/vbs-report/timesheet.html" class="card">
-                    <div class="card-icon">⏰</div>
-                    <div class="card-title">Timesheet / Attendance</div>
-                    <div class="card-desc">Clock in/out daily. Track working hours.</div>
-                    <div class="card-badge">All Staff</div>
-                </a>
-
                 <a href="https://Man-Blaze.github.io/vbs-report/lab_inventory.html" class="card">
                     <div class="card-icon">🔬</div>
                     <div class="card-title">Lab Inventory</div>
@@ -258,7 +245,7 @@
                     <div class="card-badge">All Staff - Transparent</div>
                 </a>
 
-                                <a href="https://Man-Blaze.github.io/vbs-report/leave.html" class="card">
+                <a href="https://Man-Blaze.github.io/vbs-report/leave.html" class="card">
                     <div class="card-icon">📋</div>
                     <div class="card-title">Leave Application</div>
                     <div class="card-desc">Submit annual, sick, maternity, compassionate leave requests</div>
@@ -272,7 +259,7 @@
                     <div class="card-badge">Administration Only</div>
                 </a>
 
-                <!-- Timesheet Card -->
+                <!-- TIMESHEET WITH LOGIN (ONLY ONE) -->
                 <a href="https://Man-Blaze.github.io/vbs-report/login.html" class="card">
                     <div class="card-icon">⏰</div>
                     <div class="card-title">Timesheet</div>
@@ -287,7 +274,6 @@
                     <div class="card-desc">CEO View - All staff Kam In/Kam Out records</div>
                     <div class="card-badge">CEO Only</div>
                 </a>
-
 
             </div>
         </div>
@@ -372,7 +358,6 @@
             </div>
         </div>
         
-        <!-- Footer -->
         <div class="footer">
             <p>© 2026 Vanuatu Bureau of Standards • Data stored in sovereign Supabase database • Audit ready</p>
             <p style="margin-top: 10px;">Version 1.0 • Live since 22 April 2026</p>
@@ -380,7 +365,6 @@
     </div>
     
     <script>
-        // Power BI link - replace with your actual Power BI workspace link when ready
         document.getElementById('powerBILink').addEventListener('click', function(e) {
             e.preventDefault();
             alert('Power BI dashboard coming soon.\n\nConnect Power BI Desktop to:\nServer: db.pdwctzueksfuspwwumdy.supabase.co\nDatabase: postgres\nTable: Use vbs_approved_reports view');
