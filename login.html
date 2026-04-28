@@ -11,6 +11,7 @@
         button { width: 100%; padding: 12px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         .error { color: red; text-align: center; margin-top: 10px; }
         .info { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        .debug { background: #f0f0f0; padding: 10px; margin-top: 20px; border-radius: 5px; font-size: 11px; display: none; }
     </style>
 </head>
 <body>
@@ -24,6 +25,7 @@
         
         <div id="errorMsg" class="error"></div>
         <div class="info">⚠️ Only authorized focal points can access</div>
+        <div id="debug" class="debug"></div>
     </div>
     
     <script>
@@ -41,29 +43,44 @@
         ];
         
         async function login() {
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
+            
+            // Show debug info
+            const debugDiv = document.getElementById('debug');
+            debugDiv.style.display = 'block';
+            debugDiv.innerHTML = `Checking: ${email}<br>Authorized emails: ${authorizedEmails.join(', ')}`;
             
             // First check if email is authorized
             if (!authorizedEmails.includes(email)) {
                 document.getElementById('errorMsg').innerHTML = '❌ Access denied. You are not authorized.';
+                debugDiv.innerHTML += `<br>❌ Email NOT in authorized list`;
                 return;
             }
             
-            const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-                method: 'POST',
-                headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
+            debugDiv.innerHTML += `<br>✅ Email IS authorized. Trying Supabase auth...`;
             
-            if (response.ok) {
-                const data = await response.json();
-                localStorage.setItem('vbs_token', data.access_token);
-                localStorage.setItem('vbs_user', email);
-                window.location.href = 'timesheet.html';
-            } else {
-                const error = await response.json();
-                document.getElementById('errorMsg').innerHTML = '❌ Login failed: ' + (error.msg || 'Invalid credentials');
+            try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('vbs_token', data.access_token);
+                    localStorage.setItem('vbs_user', email);
+                    window.location.href = 'timesheet.html';
+                } else {
+                    const error = await response.json();
+                    document.getElementById('errorMsg').innerHTML = '❌ Login failed: Invalid password or user not found in Supabase Auth';
+                    debugDiv.innerHTML += `<br>❌ Supabase auth failed: ${error.msg || 'Invalid credentials'}`;
+                    debugDiv.innerHTML += `<br>❌ Make sure this email has a user in Supabase Authentication → Users`;
+                }
+            } catch (error) {
+                document.getElementById('errorMsg').innerHTML = '❌ Connection error';
+                debugDiv.innerHTML += `<br>❌ Connection error: ${error.message}`;
             }
         }
     </script>
