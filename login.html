@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VBS Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; max-width: 400px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c7a4d; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .error { color: red; text-align: center; margin-top: 10px; }
+        .info { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 VBS Timesheet Login</h1>
+        <p>Login with your VBS email</p>
+        
+        <input type="email" id="email" placeholder="name@vbs.gov.vu" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button onclick="login()">Login</button>
+        
+        <div id="errorMsg" class="error"></div>
+        <div class="info">⚠️ Contact IT for your password</div>
+    </div>
+    
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                method: 'POST',
+                headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('vbs_token', data.access_token);
+                localStorage.setItem('vbs_user', email);
+                window.location.href = 'timesheet.html';
+            } else {
+                const error = await response.json();
+                document.getElementById('errorMsg').innerHTML = '❌ Login failed: ' + (error.msg || 'Invalid credentials');
+            }
+        }
+    </script>
+</body>
+</html>

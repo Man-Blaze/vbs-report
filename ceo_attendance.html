@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VBS Attendance Report - CEO View</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; max-width: 1200px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 10px; }
+        h1 { color: #2c7a4d; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 13px; }
+        th { background: #2c7a4d; color: white; }
+        .present { color: green; }
+        .absent { color: red; }
+        .filters { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        select, input, button { padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
+        button { background: #2c7a4d; color: white; cursor: pointer; }
+        .export-btn { background: #17a2b8; }
+        .stats { background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 VBS Staff Attendance Report</h1>
+        <p>CEO View - All Staff Kam In / Kam Out Records</p>
+        
+        <div class="stats" id="stats"></div>
+        
+        <div class="filters">
+            <select id="divisionFilter">
+                <option value="">All Divisions</option>
+                <option value="Laboratory">Laboratory</option>
+                <option value="Provincial">Provincial</option>
+                <option value="Packhouse">Packhouse</option>
+                <option value="Standards">Standards</option>
+                <option value="Administration">Administration</option>
+                <option value="IT">IT</option>
+                <option value="CEO">CEO</option>
+            </select>
+            <input type="date" id="startDate">
+            <input type="date" id="endDate">
+            <button onclick="loadAttendance()">Refresh</button>
+            <button class="export-btn" onclick="exportToCSV()">Export CSV</button>
+        </div>
+        
+        <div id="attendanceTable">Loading...</div>
+    </div>
+    
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        let allData = [];
+        
+        async function loadAttendance() {
+            const divisionFilter = document.getElementById('divisionFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            // Fetch staff list
+            const staffResponse = await fetch(`${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${localStorage.getItem('vbs_token') || ''}` }
+            });
+            let staff = await staffResponse.json();
+            
+            // Fetch timesheets
+            let timesheetUrl = `${SUPABASE_URL}/rest/v1/timesheet?order=report_date.desc`;
+            if (startDate) timesheetUrl += `&report_date=gte.${startDate}`;
+            if (endDate) timesheetUrl += `&report_date=lte.${endDate}`;
+            
+            const timesheetResponse = await fetch(timesheetUrl, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${localStorage.getItem('vbs_token') || ''}` }
+            });
+            const timesheets = await timesheetResponse.json();
+            
+            // Filter by division
+            if (divisionFilter) {
+                staff = staff.filter(s => s.division === divisionFilter);
+            }
+            
+            allData = [];
+            let totalPresent = 0;
+            let totalHours = 0;
+            
+            let html = `<table>
+                <thead>
+                    <tr><th>Staff Name</th><th>Division</th><th>Location</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+            `;
+            
+            for (let s of staff) {
+                const staffTimesheets = timesheets.filter(t => t.officer_name === s.staff_name);
+                
+                if (staffTimesheets.length === 0) {
+                    html += `<tr><td>${s.staff_name}</td><td>${s.division}</td><td>${s.location || '-'}</td><td colspan="5" class="absent">No records</td></tr>`;
+                } else {
+                    for (let ts of staffTimesheets) {
+                        totalPresent++;
+                        totalHours += ts.hours_worked || 0;
+                        html += `<tr>
+                            <td>${s.staff_name}</td>
+                            <td>${s.division}</td>
+                            <td>${s.location || '-'}</td>
+                            <td>${ts.report_date}</td>
+                            <td>${ts.time_in || '-'}</td>
+                            <td>${ts.time_out || '-'}</td>
+                            <td>${ts.hours_worked || 0}</td>
+                            <td>${ts.status || 'PENDING'}</td>
+                        </tr>`;
+                        allData.push({
+                            staff_name: s.staff_name,
+                            division: s.division,
+                            location: s.location,
+                            report_date: ts.report_date,
+                            time_in: ts.time_in,
+                            time_out: ts.time_out,
+                            hours: ts.hours_worked || 0,
+                            status: ts.status || 'PENDING'
+                        });
+                    }
+                }
+            }
+            html += '</tbody></table>';
+            
+            document.getElementById('attendanceTable').innerHTML = html;
+            document.getElementById('stats').innerHTML = `
+                <strong>📊 Summary</strong><br>
+                Total Staff: ${staff.length}<br>
+                Total Attendance Records: ${totalPresent}<br>
+                Total Hours Logged: ${totalHours.toFixed(1)} hours
+            `;
+        }
+        
+        function exportToCSV() {
+            if (allData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            
+            let csv = "Staff Name,Division,Location,Date,Clock In,Clock Out,Hours,Status\n";
+            for (let row of allData) {
+                csv += `"${row.staff_name}",${row.division},${row.location || ''},${row.report_date},${row.time_in || ''},${row.time_out || ''},${row.hours},${row.status}\n`;
+            }
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vbs_attendance_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Set default dates to this week
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+        document.getElementById('startDate').valueAsDate = startOfWeek;
+        document.getElementById('endDate').valueAsDate = today;
+        
+        loadAttendance();
+    </script>
+</body>
+</html>
