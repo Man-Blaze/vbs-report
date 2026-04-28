@@ -8,7 +8,7 @@
         .container { background: white; padding: 20px; border-radius: 10px; }
         h1 { color: #2c7a4d; }
         label { display: block; margin-top: 12px; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        select, input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; margin-top: 15px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; }
         .clock-in { background: #2c7a4d; color: white; }
         .clock-out { background: #dc3545; color: white; }
@@ -17,126 +17,128 @@
         .status-approved { background: #d4edda; color: #155724; }
         .record-card { background: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 15px; }
         .small-text { font-size: 12px; color: #666; margin-top: 5px; }
-        .alert { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>⏰ VBS Timesheet</h1>
-        <p>Clock in when you start. Clock out when you finish. Manager approves.</p>
+        <p>Select your name and clock in/out. Manager approves weekly.</p>
         
         <div id="statusMsg" class="status status-pending">Ready to clock in</div>
         
-        <form id="timesheetForm">
-            <label>Officer Name:</label>
-            <input name="officer_name" id="officerName" required>
-            
-            <label>Division:</label>
-            <select name="division" id="division" required>
-                <option value="Provincial">Provincial</option>
-                <option value="Laboratory">Laboratory</option>
-                <option value="Packhouse">Packhouse</option>
-                <option value="Standards">Standards</option>
-                <option value="Administration">Administration</option>
-            </select>
-            
-            <label>Date:</label>
-            <input name="report_date" type="date" id="reportDate" required>
-            
-            <label>Location (optional):</label>
-            <input name="location" id="location" placeholder="e.g., Office, Santo, Port Vila">
-            
-            <input type="hidden" name="time_in" id="timeIn">
-            <input type="hidden" name="time_out" id="timeOut">
-            <input type="hidden" name="hours_worked" id="hoursWorked">
-            <input type="hidden" name="record_id" id="recordId">
-            
-            <button type="button" class="clock-in" onclick="clockIn()">✅ Clock In - Start Work</button>
-            <button type="button" class="clock-out" onclick="clockOut()">❌ Clock Out - End Work</button>
-        </form>
+        <label>Select Your Name:</label>
+        <select id="officerName" required>
+            <option value="">-- Select Staff --</option>
+        </select>
+        
+        <label>Division:</label>
+        <input type="text" id="division" readonly style="background:#f0f0f0;">
+        
+        <label>Date:</label>
+        <input name="report_date" type="date" id="reportDate" required>
+        
+        <label>Location (optional):</label>
+        <input name="location" id="location" placeholder="e.g., Office, Santo, Port Vila">
+        
+        <input type="hidden" name="time_in" id="timeIn">
+        <input type="hidden" name="time_out" id="timeOut">
+        <input type="hidden" name="hours_worked" id="hoursWorked">
+        <input type="hidden" name="record_id" id="recordId">
+        
+        <button type="button" class="clock-in" onclick="clockIn()">✅ Clock In - Kam In</button>
+        <button type="button" class="clock-out" onclick="clockOut()">❌ Clock Out - Kam Out</button>
         
         <div id="todayRecord" class="record-card"></div>
         <div id="weeklySummary" class="record-card"></div>
-        <div class="small-text">⚠️ Manager must approve before hours count toward your record.</div>
+        <div class="small-text">⚠️ Manager approves timesheets weekly. Hours count only after approval.</div>
     </div>
     
     <script>
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        // Load saved data from localStorage
-        function loadSavedState() {
-            const savedOfficer = localStorage.getItem('vbs_officer_name');
-            const savedDivision = localStorage.getItem('vbs_division');
-            if (savedOfficer) document.getElementById('officerName').value = savedOfficer;
-            if (savedDivision) document.getElementById('division').value = savedDivision;
+        let currentRecordId = null;
+        
+        // Load staff list from database
+        async function loadStaffList() {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true&order=staff_name.asc`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+            });
+            const staff = await response.json();
+            
+            const select = document.getElementById('officerName');
+            select.innerHTML = '<option value="">-- Select Staff --</option>';
+            for (let s of staff) {
+                select.innerHTML += `<option value="${s.staff_name}" data-division="${s.division}">${s.staff_name} (${s.division})</option>`;
+            }
         }
         
-        // Save to localStorage
-        function saveState() {
-            localStorage.setItem('vbs_officer_name', document.getElementById('officerName').value);
-            localStorage.setItem('vbs_division', document.getElementById('division').value);
-        }
-        
-        document.getElementById('officerName').addEventListener('change', saveState);
-        document.getElementById('division').addEventListener('change', saveState);
+        // When staff selected, auto-fill division
+        document.getElementById('officerName').addEventListener('change', function() {
+            const selected = this.options[this.selectedIndex];
+            const division = selected.getAttribute('data-division');
+            document.getElementById('division').value = division || '';
+            if (this.value) {
+                checkExistingClockIn();
+                loadWeeklySummary();
+            }
+        });
         
         // Set default date
         document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
         
-        // Check if already clocked in today
         async function checkExistingClockIn() {
             const officer = document.getElementById('officerName').value;
             const date = document.getElementById('reportDate').value;
-            const division = document.getElementById('division').value;
             
-            if (!officer || !date) return;
+            if (!officer) return;
             
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${officer}&report_date=eq.${date}&division=eq.${division}`, {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${officer}&report_date=eq.${date}`, {
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
             });
             const records = await response.json();
             
             if (records.length > 0) {
                 const r = records[0];
-                document.getElementById('recordId').value = r.id;
+                currentRecordId = r.id;
                 document.getElementById('timeIn').value = r.time_in || '';
                 document.getElementById('timeOut').value = r.time_out || '';
                 document.getElementById('hoursWorked').value = r.hours_worked || '';
                 
                 if (r.time_in && !r.time_out) {
-                    document.getElementById('statusMsg').innerHTML = `✅ Clocked in at ${r.time_in}. Waiting for clock out.`;
+                    document.getElementById('statusMsg').innerHTML = `✅ Clocked IN at ${r.time_in}`;
                     document.getElementById('statusMsg').className = 'status status-pending';
                 } else if (r.time_out) {
                     const statusText = r.status === 'APPROVED' ? 'APPROVED' : 'PENDING';
-                    document.getElementById('statusMsg').innerHTML = `✅ Clocked out at ${r.time_out} | Hours: ${r.hours_worked || 0} | Status: ${statusText}`;
+                    document.getElementById('statusMsg').innerHTML = `❌ Clocked OUT at ${r.time_out} | Hours: ${r.hours_worked || 0} | Status: ${statusText}`;
                     document.getElementById('statusMsg').className = r.status === 'APPROVED' ? 'status status-approved' : 'status status-pending';
                 }
+                loadTodayRecord();
+            } else {
+                document.getElementById('statusMsg').innerHTML = 'Not clocked in today';
+                document.getElementById('statusMsg').className = 'status status-pending';
+                document.getElementById('todayRecord').innerHTML = 'No record for today. Click Clock In.';
             }
-            
-            loadTodayRecord();
-            loadWeeklySummary();
         }
         
         async function clockIn() {
             const officer = document.getElementById('officerName').value;
-            const date = document.getElementById('reportDate').value;
             const division = document.getElementById('division').value;
+            const date = document.getElementById('reportDate').value;
             const location = document.getElementById('location').value;
             
-            if (!officer) { alert('Enter your name first'); return; }
+            if (!officer) { alert('Select your name first'); return; }
             
             const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
-            // Check if already clocked in today
-            const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${officer}&report_date=eq.${date}&division=eq.${division}`, {
+            const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${officer}&report_date=eq.${date}`, {
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
             });
             const existing = await checkResponse.json();
             
             if (existing.length > 0 && existing[0].time_in && !existing[0].time_out) {
-                alert('You already clocked in today. Please clock out first.');
+                alert('You already clocked in today. Clock out first.');
                 return;
             }
             
@@ -156,99 +158,84 @@
             });
             
             const result = await response.json();
-            document.getElementById('recordId').value = result[0]?.id;
+            currentRecordId = result[0]?.id;
             document.getElementById('timeIn').value = timeStr;
             
-            document.getElementById('statusMsg').innerHTML = `✅ Clocked in at ${timeStr}. Don't forget to clock out when you finish.`;
+            document.getElementById('statusMsg').innerHTML = `✅ Clocked IN at ${timeStr}`;
             document.getElementById('statusMsg').className = 'status status-pending';
-            
             loadTodayRecord();
         }
         
         async function clockOut() {
             const officer = document.getElementById('officerName').value;
             const date = document.getElementById('reportDate').value;
-            const division = document.getElementById('division').value;
-            const recordId = document.getElementById('recordId').value;
             
-            if (!officer) { alert('Enter your name first'); return; }
+            if (!officer) { alert('Select your name first'); return; }
             
-            // Get today's record if no recordId
-            let id = recordId;
-            if (!id) {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${officer}&report_date=eq.${date}&division=eq.${division}`, {
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-                });
-                const records = await response.json();
-                if (records.length === 0) {
-                    alert('No clock-in record found. Please clock in first.');
-                    return;
-                }
-                id = records[0].id;
-                document.getElementById('recordId').value = id;
-                document.getElementById('timeIn').value = records[0].time_in;
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${officer}&report_date=eq.${date}`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+            });
+            const records = await response.json();
+            
+            if (records.length === 0) {
+                alert('No clock-in record found. Clock in first.');
+                return;
             }
+            
+            const record = records[0];
+            if (!record.time_in) { alert('Clock in first'); return; }
+            if (record.time_out) { alert('Already clocked out today'); return; }
             
             const now = new Date();
-            const timeOutStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const timeOutStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
-            // Calculate hours
-            const timeInStr = document.getElementById('timeIn').value;
-            if (timeInStr) {
-                const parseTime = (t) => {
-                    const parts = t.match(/(\d+):(\d+):(\d+)/);
-                    return { hours: parseInt(parts[1]), minutes: parseInt(parts[2]), seconds: parseInt(parts[3]) };
-                };
-                const inTime = parseTime(timeInStr);
-                const outTime = parseTime(timeOutStr);
-                let hours = outTime.hours - inTime.hours;
-                let minutes = outTime.minutes - inTime.minutes;
-                if (minutes < 0) { hours--; minutes += 60; }
-                const totalHours = hours + minutes / 60;
-                document.getElementById('hoursWorked').value = totalHours.toFixed(2);
-            }
+            const timeInParts = record.time_in.split(':');
+            const timeOutParts = timeOutStr.split(':');
+            let hours = parseInt(timeOutParts[0]) - parseInt(timeInParts[0]);
+            let minutes = parseInt(timeOutParts[1]) - parseInt(timeInParts[1]);
+            if (minutes < 0) { hours--; minutes += 60; }
+            const totalHours = hours + minutes / 60;
             
-            await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${id}`, {
+            const update = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${record.id}`, {
                 method: 'PATCH',
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    time_out: timeOutStr, 
-                    hours_worked: parseFloat(document.getElementById('hoursWorked').value),
-                    status: 'PENDING'
+                body: JSON.stringify({
+                    time_out: timeOutStr,
+                    hours_worked: totalHours.toFixed(2)
                 })
             });
             
-            document.getElementById('statusMsg').innerHTML = `❌ Clocked out at ${timeOutStr} | Hours: ${document.getElementById('hoursWorked').value} | Pending manager approval`;
-            document.getElementById('statusMsg').className = 'status status-pending';
-            
-            loadTodayRecord();
-            loadWeeklySummary();
+            if (update.ok) {
+                alert(`❌ Clocked OUT at ${timeOutStr} | Hours: ${totalHours.toFixed(2)}`);
+                document.getElementById('timeOut').value = timeOutStr;
+                document.getElementById('hoursWorked').value = totalHours.toFixed(2);
+                document.getElementById('statusMsg').innerHTML = `❌ Clocked OUT at ${timeOutStr} | Hours: ${totalHours.toFixed(2)} | Pending approval`;
+                loadTodayRecord();
+                loadWeeklySummary();
+            } else {
+                alert('Failed to clock out');
+            }
         }
         
         async function loadTodayRecord() {
             const officer = document.getElementById('officerName').value;
             const date = document.getElementById('reportDate').value;
-            const division = document.getElementById('division').value;
-            
             if (!officer) return;
             
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${officer}&report_date=eq.${date}&division=eq.${division}`, {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${officer}&report_date=eq.${date}`, {
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
             });
             const records = await response.json();
             
             if (records.length > 0) {
                 const r = records[0];
-                const statusBadge = r.status === 'APPROVED' ? '✅ APPROVED' : (r.status === 'REJECTED' ? '❌ REJECTED' : '⏳ PENDING');
                 document.getElementById('todayRecord').innerHTML = `
-                    <strong>📅 Today's Record (${date})</strong><br>
+                    <strong>📅 Today's Record</strong><br>
                     Clock In: ${r.time_in || '—'}<br>
                     Clock Out: ${r.time_out || '—'}<br>
-                    Hours: ${r.hours_worked || '0'}<br>
-                    Status: ${statusBadge}
+                    Hours: ${r.hours_worked || 0}<br>
+                    Status: ${r.status || 'PENDING'}
                 `;
-            } else {
-                document.getElementById('todayRecord').innerHTML = 'No record for today. Click Clock In.';
             }
         }
         
@@ -262,37 +249,22 @@
             const records = await response.json();
             
             if (records.length === 0) {
-                document.getElementById('weeklySummary').innerHTML = 'No records found.';
+                document.getElementById('weeklySummary').innerHTML = 'No records this week';
                 return;
             }
             
             let totalHours = 0;
-            let approvedHours = 0;
             let html = '<strong>📊 Last 7 Days</strong><br>';
-            
             for (let r of records) {
-                const hours = r.hours_worked || 0;
-                totalHours += hours;
-                if (r.status === 'APPROVED') approvedHours += hours;
-                const statusIcon = r.status === 'APPROVED' ? '✅' : (r.status === 'REJECTED' ? '❌' : '⏳');
-                html += `${r.report_date}: ${hours} hours ${statusIcon}<br>`;
+                totalHours += r.hours_worked || 0;
+                html += `${r.report_date}: ${r.hours_worked || 0} hours (${r.status || 'PENDING'})<br>`;
             }
-            html += `<strong>Total Submitted: ${totalHours.toFixed(1)} hours</strong><br>`;
-            html += `<strong>Total Approved: ${approvedHours.toFixed(1)} hours</strong>`;
+            html += `<strong>Total: ${totalHours.toFixed(1)} hours</strong>`;
             document.getElementById('weeklySummary').innerHTML = html;
         }
         
-        // Auto-save officer name and check clock-in status when they change fields
-        document.getElementById('officerName').addEventListener('blur', () => {
-            saveState();
-            checkExistingClockIn();
-        });
-        document.getElementById('division').addEventListener('blur', checkExistingClockIn);
-        document.getElementById('reportDate').addEventListener('change', checkExistingClockIn);
-        
         // Initial load
-        loadSavedState();
-        checkExistingClockIn();
+        loadStaffList();
     </script>
 </body>
 </html>
