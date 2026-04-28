@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>VBS Login</title>
+    <title>VBS Timesheet Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { font-family: Arial; max-width: 400px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
@@ -15,24 +15,40 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔐 VBS Timesheet Login</h1>
-        <p>Login with your VBS email</p>
+        <h1>🔐 VBS Timesheet</h1>
+        <p>Login with your email</p>
         
-        <input type="email" id="email" placeholder="name@vbs.gov.vu" required>
+        <input type="email" id="email" placeholder="Email" required>
         <input type="password" id="password" placeholder="Password" required>
         <button onclick="login()">Login</button>
         
         <div id="errorMsg" class="error"></div>
-        <div class="info">⚠️ Contact IT for your password</div>
+        <div class="info">⚠️ Only authorized focal points can access</div>
     </div>
     
     <script>
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
+        // List of authorized focal point emails
+        const authorizedEmails = [
+            'rolina5411139@gmail.com',
+            'galana@vbs.gov.vu',
+            'natachajoel32@gmail.com',
+            'betienne.vbs@gmail.com',
+            'livu@vbs.gov.vu',
+            'polovbs984@gmail.com'
+        ];
+        
         async function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            
+            // First check if email is authorized
+            if (!authorizedEmails.includes(email)) {
+                document.getElementById('errorMsg').innerHTML = '❌ Access denied. You are not authorized.';
+                return;
+            }
             
             const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
                 method: 'POST',
