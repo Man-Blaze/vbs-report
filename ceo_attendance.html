@@ -1,163 +1,416 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>VBS Attendance Report - CEO View</title>
+    <title>VBS CEO Attendance Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial; max-width: 1200px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
-        .container { background: white; padding: 20px; border-radius: 10px; }
-        h1 { color: #2c7a4d; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 13px; }
-        th { background: #2c7a4d; color: white; }
-        .present { color: green; }
-        .absent { color: red; }
-        .filters { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-        select, input, button { padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
-        button { background: #2c7a4d; color: white; cursor: pointer; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background: #f0f2f5; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        /* Header */
+        .header { background: linear-gradient(135deg, #1a5a3a 0%, #0d3b24 100%); color: white; padding: 25px 30px; border-radius: 15px; margin-bottom: 20px; }
+        .header h1 { margin: 0 0 5px; font-size: 28px; }
+        .header p { margin: 0; opacity: 0.9; }
+        
+        /* Stats Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 32px; font-weight: bold; color: #1a5a3a; }
+        .stat-label { font-size: 13px; color: #666; margin-top: 5px; }
+        
+        /* Filters */
+        .filters { background: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between; }
+        .filter-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .filter-group label { font-weight: 600; font-size: 14px; }
+        select, input, button { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        button { background: #1a5a3a; color: white; border: none; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #0e3d26; }
         .export-btn { background: #17a2b8; }
-        .stats { background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .export-btn:hover { background: #138496; }
+        .refresh-btn { background: #28a745; }
+        
+        /* Live indicator */
+        .live-badge { background: #dc3545; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+        .live-badge .blink { width: 8px; height: 8px; background: white; border-radius: 50%; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        
+        /* Calendar Navigation */
+        .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px 20px; border-radius: 12px; }
+        .calendar-nav button { background: #6c757d; padding: 8px 20px; }
+        .calendar-nav button:hover { background: #5a6268; }
+        .current-date { font-size: 20px; font-weight: bold; color: #1a5a3a; }
+        
+        /* Summary Cards for Selected Day */
+        .day-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px; margin-bottom: 20px; }
+        .summary-card { background: white; padding: 15px; border-radius: 12px; text-align: center; border-left: 4px solid #1a5a3a; }
+        .summary-card .value { font-size: 24px; font-weight: bold; color: #1a5a3a; }
+        .summary-card .label { font-size: 11px; color: #666; margin-top: 5px; }
+        
+        /* Division Sections */
+        .division-section { margin-bottom: 25px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .division-header { background: #1a5a3a; color: white; padding: 12px 20px; font-weight: bold; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .division-header span:first-child { font-size: 18px; }
+        .division-header span:last-child { font-size: 13px; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+        th { background: #f8f9fa; font-weight: 600; color: #333; position: sticky; top: 0; }
+        tr:hover { background: #f8f9fa; }
+        
+        .status-present { background: #d4edda; color: #155724; font-weight: bold; display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
+        .status-absent { background: #f8d7da; color: #721c24; display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
+        .status-late { background: #fff3cd; color: #856404; display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
+        .status-early { background: #fff3cd; color: #856404; display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
+        
+        .reason-cell { max-width: 200px; font-size: 12px; color: #666; word-break: break-word; }
+        
+        .history-section { margin-top: 30px; background: white; border-radius: 12px; padding: 20px; }
+        .history-section h3 { color: #1a5a3a; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #1a5a3a; }
+        .history-table { max-height: 400px; overflow-y: auto; }
+        
+        @media (max-width: 768px) {
+            .stats-grid, .day-summary { grid-template-columns: repeat(2, 1fr); }
+            th, td { font-size: 10px; padding: 6px 4px; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📊 VBS Staff Attendance Report</h1>
-        <p>CEO View - All Staff Kam In / Kam Out Records</p>
-        
-        <div class="stats" id="stats"></div>
-        
-        <div class="filters">
-            <select id="divisionFilter">
-                <option value="">All Divisions</option>
-                <option value="Laboratory">Laboratory</option>
-                <option value="Provincial">Provincial</option>
-                <option value="Packhouse">Packhouse</option>
-                <option value="Standards">Standards</option>
-                <option value="Administration">Administration</option>
-                <option value="IT">IT</option>
-                <option value="CEO">CEO</option>
-            </select>
-            <input type="date" id="startDate">
-            <input type="date" id="endDate">
-            <button onclick="loadAttendance()">Refresh</button>
-            <button class="export-btn" onclick="exportToCSV()">Export CSV</button>
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>📊 VBS CEO Attendance Dashboard</h1>
+                    <p>Real-time staff attendance | Late arrivals | Early departures | Reasons</p>
+                </div>
+                <div class="live-badge"><span class="blink"></span> LIVE</div>
+            </div>
         </div>
         
-        <div id="attendanceTable">Loading...</div>
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card"><div class="stat-number" id="totalStaff">0</div><div class="stat-label">Total Staff</div></div>
+            <div class="stat-card"><div class="stat-number" id="presentToday">0</div><div class="stat-label">Present Today</div></div>
+            <div class="stat-card"><div class="stat-number" id="absentToday">0</div><div class="stat-label">Absent</div></div>
+            <div class="stat-card"><div class="stat-number" id="lateToday">0</div><div class="stat-label">Late Arrivals</div></div>
+            <div class="stat-card"><div class="stat-number" id="earlyToday">0</div><div class="stat-label">Early Departures</div></div>
+        </div>
+        
+        <div class="filters">
+            <div class="filter-group">
+                <label>📍 Location:</label>
+                <select id="locationFilter">
+                    <option value="">All Locations</option>
+                    <option value="Port Vila">Port Vila</option>
+                    <option value="Santo">Santo</option>
+                    <option value="Malampa">Malampa</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>📅 Status:</label>
+                <select id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="present">Present</option>
+                    <option value="absent">Absent</option>
+                    <option value="late">Late Arrival</option>
+                    <option value="early">Early Departure</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <button class="refresh-btn" onclick="loadAttendance()">🔄 Refresh</button>
+                <button class="export-btn" onclick="exportToCSV()">📎 Export CSV</button>
+            </div>
+        </div>
+        
+        <!-- Calendar Navigation -->
+        <div class="calendar-nav">
+            <button onclick="changeDate(-1)">◀ Previous Day</button>
+            <span class="current-date" id="currentDateDisplay"></span>
+            <button onclick="changeDate(1)">Next Day ▶</button>
+            <button onclick="goToToday()">Today</button>
+        </div>
+        
+        <!-- Day Summary -->
+        <div class="day-summary" id="daySummary"></div>
+        
+        <!-- Attendance by Division -->
+        <div id="divisionsContainer"></div>
+        
+        <!-- History Section -->
+        <div class="history-section">
+            <h3>📜 Recent Attendance History (Last 30 days)</h3>
+            <div class="history-table">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Staff Name</th>
+                            <th>Division</th>
+                            <th>Location</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
+                            <th>Hours</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr><td colspan="9" style="text-align:center">Loading...</td><tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
     
     <script>
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        let allData = [];
+        let currentDate = new Date();
+        let allStaff = [];
+        let allTimesheets = [];
+        
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+        
+        function formatDisplayDate(date) {
+            return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        
+        function changeDate(delta) {
+            currentDate.setDate(currentDate.getDate() + delta);
+            loadAttendance();
+        }
+        
+        function goToToday() {
+            currentDate = new Date();
+            loadAttendance();
+        }
+        
+        function isLate(timeIn) {
+            if (!timeIn) return false;
+            const [hours, minutes] = timeIn.split(':');
+            const hour = parseInt(hours);
+            const minute = parseInt(minutes);
+            return hour > 8 || (hour === 8 && minute > 15);
+        }
+        
+        function isEarly(timeOut) {
+            if (!timeOut) return false;
+            const [hours] = timeOut.split(':');
+            return parseInt(hours) < 17;
+        }
+        
+        async function loadStaff() {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true`, {
+                headers: { 'apikey': SUPABASE_KEY }
+            });
+            allStaff = await response.json();
+            document.getElementById('totalStaff').innerText = allStaff.length;
+        }
+        
+        async function loadTimesheets() {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?order=report_date.desc&limit=1000`, {
+                headers: { 'apikey': SUPABASE_KEY }
+            });
+            allTimesheets = await response.json();
+        }
         
         async function loadAttendance() {
-            const divisionFilter = document.getElementById('divisionFilter').value;
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
+            await loadStaff();
+            await loadTimesheets();
             
-            // Fetch staff list
-            const staffResponse = await fetch(`${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true`, {
-                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${localStorage.getItem('vbs_token') || ''}` }
-            });
-            let staff = await staffResponse.json();
+            const selectedDate = formatDate(currentDate);
+            const locationFilter = document.getElementById('locationFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
             
-            // Fetch timesheets
-            let timesheetUrl = `${SUPABASE_URL}/rest/v1/timesheet?order=report_date.desc`;
-            if (startDate) timesheetUrl += `&report_date=gte.${startDate}`;
-            if (endDate) timesheetUrl += `&report_date=lte.${endDate}`;
+            document.getElementById('currentDateDisplay').innerHTML = formatDisplayDate(currentDate);
             
-            const timesheetResponse = await fetch(timesheetUrl, {
-                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${localStorage.getItem('vbs_token') || ''}` }
-            });
-            const timesheets = await timesheetResponse.json();
+            // Get unique divisions
+            const divisions = [...new Set(allStaff.map(s => s.division))].sort();
             
-            // Filter by division
-            if (divisionFilter) {
-                staff = staff.filter(s => s.division === divisionFilter);
-            }
-            
-            allData = [];
             let totalPresent = 0;
-            let totalHours = 0;
+            let totalAbsent = 0;
+            let totalLate = 0;
+            let totalEarly = 0;
             
-            let html = `<table>
-                <thead>
-                    <tr><th>Staff Name</th><th>Division</th><th>Location</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr>
-                </thead>
-                <tbody>
-            `;
+            const divisionsHtml = [];
             
-            for (let s of staff) {
-                const staffTimesheets = timesheets.filter(t => t.officer_name === s.staff_name);
+            for (const division of divisions) {
+                let divisionStaff = allStaff.filter(s => s.division === division);
+                if (locationFilter) divisionStaff = divisionStaff.filter(s => s.location === locationFilter);
                 
-                if (staffTimesheets.length === 0) {
-                    html += `<tr><td>${s.staff_name}</td><td>${s.division}</td><td>${s.location || '-'}</td><td colspan="5" class="absent">No records</td></tr>`;
-                } else {
-                    for (let ts of staffTimesheets) {
+                if (divisionStaff.length === 0) continue;
+                
+                const todayTimesheets = allTimesheets.filter(t => t.report_date === selectedDate);
+                
+                let divisionPresent = 0;
+                let divisionHtml = '';
+                
+                for (let staff of divisionStaff) {
+                    const record = todayTimesheets.find(t => t.officer_name === staff.staff_name);
+                    const hasClockIn = record && record.time_in;
+                    const hasClockOut = record && record.time_out;
+                    const isLateArrival = hasClockIn && isLate(record.time_in);
+                    const isEarlyDeparture = hasClockOut && isEarly(record.time_out);
+                    
+                    let statusText = '';
+                    let statusClass = '';
+                    let statusBadge = '';
+                    
+                    if (hasClockIn && !hasClockOut) {
+                        statusText = 'PRESENT';
+                        statusClass = 'status-present';
+                        statusBadge = '<span class="status-present">✅ PRESENT</span>';
+                        divisionPresent++;
                         totalPresent++;
-                        totalHours += ts.hours_worked || 0;
-                        html += `<tr>
-                            <td>${s.staff_name}</td>
-                            <td>${s.division}</td>
-                            <td>${s.location || '-'}</td>
-                            <td>${ts.report_date}</td>
-                            <td>${ts.time_in || '-'}</td>
-                            <td>${ts.time_out || '-'}</td>
-                            <td>${ts.hours_worked || 0}</td>
-                            <td>${ts.status || 'PENDING'}</td>
-                        </tr>`;
-                        allData.push({
-                            staff_name: s.staff_name,
-                            division: s.division,
-                            location: s.location,
-                            report_date: ts.report_date,
-                            time_in: ts.time_in,
-                            time_out: ts.time_out,
-                            hours: ts.hours_worked || 0,
-                            status: ts.status || 'PENDING'
-                        });
+                        if (isLateArrival) { totalLate++; statusBadge = '<span class="status-late">⚠️ LATE</span>'; }
+                    } else if (hasClockOut) {
+                        statusText = 'CLOCKED OUT';
+                        statusClass = '';
+                        totalPresent++;
+                        divisionPresent++;
+                        if (isLateArrival) { totalLate++; statusBadge = '<span class="status-late">⚠️ LATE</span>'; }
+                        else if (isEarlyDeparture) { totalEarly++; statusBadge = '<span class="status-early">⚠️ EARLY</span>'; }
+                        else { statusBadge = '<span class="status-present">✅ DONE</span>'; }
+                    } else {
+                        statusText = 'ABSENT';
+                        statusClass = 'status-absent';
+                        statusBadge = '<span class="status-absent">❌ ABSENT</span>';
+                        totalAbsent++;
                     }
+                    
+                    // Apply status filter
+                    if (statusFilter === 'present' && (!hasClockIn && !hasClockOut)) continue;
+                    if (statusFilter === 'absent' && (hasClockIn || hasClockOut)) continue;
+                    if (statusFilter === 'late' && !isLateArrival) continue;
+                    if (statusFilter === 'early' && !isEarlyDeparture) continue;
+                    
+                    const reason = record?.late_reason || record?.early_reason || '-';
+                    const hours = record?.hours_worked !== undefined ? record.hours_worked.toFixed(1) : '-';
+                    
+                    divisionHtml += `<tr>
+                        <td>${staff.staff_name}</td>
+                        <td>${staff.location || '-'}</td>
+                        <td>${record?.time_in || '-'}</td>
+                        <td>${record?.time_out || '-'}</td>
+                        <td>${hours}</td>
+                        <td>${statusBadge}</td>
+                        <td class="reason-cell">${reason}</td>
+                    </tr>`;
+                }
+                
+                if (divisionHtml) {
+                    divisionsHtml.push(`
+                        <div class="division-section">
+                            <div class="division-header">
+                                <span>📁 ${division}</span>
+                                <span>${divisionPresent} / ${divisionStaff.length} present</span>
+                            </div>
+                            <div style="overflow-x: auto;">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Staff Name</th>
+                                            <th>Location</th>
+                                            <th>Clock In</th>
+                                            <th>Clock Out</th>
+                                            <th>Hours</th>
+                                            <th>Status</th>
+                                            <th>Reason</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${divisionHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `);
                 }
             }
-            html += '</tbody></table>';
             
-            document.getElementById('attendanceTable').innerHTML = html;
-            document.getElementById('stats').innerHTML = `
-                <strong>📊 Summary</strong><br>
-                Total Staff: ${staff.length}<br>
-                Total Attendance Records: ${totalPresent}<br>
-                Total Hours Logged: ${totalHours.toFixed(1)} hours
+            document.getElementById('divisionsContainer').innerHTML = divisionsHtml.join('') || '<div style="background:white; padding:40px; text-align:center; border-radius:12px;">No records for this day</div>';
+            
+            document.getElementById('presentToday').innerText = totalPresent;
+            document.getElementById('absentToday').innerText = totalAbsent;
+            document.getElementById('lateToday').innerText = totalLate;
+            document.getElementById('earlyToday').innerText = totalEarly;
+            
+            // Day Summary
+            document.getElementById('daySummary').innerHTML = `
+                <div class="summary-card"><div class="value">${allStaff.length}</div><div class="label">Total Staff</div></div>
+                <div class="summary-card"><div class="value">${totalPresent}</div><div class="label">Present</div></div>
+                <div class="summary-card"><div class="value">${totalAbsent}</div><div class="label">Absent</div></div>
+                <div class="summary-card"><div class="value">${totalLate}</div><div class="label">Late Arrivals</div></div>
+                <div class="summary-card"><div class="value">${totalEarly}</div><div class="label">Early Departures</div></div>
+                <div class="summary-card"><div class="value">${divisions.length}</div><div class="label">Divisions</div></div>
             `;
+            
+            // Load History (Last 30 days)
+            const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            const historyTimesheets = allTimesheets.filter(t => t.report_date >= formatDate(thirtyDaysAgo));
+            
+            let historyHtml = '';
+            for (let ts of historyTimesheets.slice(0, 200)) {
+                const isLateArrival = ts.time_in && isLate(ts.time_in);
+                const isEarlyDeparture = ts.time_out && isEarly(ts.time_out);
+                let statusBadge = '';
+                if (isLateArrival) statusBadge = '<span class="status-late">⚠️ LATE</span>';
+                else if (isEarlyDeparture) statusBadge = '<span class="status-early">⚠️ EARLY</span>';
+                else if (ts.time_in) statusBadge = '<span class="status-present">✅ PRESENT</span>';
+                else statusBadge = '<span class="status-absent">❌ ABSENT</span>';
+                
+                const reason = ts.late_reason || ts.early_reason || '-';
+                
+                historyHtml += `<tr>
+                    <td>${ts.report_date}</td>
+                    <td>${ts.officer_name}</td>
+                    <td>${ts.division}</td>
+                    <td>${ts.location || '-'}</td>
+                    <td>${ts.time_in || '-'}</td>
+                    <td>${ts.time_out || '-'}</td>
+                    <td>${ts.hours_worked ? ts.hours_worked.toFixed(1) : '-'}</td>
+                    <td>${statusBadge}</td>
+                    <td class="reason-cell">${reason}</td>
+                </tr>`;
+            }
+            document.getElementById('historyBody').innerHTML = historyHtml || '<tr><td colspan="9">No history records</td></tr>';
         }
         
         function exportToCSV() {
-            if (allData.length === 0) {
-                alert('No data to export');
-                return;
+            const selectedDate = formatDate(currentDate);
+            const rows = document.querySelectorAll('#divisionsContainer tbody tr');
+            let csv = `"Date","Division","Staff Name","Location","Clock In","Clock Out","Hours","Status","Reason"\n`;
+            for (let row of rows) {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 7) {
+                    const division = row.closest('.division-section')?.querySelector('.division-header span:first-child')?.innerText.replace('📁 ', '') || '';
+                    csv += `"${selectedDate}","${division}",`;
+                    for (let i = 0; i < cells.length; i++) {
+                        let text = cells[i].innerText.replace(/"/g, '""');
+                        if (cells[i].innerHTML.includes('status')) {
+                            text = cells[i].innerText.split(' ')[1] || cells[i].innerText;
+                        }
+                        csv += `"${text}"`;
+                        if (i < cells.length - 1) csv += ',';
+                    }
+                    csv += '\n';
+                }
             }
-            
-            let csv = "Staff Name,Division,Location,Date,Clock In,Clock Out,Hours,Status\n";
-            for (let row of allData) {
-                csv += `"${row.staff_name}",${row.division},${row.location || ''},${row.report_date},${row.time_in || ''},${row.time_out || ''},${row.hours},${row.status}\n`;
-            }
-            
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `vbs_attendance_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `vbs_attendance_${selectedDate}.csv`;
             a.click();
             URL.revokeObjectURL(url);
         }
         
-        // Set default dates to this week
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay() + 1);
-        document.getElementById('startDate').valueAsDate = startOfWeek;
-        document.getElementById('endDate').valueAsDate = today;
+        // Auto-refresh every 30 seconds
+        setInterval(() => { loadAttendance(); }, 30000);
         
         loadAttendance();
     </script>
