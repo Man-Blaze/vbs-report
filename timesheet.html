@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>VBS Timesheet</title>
+    <title>VBS Timesheet - Focal Point</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial; max-width: 550px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        body { font-family: Arial; max-width: 600px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
         .container { background: white; padding: 20px; border-radius: 10px; }
         h1 { color: #2c7a4d; }
         .user-info { background: #e8f5e9; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         .logout { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; }
         label { display: block; margin-top: 12px; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        select, input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; margin-top: 15px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; }
         .clock-in { background: #2c7a4d; color: white; }
         .clock-out { background: #dc3545; color: white; }
@@ -18,23 +18,31 @@
         .status { text-align: center; padding: 12px; border-radius: 8px; margin: 15px 0; }
         .status-in { background: #d4edda; color: #155724; }
         .status-out { background: #f8d7da; color: #721c24; }
-        .record-card { background: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 15px; }
+        .staff-list { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px; }
+        .staff-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; }
+        .staff-name { font-weight: bold; }
+        .staff-status { font-size: 12px; padding: 2px 8px; border-radius: 20px; }
+        .status-present { background: #d4edda; color: #155724; }
+        .status-absent { background: #f8d7da; color: #721c24; }
         .small-text { font-size: 12px; color: #666; margin-top: 5px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>⏰ VBS Timesheet</h1>
+        <p>Focal Point - Register staff Kam In / Kam Out</p>
         
         <div class="user-info">
-            <span>👤 <span id="userName"></span></span>
+            <span>👤 Focal Point: <span id="userName"></span></span>
             <button class="logout" onclick="logout()">Logout</button>
         </div>
         
-        <div id="statusMsg" class="status status-out">Ready to clock in</div>
+        <div id="statusMsg" class="status status-out">Select staff and clock in/out</div>
         
-        <label>Division:</label>
-        <input type="text" id="division" readonly style="background:#f0f0f0;">
+        <label>Select Staff:</label>
+        <select id="staffSelect" required>
+            <option value="">-- Select Staff --</option>
+        </select>
         
         <label>Date:</label>
         <input type="date" id="reportDate" required>
@@ -45,20 +53,21 @@
         <button id="clockInBtn" class="clock-in" onclick="clockIn()">✅ CLOCK IN - Kam In</button>
         <button id="clockOutBtn" class="clock-out" onclick="clockOut()">❌ CLOCK OUT - Kam Out</button>
         
-        <div id="todayRecord" class="record-card"></div>
-        <div id="weeklySummary" class="record-card"></div>
-        <div class="small-text">⚠️ Manager approves timesheets weekly.</div>
+        <div class="staff-list">
+            <strong>📋 Today's Staff Status</strong>
+            <div id="staffStatusList"></div>
+        </div>
+        
+        <div class="small-text">⚠️ Only Focal Points can register staff. CEO sees all attendance.</div>
     </div>
     
     <script>
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        let currentUserId = null;
-        let currentUserEmail = null;
-        let currentUserName = null;
-        let currentRecordId = null;
-        let isClockedIn = false;
+        let currentFocalPoint = null;
+        let currentFocalPointDivision = null;
+        let currentStaffId = null;
         
         async function checkAuth() {
             const token = localStorage.getItem('vbs_token');
@@ -69,25 +78,26 @@
             
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
-                currentUserEmail = payload.email;
-                currentUserId = payload.sub;
+                const userEmail = payload.email;
                 
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/staff_list?email=eq.${currentUserEmail}`, {
+                // Check if this user is a focal point
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/focal_points?email=eq.${userEmail}`, {
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
                 });
-                const staff = await response.json();
+                const focalPoints = await response.json();
                 
-                if (staff.length > 0) {
-                    currentUserName = staff[0].staff_name;
-                    document.getElementById('userName').innerText = currentUserName;
-                    document.getElementById('division').value = staff[0].division;
-                } else {
-                    currentUserName = currentUserEmail.split('@')[0];
-                    document.getElementById('userName').innerText = currentUserName;
+                if (focalPoints.length === 0) {
+                    alert('Access denied. Only focal points can use this system.');
+                    logout();
+                    return;
                 }
                 
-                checkExistingClockIn();
-                loadWeeklySummary();
+                currentFocalPoint = focalPoints[0].name;
+                currentFocalPointDivision = focalPoints[0].division;
+                document.getElementById('userName').innerText = currentFocalPoint;
+                
+                loadStaffList();
+                loadTodayStatus();
             } catch (e) {
                 logout();
             }
@@ -95,55 +105,82 @@
         
         function logout() {
             localStorage.removeItem('vbs_token');
-            localStorage.removeItem('vbs_user');
             window.location.href = 'login.html';
         }
         
         document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('reportDate').addEventListener('change', () => loadTodayStatus());
         
-        async function checkExistingClockIn() {
+        async function loadStaffList() {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/staff_list?division=eq.${currentFocalPointDivision}&is_active=eq.true&order=staff_name.asc`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${localStorage.getItem('vbs_token')}` }
+            });
+            const staff = await response.json();
+            
+            const select = document.getElementById('staffSelect');
+            select.innerHTML = '<option value="">-- Select Staff --</option>';
+            for (let s of staff) {
+                select.innerHTML += `<option value="${s.staff_name}" data-id="${s.id}">${s.staff_name}</option>`;
+            }
+        }
+        
+        async function loadTodayStatus() {
             const date = document.getElementById('reportDate').value;
             const token = localStorage.getItem('vbs_token');
             
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${currentUserName}&report_date=eq.${date}`, {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?report_date=eq.${date}&order=officer_name.asc`, {
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
             });
             const records = await response.json();
             
-            if (records.length > 0) {
-                const r = records[0];
-                currentRecordId = r.id;
+            // Get all staff in this division
+            const staffResponse = await fetch(`${SUPABASE_URL}/rest/v1/staff_list?division=eq.${currentFocalPointDivision}&is_active=eq.true`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+            });
+            const allStaff = await staffResponse.json();
+            
+            let html = '';
+            for (let staff of allStaff) {
+                const record = records.find(r => r.officer_name === staff.staff_name);
+                const isClockedIn = record && record.time_in && !record.time_out;
+                const statusText = isClockedIn ? 'PRESENT' : (record?.time_out ? 'CLOCKED OUT' : 'ABSENT');
+                const statusClass = isClockedIn ? 'status-present' : 'status-absent';
                 
-                if (r.time_in && !r.time_out) {
-                    isClockedIn = true;
-                    document.getElementById('statusMsg').innerHTML = `✅ Clocked IN since ${r.time_in}`;
-                    document.getElementById('statusMsg').className = 'status status-in';
-                    document.getElementById('clockInBtn').disabled = true;
-                    document.getElementById('clockInBtn').classList.add('clocked-in');
-                    document.getElementById('clockInBtn').textContent = '✅ CLOCKED IN';
-                } else if (r.time_out) {
-                    isClockedIn = false;
-                    document.getElementById('statusMsg').innerHTML = `❌ Clocked OUT at ${r.time_out} | Hours: ${r.hours_worked || 0}`;
-                    document.getElementById('statusMsg').className = 'status status-out';
-                }
-                loadTodayRecord();
+                html += `
+                    <div class="staff-item">
+                        <span class="staff-name">${staff.staff_name}</span>
+                        <span class="staff-status ${statusClass}">${statusText}</span>
+                    </div>
+                `;
             }
+            document.getElementById('staffStatusList').innerHTML = html || 'No staff found';
         }
         
         async function clockIn() {
+            const staffName = document.getElementById('staffSelect').value;
             const date = document.getElementById('reportDate').value;
             const location = document.getElementById('location').value;
-            const division = document.getElementById('division').value;
             const token = localStorage.getItem('vbs_token');
             
-            if (!date) { alert('Select date'); return; }
+            if (!staffName) { alert('Select staff first'); return; }
             
             const now = new Date();
             const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
+            // Check if already clocked in today
+            const check = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${staffName}&report_date=eq.${date}`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+            });
+            const existing = await check.json();
+            
+            if (existing.length > 0 && existing[0].time_in && !existing[0].time_out) {
+                alert(`${staffName} is already clocked in today.`);
+                return;
+            }
+            
             const data = {
-                officer_name: currentUserName,
-                division: division,
+                officer_name: staffName,
+                division: currentFocalPointDivision,
                 report_date: date,
                 time_in: timeStr,
                 location: location,
@@ -157,29 +194,38 @@
             });
             
             if (response.ok) {
-                alert(`✅ Clocked IN at ${timeStr}`);
-                checkExistingClockIn();
-                loadWeeklySummary();
+                alert(`✅ ${staffName} clocked IN at ${timeStr}`);
+                loadTodayStatus();
+                document.getElementById('staffSelect').value = '';
+                document.getElementById('location').value = '';
             } else {
                 alert('Failed to clock in');
             }
         }
         
         async function clockOut() {
-            if (!currentRecordId) {
-                alert('No clock-in record found');
-                return;
-            }
-            
+            const staffName = document.getElementById('staffSelect').value;
+            const date = document.getElementById('reportDate').value;
             const token = localStorage.getItem('vbs_token');
-            const now = new Date();
-            const timeOutStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${currentRecordId}`, {
+            if (!staffName) { alert('Select staff first'); return; }
+            
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${staffName}&report_date=eq.${date}`, {
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
             });
             const records = await response.json();
+            
+            if (records.length === 0) {
+                alert(`${staffName} has no clock-in record today.`);
+                return;
+            }
+            
             const record = records[0];
+            if (!record.time_in) { alert('No clock-in record found'); return; }
+            if (record.time_out) { alert(`${staffName} already clocked out today`); return; }
+            
+            const now = new Date();
+            const timeOutStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
             const timeInParts = record.time_in.split(':');
             const timeOutParts = timeOutStr.split(':');
@@ -188,7 +234,7 @@
             if (minutes < 0) { hours--; minutes += 60; }
             const totalHours = hours + minutes / 60;
             
-            const update = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${currentRecordId}`, {
+            const update = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${record.id}`, {
                 method: 'PATCH',
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -198,60 +244,13 @@
             });
             
             if (update.ok) {
-                alert(`❌ Clocked OUT at ${timeOutStr} | Hours: ${totalHours.toFixed(2)}`);
-                checkExistingClockIn();
-                loadWeeklySummary();
+                alert(`❌ ${staffName} clocked OUT at ${timeOutStr} | Hours: ${totalHours.toFixed(2)}`);
+                loadTodayStatus();
+                document.getElementById('staffSelect').value = '';
             } else {
                 alert('Failed to clock out');
             }
         }
-        
-        async function loadTodayRecord() {
-            const date = document.getElementById('reportDate').value;
-            const token = localStorage.getItem('vbs_token');
-            
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${currentUserName}&report_date=eq.${date}`, {
-                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
-            });
-            const records = await response.json();
-            
-            if (records.length > 0) {
-                const r = records[0];
-                document.getElementById('todayRecord').innerHTML = `
-                    <strong>📅 Today's Record (${date})</strong><br>
-                    Clock In: ${r.time_in || '—'}<br>
-                    Clock Out: ${r.time_out || '—'}<br>
-                    Hours: ${r.hours_worked || 0}<br>
-                    Status: ${r.status || 'PENDING'}
-                `;
-            }
-        }
-        
-        async function loadWeeklySummary() {
-            const token = localStorage.getItem('vbs_token');
-            
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${currentUserName}&order=report_date.desc&limit=7`, {
-                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
-            });
-            const records = await response.json();
-            
-            if (records.length === 0) {
-                document.getElementById('weeklySummary').innerHTML = 'No records this week';
-                return;
-            }
-            
-            let totalHours = 0;
-            let html = '<strong>📊 Last 7 Days</strong><br>';
-            for (let r of records) {
-                totalHours += r.hours_worked || 0;
-                const statusIcon = r.status === 'APPROVED' ? '✅' : (r.status === 'REJECTED' ? '❌' : '⏳');
-                html += `${r.report_date}: ${r.hours_worked || 0} hours ${statusIcon}<br>`;
-            }
-            html += `<strong>Total: ${totalHours.toFixed(1)} hours</strong>`;
-            document.getElementById('weeklySummary').innerHTML = html;
-        }
-        
-        document.getElementById('reportDate').addEventListener('change', () => checkExistingClockIn());
         
         checkAuth();
     </script>
