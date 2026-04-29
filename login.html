@@ -10,22 +10,47 @@
         input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         .error { color: red; text-align: center; margin-top: 10px; }
+        .success { color: green; text-align: center; margin-top: 10px; }
         .info { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        .forgot-link { text-align: center; margin-top: 15px; }
+        .forgot-link a { color: #2c7a4d; text-decoration: none; font-size: 14px; }
+        .forgot-link a:hover { text-decoration: underline; }
+        .reset-form { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
+        .reset-form.active { display: block; }
+        .back-link { text-align: center; margin-top: 10px; }
+        .back-link a { color: #666; text-decoration: none; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔐 VBS Timesheet</h1>
-        <p>Login with your email</p>
         
-        <input type="email" id="email" placeholder="Email" required>
-        <input type="password" id="password" placeholder="Password" required>
-        <button onclick="login()">Login</button>
+        <!-- Login Form -->
+        <div id="loginForm">
+            <p>Login with your email</p>
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button onclick="login()">Login</button>
+            <div id="errorMsg" class="error"></div>
+            <div class="forgot-link">
+                <a href="#" onclick="showResetForm()">Forgot password?</a>
+            </div>
+            <div class="info">
+                ⚠️ Focal points can manage staff attendance<br>
+                ⚠️ Staff can use Self Clock Mode
+            </div>
+        </div>
         
-        <div id="errorMsg" class="error"></div>
-        <div class="info">
-            ⚠️ Focal points can manage staff attendance<br>
-            ⚠️ Staff can use Self Clock Mode
+        <!-- Reset Password Form -->
+        <div id="resetForm" class="reset-form">
+            <p>Reset your password</p>
+            <p style="font-size: 13px; color: #666;">Enter your email and we'll send a password reset link</p>
+            <input type="email" id="resetEmail" placeholder="Email" required>
+            <button onclick="resetPassword()">Send Reset Link</button>
+            <div id="resetMsg" class="success"></div>
+            <div class="back-link">
+                <a href="#" onclick="showLoginForm()">← Back to login</a>
+            </div>
         </div>
     </div>
     
@@ -42,6 +67,18 @@
             'livu@vbs.gov.vu',
             'polovbs984@gmail.com'
         ];
+        
+        function showResetForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('resetForm').classList.add('active');
+            document.getElementById('resetMsg').innerHTML = '';
+        }
+        
+        function showLoginForm() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('resetForm').classList.remove('active');
+            document.getElementById('resetMsg').innerHTML = '';
+        }
         
         async function login() {
             const email = document.getElementById('email').value.trim().toLowerCase();
@@ -65,35 +102,68 @@
                 if (response.ok) {
                     const data = await response.json();
                     
-                    // Clear old storage first
                     localStorage.clear();
-                    
                     localStorage.setItem('vbs_token', data.access_token);
                     localStorage.setItem('vbs_user', email);
                     
                     const isFocalPoint = focalPointEmails.includes(email);
                     localStorage.setItem('vbs_user_type', isFocalPoint ? 'focal_point' : 'staff');
                     
-                    console.log('Login successful. User type:', isFocalPoint ? 'focal_point' : 'staff');
-                    
-                    // Redirect to timesheet
                     window.location.href = 'timesheet.html';
                 } else {
                     const error = await response.json();
                     errorDiv.innerHTML = '❌ Invalid email or password';
-                    console.error('Login failed:', error);
                 }
             } catch (error) {
                 errorDiv.innerHTML = '❌ Connection error. Please try again.';
-                console.error('Connection error:', error);
+            }
+        }
+        
+        async function resetPassword() {
+            const email = document.getElementById('resetEmail').value.trim().toLowerCase();
+            const msgDiv = document.getElementById('resetMsg');
+            
+            if (!email) {
+                msgDiv.innerHTML = '❌ Please enter your email';
+                msgDiv.style.color = 'red';
+                return;
+            }
+            
+            msgDiv.innerHTML = 'Sending reset link...';
+            msgDiv.style.color = 'green';
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/recover`, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                
+                if (response.ok) {
+                    msgDiv.innerHTML = '✅ Password reset link sent to your email. Check your inbox.';
+                    msgDiv.style.color = 'green';
+                    document.getElementById('resetEmail').value = '';
+                    
+                    // Auto switch back to login after 3 seconds
+                    setTimeout(() => {
+                        showLoginForm();
+                    }, 3000);
+                } else {
+                    const error = await response.json();
+                    msgDiv.innerHTML = `❌ ${error.msg || 'Failed to send reset link'}`;
+                    msgDiv.style.color = 'red';
+                }
+            } catch (error) {
+                msgDiv.innerHTML = '❌ Connection error. Please try again.';
+                msgDiv.style.color = 'red';
             }
         }
         
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') login();
         });
-        document.getElementById('email').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') login();
+        document.getElementById('resetEmail').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') resetPassword();
         });
     </script>
 </body>
