@@ -64,24 +64,31 @@
                 
                 if (response.ok) {
                     const data = await response.json();
+                    
+                    // Clear old storage first
+                    localStorage.clear();
+                    
                     localStorage.setItem('vbs_token', data.access_token);
                     localStorage.setItem('vbs_user', email);
                     
                     const isFocalPoint = focalPointEmails.includes(email);
                     localStorage.setItem('vbs_user_type', isFocalPoint ? 'focal_point' : 'staff');
                     
-                    // Simple redirect - no bounce
-                    window.location.replace('timesheet.html');
+                    console.log('Login successful. User type:', isFocalPoint ? 'focal_point' : 'staff');
+                    
+                    // Redirect to timesheet
+                    window.location.href = 'timesheet.html';
                 } else {
                     const error = await response.json();
                     errorDiv.innerHTML = '❌ Invalid email or password';
+                    console.error('Login failed:', error);
                 }
             } catch (error) {
                 errorDiv.innerHTML = '❌ Connection error. Please try again.';
+                console.error('Connection error:', error);
             }
         }
         
-        // Allow Enter key to submit
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') login();
         });
