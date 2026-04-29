@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ============================================
-# VBS CEO DASHBOARD - WITH RAW DATA VIEWER
+# VBS CEO DASHBOARD - WITH DATABASE VIEWER LINK
 # ============================================
 
 SUPABASE_URL = "https://pdwctzueksfuspwwumdy.supabase.co"
@@ -32,6 +32,24 @@ st.title("📊 VBS CEO Dashboard")
 st.caption(f"Vanuatu Bureau of Standards | Live Data | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 # ============================================
+# QUICK LINKS AT THE TOP (CEO NAVIGATION)
+# ============================================
+st.subheader("🔗 Quick Navigation")
+col1, col2, col3, col4, col5 = st.columns(5)
+with col1:
+    st.markdown("[📝 Staff Forms](https://Man-Blaze.github.io/vbs-report/)")
+with col2:
+    st.markdown("[✅ Manager Dashboard](https://Man-Blaze.github.io/vbs-report/manager_dashboard.html)")
+with col3:
+    st.markdown("[👥 Team Reports](https://Man-Blaze.github.io/vbs-report/my_reports.html)")
+with col4:
+    st.markdown("[🔬 Lab Inventory](https://Man-Blaze.github.io/vbs-report/lab_inventory.html)")
+with col5:
+    st.markdown("[🗄️ Database Viewer](https://Man-Blaze.github.io/vbs-report/supabase_tables.html)")
+
+st.divider()
+
+# ============================================
 # DATA FUNCTIONS
 # ============================================
 @st.cache_data(ttl=30)
@@ -45,52 +63,6 @@ def load_table(table_name, status_filter=None):
     except:
         return pd.DataFrame()
 
-@st.cache_data(ttl=30)
-def get_all_tables():
-    """Get list of all tables in the database"""
-    # These are the main tables in your schema
-    return {
-        'Timesheet': 'timesheet',
-        'Provincial Reports': 'provincial_reports',
-        'Laboratory Reports': 'laboratory_reports',
-        'Packhouse Reports': 'packhouse_reports',
-        'Standards Reports': 'standards_reports',
-        'Administration Reports': 'administration_reports',
-        'Conformity Assessment': 'conformity_assessment',
-        'General Activity Log': 'general_activity_log',
-        'Leave Requests': 'leave_requests',
-        'Staff List': 'staff_list',
-        'Focal Points': 'focal_points',
-        'Lab Chemicals': 'lab_chemicals',
-        'Lab Glassware': 'lab_glassware',
-        'Lab Equipment': 'lab_equipment',
-        'Lab Reagent Usage': 'lab_reagent_usage'
-    }
-
-def is_late(time_in):
-    if not time_in:
-        return False
-    try:
-        parts = str(time_in).split(':')
-        hour = int(parts[0])
-        minute = int(parts[1]) if len(parts) > 1 else 0
-        return hour > 8 or (hour == 8 and minute > 15)
-    except:
-        return False
-
-def is_early(time_out):
-    if not time_out:
-        return False
-    try:
-        parts = str(time_out).split(':')
-        hour = int(parts[0])
-        return hour < 17
-    except:
-        return False
-
-# ============================================
-# TOP METRICS
-# ============================================
 @st.cache_data(ttl=30)
 def get_stats():
     tables = {
@@ -118,6 +90,30 @@ def get_stats():
             stats[name] = {'total': 0, 'approved': 0, 'pending': 0}
     return stats
 
+def is_late(time_in):
+    if not time_in:
+        return False
+    try:
+        parts = str(time_in).split(':')
+        hour = int(parts[0])
+        minute = int(parts[1]) if len(parts) > 1 else 0
+        return hour > 8 or (hour == 8 and minute > 15)
+    except:
+        return False
+
+def is_early(time_out):
+    if not time_out:
+        return False
+    try:
+        parts = str(time_out).split(':')
+        hour = int(parts[0])
+        return hour < 17
+    except:
+        return False
+
+# ============================================
+# TOP METRICS
+# ============================================
 stats = get_stats()
 total_reports = sum(s['total'] for s in stats.values())
 total_pending = sum(s['pending'] for s in stats.values())
@@ -242,9 +238,8 @@ else:
 st.divider()
 
 # ============================================
-# PROVINCIAL, PACKHOUSE, LABORATORY SECTIONS
+# PROVINCIAL DIVISION
 # ============================================
-# (Keep existing sections - shortened for brevity)
 provincial = load_table('provincial_reports', 'APPROVED')
 st.subheader("🌾 Provincial Division")
 if not provincial.empty:
@@ -256,10 +251,19 @@ if not provincial.empty:
         st.metric("Total Inspections", len(provincial))
     with col3:
         st.metric("Non-Compliance", provincial['non_compliance_cases'].sum())
+    
+    if 'location' in provincial.columns:
+        locations = provincial['location'].value_counts().head(5).reset_index()
+        locations.columns = ['Location', 'Count']
+        fig = px.bar(locations, x='Location', y='Count', title="Top 5 Inspection Locations")
+        st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("No approved provincial data yet")
 st.divider()
 
+# ============================================
+# PACKHOUSE
+# ============================================
 packhouse = load_table('packhouse_reports', 'APPROVED')
 st.subheader("📦 Packhouse")
 if not packhouse.empty:
@@ -274,6 +278,9 @@ else:
     st.info("No approved packhouse data yet")
 st.divider()
 
+# ============================================
+# LABORATORY
+# ============================================
 laboratory = load_table('laboratory_reports', 'APPROVED')
 st.subheader("🔬 Laboratory")
 if not laboratory.empty:
@@ -295,6 +302,9 @@ else:
     st.info("No approved laboratory data yet")
 st.divider()
 
+# ============================================
+# STANDARDS
+# ============================================
 standards = load_table('standards_reports', 'APPROVED')
 st.subheader("📜 Standards & Certification")
 if not standards.empty:
@@ -307,6 +317,9 @@ else:
     st.info("No approved standards data yet")
 st.divider()
 
+# ============================================
+# CONFORMITY ASSESSMENT
+# ============================================
 conformity = load_table('conformity_assessment', 'APPROVED')
 st.subheader("✅ Conformity Assessment")
 if not conformity.empty:
@@ -321,6 +334,9 @@ else:
     st.info("No approved conformity data yet")
 st.divider()
 
+# ============================================
+# TOP OFFICERS
+# ============================================
 st.subheader("👥 Top Officers")
 all_officers = []
 for table in ['provincial_reports', 'laboratory_reports', 'packhouse_reports', 'standards_reports']:
@@ -339,129 +355,36 @@ else:
 st.divider()
 
 # ============================================
-# RAW DATA VIEWER (CEO can see all tables)
+# QUICK LINKS SECTION (Bottom Navigation)
 # ============================================
-st.subheader("📁 RAW DATABASE VIEWER")
-st.caption("CEO Only - View all tables in Supabase (Read Only)")
+st.subheader("🔗 Resources & Links")
 
-# Get all tables
-all_tables = get_all_tables()
+col1, col2, col3 = st.columns(3)
 
-# Create tabs for each table category
-tab1, tab2, tab3, tab4 = st.tabs(["📋 Reports", "👥 Staff & Attendance", "🔬 Lab Inventory", "📋 Leave & Admin"])
+with col1:
+    st.markdown("### 📝 Staff Tools")
+    st.markdown("- [Staff Forms](https://Man-Blaze.github.io/vbs-report/)")
+    st.markdown("- [Timesheet Login](https://Man-Blaze.github.io/vbs-report/login.html)")
+    st.markdown("- [Team Reports](https://Man-Blaze.github.io/vbs-report/my_reports.html)")
+    st.markdown("- [Leave Application](https://Man-Blaze.github.io/vbs-report/leave.html)")
 
-with tab1:
-    st.subheader("Reports Tables")
-    report_tables = ['Timesheet', 'Provincial Reports', 'Laboratory Reports', 'Packhouse Reports', 
-                     'Standards Reports', 'Administration Reports', 'Conformity Assessment', 'General Activity Log']
-    
-    for table_name in report_tables:
-        table_key = all_tables.get(table_name)
-        if table_key:
-            with st.expander(f"📄 {table_name}"):
-                df = load_table(table_key)
-                if not df.empty:
-                    st.dataframe(df, use_container_width=True)
-                    st.caption(f"📊 Total rows: {len(df)}")
-                else:
-                    st.warning("⚠️ No data in this table")
+with col2:
+    st.markdown("### 👔 Management")
+    st.markdown("- [Manager Dashboard](https://Man-Blaze.github.io/vbs-report/manager_dashboard.html)")
+    st.markdown("- [Admin Report](https://Man-Blaze.github.io/vbs-report/admin_report.html)")
+    st.markdown("- [Lab Inventory](https://Man-Blaze.github.io/vbs-report/lab_inventory.html)")
+    st.markdown("- [Activity Tracker](https://Man-Blaze.github.io/vbs-report/tracking.html)")
 
-with tab2:
-    st.subheader("Staff & Attendance")
-    staff_tables = ['Staff List', 'Focal Points', 'Timesheet']
-    
-    for table_name in staff_tables:
-        table_key = all_tables.get(table_name)
-        if table_key:
-            with st.expander(f"👥 {table_name}"):
-                df = load_table(table_key)
-                if not df.empty:
-                    st.dataframe(df, use_container_width=True)
-                    st.caption(f"📊 Total rows: {len(df)}")
-                else:
-                    st.warning("⚠️ No data in this table")
-    
-    # Quick staff summary
-    with st.expander("📊 Staff Summary"):
-        staff_df = load_table('staff_list')
-        if not staff_df.empty:
-            st.metric("Total Staff", len(staff_df))
-            st.dataframe(staff_df[['staff_name', 'division', 'location']], use_container_width=True)
-
-with tab3:
-    st.subheader("Laboratory Inventory")
-    lab_tables = ['Lab Chemicals', 'Lab Glassware', 'Lab Equipment', 'Lab Reagent Usage']
-    
-    for table_name in lab_tables:
-        table_key = all_tables.get(table_name)
-        if table_key:
-            with st.expander(f"🔬 {table_name}"):
-                df = load_table(table_key)
-                if not df.empty:
-                    st.dataframe(df, use_container_width=True)
-                    st.caption(f"📊 Total rows: {len(df)}")
-                else:
-                    st.warning("⚠️ No data in this table")
-    
-    # Low stock alert
-    with st.expander("⚠️ Low Stock Alerts"):
-        chemicals = load_table('lab_chemicals')
-        if not chemicals.empty and 'current_amount' in chemicals.columns and 'minimum_stock_level' in chemicals.columns:
-            low_stock = chemicals[chemicals['current_amount'] <= chemicals['minimum_stock_level']]
-            if not low_stock.empty:
-                st.error(f"⚠️ {len(low_stock)} chemicals below minimum stock level")
-                st.dataframe(low_stock[['chemical_name', 'current_amount', 'minimum_stock_level', 'unit']])
-            else:
-                st.success("✅ All stock levels are adequate")
-
-with tab4:
-    st.subheader("Leave & Administration")
-    admin_tables = ['Leave Requests']
-    
-    for table_name in admin_tables:
-        table_key = all_tables.get(table_name)
-        if table_key:
-            with st.expander(f"📋 {table_name}"):
-                df = load_table(table_key)
-                if not df.empty:
-                    st.dataframe(df, use_container_width=True)
-                    st.caption(f"📊 Total rows: {len(df)}")
-                else:
-                    st.warning("⚠️ No data in this table")
-
-# Export button for each table
-st.subheader("📎 Export Data")
-st.caption("Download any table as CSV")
-
-selected_export = st.selectbox("Select table to export", list(all_tables.keys()))
-if selected_export:
-    table_key = all_tables[selected_export]
-    export_df = load_table(table_key)
-    if not export_df.empty:
-        csv = export_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label=f"📎 Download {selected_export}.csv",
-            data=csv,
-            file_name=f"{selected_export.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.csv",
-            mime="text/csv"
-        )
-    else:
-        st.warning("No data to export")
+with col3:
+    st.markdown("### 👑 CEO Tools")
+    st.markdown("- [🗄️ Database Viewer](https://Man-Blaze.github.io/vbs-report/supabase_tables.html)")
+    st.markdown("- [Staff Attendance Report](https://Man-Blaze.github.io/vbs-report/ceo_attendance.html)")
+    st.markdown("- [Power BI Dashboard](https://Man-Blaze.github.io/vbs-report/)")
+    st.markdown("- [Central Hub](https://Man-Blaze.github.io/vbs-report/)")
 
 st.divider()
 
 # ============================================
-# QUICK LINKS
+# FOOTER
 # ============================================
-st.subheader("🔗 Quick Links")
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.markdown("📝 [Staff Forms](https://Man-Blaze.github.io/vbs-report/)")
-with col2:
-    st.markdown("✅ [Manager Dashboard](https://Man-Blaze.github.io/vbs-report/manager_dashboard.html)")
-with col3:
-    st.markdown("👥 [Team Reports](https://Man-Blaze.github.io/vbs-report/my_reports.html)")
-with col4:
-    st.markdown("🔬 [Lab Inventory](https://Man-Blaze.github.io/vbs-report/lab_inventory.html)")
-
-st.caption(f"© 2026 Vanuatu Bureau of Standards | Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+st.caption(f"© 2026 Vanuatu Bureau of Standards | Data from Supabase | Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
