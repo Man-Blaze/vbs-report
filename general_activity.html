@@ -4,7 +4,7 @@
     <title>VBS - General Activity Log</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 550px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        body { font-family: Arial, sans-serif; max-width: 650px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
         .container { background: white; padding: 20px; border-radius: 10px; }
         h1 { color: #2c7a4d; }
         label { display: block; margin-top: 15px; font-weight: bold; }
@@ -12,6 +12,13 @@
         textarea { min-height: 80px; }
         button { width: 100%; padding: 12px; margin-top: 20px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         .note { font-size: 12px; color: #666; margin-top: 5px; }
+        .file-input { padding: 8px; background: #f8f9fa; border: 1px dashed #ccc; }
+        .file-list { margin-top: 10px; padding: 8px; background: #e8f5e9; border-radius: 5px; display: none; }
+        .file-list a { color: #2c7a4d; text-decoration: none; margin-right: 10px; }
+        .file-list a:hover { text-decoration: underline; }
+        .progress { width: 100%; background: #f0f0f0; border-radius: 5px; margin-top: 5px; display: none; }
+        .progress-bar { width: 0%; height: 20px; background: #2c7a4d; border-radius: 5px; text-align: center; color: white; font-size: 11px; line-height: 20px; }
+        .upload-status { font-size: 12px; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -89,8 +96,19 @@
             <label>Next Steps / Action Items:</label>
             <textarea name="next_steps" placeholder="What needs to happen next? Who is responsible?"></textarea>
             
+            <!-- EVIDENCE UPLOAD SECTION -->
+            <label>📎 Attach Evidence (Photos, PDFs, Reports):</label>
+            <input type="file" id="evidenceFiles" multiple accept="image/*,.pdf,.doc,.docx,.xlsx,.txt" class="file-input">
+            <div class="note">Upload photos, PDF reports, meeting minutes, or any evidence. You can select multiple files.</div>
+            <div id="progress" class="progress">
+                <div id="progressBar" class="progress-bar">0%</div>
+            </div>
+            <div id="uploadStatus" class="upload-status"></div>
+            <div id="fileList" class="file-list"></div>
+            <input type="hidden" name="evidence_urls" id="evidenceUrls">
+            
             <label>Reference Document URL (optional):</label>
-            <input name="reference_document_url" placeholder="Link to report, minutes, or file">
+            <input name="reference_document_url" placeholder="Link to online document, report, or minutes">
             
             <label>Officer Notes:</label>
             <textarea name="officer_notes" placeholder="Any additional observations or reflections"></textarea>
@@ -112,8 +130,91 @@
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
+        let uploadedUrls = [];
+        
+        // Set default date
+        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+        
+        async function uploadFiles(files) {
+            const progressDiv = document.getElementById('progress');
+            const progressBar = document.getElementById('progressBar');
+            const statusDiv = document.getElementById('uploadStatus');
+            const fileListDiv = document.getElementById('fileList');
+            
+            if (!files || files.length === 0) return [];
+            
+            progressDiv.style.display = 'block';
+            uploadedUrls = [];
+            fileListDiv.style.display = 'block';
+            fileListDiv.innerHTML = '<strong>Uploaded files:</strong><br>';
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileName = file.name;
+                const fileExt = fileName.split('.').pop();
+                const timestamp = Date.now();
+                const uniqueName = `${timestamp}_${i}_${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+                
+                progressBar.style.width = `${((i + 1) / files.length) * 100}%`;
+                progressBar.innerHTML = `${Math.round(((i + 1) / files.length) * 100)}%`;
+                statusDiv.innerHTML = `Uploading ${fileName}...`;
+                
+                try {
+                    // Step 1: Get upload URL from Supabase Storage
+                    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/evidence/${uniqueName}`;
+                    
+                    const uploadResponse = await fetch(uploadUrl, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`,
+                            'Content-Type': file.type
+                        },
+                        body: file
+                    });
+                    
+                    if (uploadResponse.ok) {
+                        const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/evidence/${uniqueName}`;
+                        uploadedUrls.push(publicUrl);
+                        fileListDiv.innerHTML += `<a href="${publicUrl}" target="_blank">📎 ${fileName}</a><br>`;
+                        statusDiv.innerHTML = `✅ Uploaded ${fileName}`;
+                    } else {
+                        const error = await uploadResponse.text();
+                        console.error('Upload error:', error);
+                        statusDiv.innerHTML = `❌ Failed to upload ${fileName}`;
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    statusDiv.innerHTML = `❌ Error uploading ${fileName}: ${error.message}`;
+                }
+            }
+            
+            progressBar.style.width = '100%';
+            progressBar.innerHTML = '100%';
+            statusDiv.innerHTML = `✅ Uploaded ${uploadedUrls.length} files`;
+            document.getElementById('evidenceUrls').value = JSON.stringify(uploadedUrls);
+            
+            setTimeout(() => {
+                progressDiv.style.display = 'none';
+            }, 2000);
+            
+            return uploadedUrls;
+        }
+        
         document.getElementById('reportForm').onsubmit = async (e) => {
             e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('button');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Uploading files and submitting...';
+            
+            // Upload files first
+            const files = document.getElementById('evidenceFiles').files;
+            if (files.length > 0) {
+                await uploadFiles(files);
+            }
+            
+            // Collect form data
             const formData = new FormData(e.target);
             const data = {};
             formData.forEach((value, key) => {
@@ -123,6 +224,7 @@
             });
             
             data.status = 'PENDING';
+            data.evidence_urls = uploadedUrls;
             
             const numberFields = ['hours_worked', 'tasks_completed'];
             numberFields.forEach(field => {
@@ -142,19 +244,23 @@
                 });
                 
                 if (response.ok) {
-                    alert('✅ Activity logged! Manager will review.');
+                    alert('✅ Activity logged! Evidence attached. Manager will review.');
                     document.getElementById('reportForm').reset();
                     document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+                    document.getElementById('fileList').style.display = 'none';
+                    document.getElementById('evidenceUrls').value = '';
+                    uploadedUrls = [];
                 } else {
                     const error = await response.text();
                     alert('❌ Error: ' + error);
                 }
             } catch (error) {
                 alert('❌ Connection error: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Submit Activity Log';
             }
         };
-        
-        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
     </script>
 </body>
 </html>
