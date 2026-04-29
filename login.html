@@ -11,13 +11,12 @@
         button { width: 100%; padding: 12px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         .error { color: red; text-align: center; margin-top: 10px; }
         .info { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-        .debug { background: #f0f0f0; padding: 10px; margin-top: 20px; border-radius: 5px; font-size: 11px; display: none; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔐 VBS Timesheet</h1>
-        <p>Login with your VBS email</p>
+        <p>Login with your email</p>
         
         <input type="email" id="email" placeholder="Email" required>
         <input type="password" id="password" placeholder="Password" required>
@@ -26,16 +25,15 @@
         <div id="errorMsg" class="error"></div>
         <div class="info">
             ⚠️ Focal points can manage staff attendance<br>
-            ⚠️ Staff can use Self Clock Mode when focal point is absent
+            ⚠️ Staff can use Self Clock Mode
         </div>
-        <div id="debug" class="debug"></div>
     </div>
     
     <script>
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        // List of authorized focal point emails (can manage staff)
+        // Focal point emails
         const focalPointEmails = [
             'rolina5411139@gmail.com',
             'galana@vbs.gov.vu',
@@ -45,16 +43,17 @@
             'polovbs984@gmail.com'
         ];
         
-        // Staff emails are also allowed (they can only use Self Clock Mode)
-        // No need to list them - any email in Supabase Auth that is not a focal point is staff
-        
         async function login() {
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             
-            const debugDiv = document.getElementById('debug');
-            debugDiv.style.display = 'block';
-            debugDiv.innerHTML = `Attempting login for: ${email}<br>`;
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.innerHTML = '';
+            
+            if (!email || !password) {
+                errorDiv.innerHTML = '❌ Please enter email and password';
+                return;
+            }
             
             try {
                 const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
@@ -68,25 +67,27 @@
                     localStorage.setItem('vbs_token', data.access_token);
                     localStorage.setItem('vbs_user', email);
                     
-                    // Check if user is focal point or staff
                     const isFocalPoint = focalPointEmails.includes(email);
                     localStorage.setItem('vbs_user_type', isFocalPoint ? 'focal_point' : 'staff');
                     
-                    debugDiv.innerHTML += `✅ Login successful! User type: ${isFocalPoint ? 'Focal Point' : 'Staff'}<br>`;
-                    debugDiv.innerHTML += `Redirecting to timesheet...<br>`;
-                    
-                    window.location.href = 'timesheet.html';
+                    // Simple redirect - no bounce
+                    window.location.replace('timesheet.html');
                 } else {
                     const error = await response.json();
-                    document.getElementById('errorMsg').innerHTML = '❌ Login failed: Invalid email or password';
-                    debugDiv.innerHTML += `❌ Auth failed: ${error.msg || 'Invalid credentials'}<br>`;
-                    debugDiv.innerHTML += `❌ Make sure this email has a user in Supabase Authentication → Users<br>`;
+                    errorDiv.innerHTML = '❌ Invalid email or password';
                 }
             } catch (error) {
-                document.getElementById('errorMsg').innerHTML = '❌ Connection error';
-                debugDiv.innerHTML += `❌ Connection error: ${error.message}<br>`;
+                errorDiv.innerHTML = '❌ Connection error. Please try again.';
             }
         }
+        
+        // Allow Enter key to submit
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
+        document.getElementById('email').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
     </script>
 </body>
 </html>
