@@ -11,7 +11,7 @@
         .header { margin-bottom: 28px; }
         .header h1 { font-size: 28px; font-weight: 600; color: #1a3a2e; margin-bottom: 6px; }
         .header p { font-size: 14px; color: #6c7a8a; }
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 28px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px; }
         .stat-card { background: white; border-radius: 20px; padding: 20px 24px; border: 1px solid #eef2f6; }
         .stat-number { font-size: 36px; font-weight: 700; color: #1a5a3a; }
         .stat-label { font-size: 14px; color: #6c7a8a; margin-top: 8px; }
@@ -23,7 +23,7 @@
         .refresh-btn:hover { background: #e2e8f0; }
         .report-card { background: white; border-radius: 20px; border: 1px solid #eef2f6; margin-bottom: 16px; overflow: hidden; }
         .card-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #fafcff; border-bottom: 1px solid #eef2f6; flex-wrap: wrap; gap: 12px; }
-        .officer-info { display: flex; align-items: center; gap: 12px; }
+        .officer-info { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .officer-avatar { width: 40px; height: 40px; background: #e8f5e9; border-radius: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
         .officer-name { font-weight: 600; font-size: 16px; color: #1e293b; }
         .report-date { font-size: 13px; color: #6c7a8a; display: flex; align-items: center; gap: 6px; }
@@ -34,11 +34,17 @@
         .field-icon { font-size: 18px; width: 28px; }
         .field-label { font-size: 13px; color: #6c7a8a; font-weight: 500; min-width: 100px; }
         .field-value { font-size: 14px; color: #1e293b; font-weight: 500; }
-        .reason-box { background: #fff3cd; padding: 12px; border-radius: 10px; margin-top: 12px; border-left: 4px solid #ffc107; }
-        .reason-label { font-weight: bold; font-size: 12px; color: #856404; margin-bottom: 4px; }
-        .reason-text { font-size: 13px; color: #856404; }
-        .overtime-box { background: #d4edda; padding: 12px; border-radius: 10px; margin-top: 12px; border-left: 4px solid #28a745; }
-        .overtime-label { font-weight: bold; font-size: 12px; color: #155724; margin-bottom: 4px; }
+        .reason-box { padding: 12px; border-radius: 10px; margin-top: 12px; border-left: 4px solid; }
+        .reason-late { background: #fff3cd; border-left-color: #ffc107; }
+        .reason-early { background: #d1ecf1; border-left-color: #17a2b8; }
+        .reason-overtime { background: #d4edda; border-left-color: #28a745; }
+        .reason-label { font-weight: bold; font-size: 12px; margin-bottom: 4px; }
+        .reason-text { font-size: 13px; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; margin-left: 8px; }
+        .badge-late { background: #fff3cd; color: #856404; }
+        .badge-early-start { background: #d1ecf1; color: #0c5460; }
+        .badge-early-leave { background: #fff3cd; color: #856404; }
+        .badge-overtime { background: #d4edda; color: #155724; }
         .card-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; background: #fafcff; border-top: 1px solid #eef2f6; }
         .btn-approve { background: #1a5a3a; color: white; border: none; padding: 10px 28px; border-radius: 40px; cursor: pointer; font-size: 14px; font-weight: 500; }
         .btn-approve:hover { background: #0e3d26; }
@@ -49,12 +55,9 @@
         .empty-state h3 { font-size: 18px; font-weight: 500; color: #1e293b; margin-bottom: 8px; }
         .empty-state p { color: #6c7a8a; font-size: 14px; }
         .loading { text-align: center; padding: 60px; color: #6c7a8a; }
-        .badge-late { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 20px; font-size: 11px; margin-left: 8px; }
-        .badge-early { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 20px; font-size: 11px; margin-left: 8px; }
-        .badge-overtime { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 20px; font-size: 11px; margin-left: 8px; }
         @media (max-width: 768px) {
             body { padding: 16px; }
-            .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
             .filter-bar { flex-direction: column; align-items: stretch; }
             .detail-field { min-width: 100%; }
             .detail-row { flex-direction: column; gap: 12px; }
@@ -80,8 +83,12 @@
                 <div class="stat-label">Late Arrivals</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="totalEarly">0</div>
+                <div class="stat-number" id="totalEarlyLeave">0</div>
                 <div class="stat-label">Early Departures</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalEarlyStart">0</div>
+                <div class="stat-label">Early Start</div>
             </div>
         </div>
         
@@ -112,8 +119,6 @@
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        let allTimesheets = [];
-        
         function isLate(timeIn) {
             if (!timeIn) return false;
             const [hours, minutes] = timeIn.split(':');
@@ -122,7 +127,13 @@
             return hour > 8 || (hour === 8 && minute > 15);
         }
         
-        function isEarly(timeOut) {
+        function isEarlyStart(timeIn) {
+            if (!timeIn) return false;
+            const [hours] = timeIn.split(':');
+            return parseInt(hours) < 8;
+        }
+        
+        function isEarlyLeave(timeOut) {
             if (!timeOut) return false;
             const [hours] = timeOut.split(':');
             return parseInt(hours) < 17;
@@ -147,20 +158,19 @@
                 });
                 let data = await response.json();
                 
-                // Apply division filter
                 if (divisionFilter) {
                     data = data.filter(t => t.division === divisionFilter);
                 }
                 
-                allTimesheets = data;
-                
                 const lateCount = data.filter(t => isLate(t.time_in)).length;
-                const earlyCount = data.filter(t => isEarly(t.time_out)).length;
+                const earlyLeaveCount = data.filter(t => isEarlyLeave(t.time_out)).length;
+                const earlyStartCount = data.filter(t => isEarlyStart(t.time_in)).length;
                 
                 document.getElementById('pendingBadge').innerHTML = `${data.length} pending`;
                 document.getElementById('totalPending').innerText = data.length;
                 document.getElementById('totalLate').innerText = lateCount;
-                document.getElementById('totalEarly').innerText = earlyCount;
+                document.getElementById('totalEarlyLeave').innerText = earlyLeaveCount;
+                document.getElementById('totalEarlyStart').innerText = earlyStartCount;
                 
                 if (data.length === 0) {
                     container.innerHTML = `
@@ -177,13 +187,15 @@
                 for (let report of data) {
                     const reportDate = report.report_date || 'N/A';
                     const isLateArrival = isLate(report.time_in);
-                    const isEarlyDeparture = isEarly(report.time_out);
+                    const isEarlyArrival = isEarlyStart(report.time_in);
+                    const isEarlyDeparture = isEarlyLeave(report.time_out);
                     const hasOvertimeHours = hasOvertime(report.time_out);
                     
                     let badges = '';
-                    if (isLateArrival) badges += '<span class="badge-late">⚠️ LATE</span>';
-                    if (isEarlyDeparture) badges += '<span class="badge-early">⚠️ EARLY</span>';
-                    if (hasOvertimeHours) badges += '<span class="badge-overtime">⏰ OVERTIME</span>';
+                    if (isLateArrival) badges += '<span class="badge badge-late">⚠️ LATE ARRIVAL</span>';
+                    if (isEarlyArrival) badges += '<span class="badge badge-early-start">🌅 EARLY START</span>';
+                    if (isEarlyDeparture) badges += '<span class="badge badge-early-leave">⚠️ EARLY DEPARTURE</span>';
+                    if (hasOvertimeHours) badges += '<span class="badge badge-overtime">⏰ OVERTIME</span>';
                     
                     html += `
                         <div class="report-card">
@@ -222,9 +234,12 @@
                             `;
                     
                     if (report.late_reason) {
+                        let reasonType = isLateArrival ? 'late' : (isEarlyArrival ? 'early-start' : 'info');
+                        let reasonClass = isLateArrival ? 'reason-late' : (isEarlyArrival ? 'reason-early' : 'reason-overtime');
+                        let reasonLabel = isLateArrival ? '⚠️ LATE ARRIVAL REASON:' : (isEarlyArrival ? '🌅 EARLY START REASON:' : '📝 REASON:');
                         html += `
-                            <div class="reason-box">
-                                <div class="reason-label">⚠️ LATE REASON:</div>
+                            <div class="reason-box ${reasonClass}">
+                                <div class="reason-label">${reasonLabel}</div>
                                 <div class="reason-text">${report.late_reason}</div>
                             </div>
                         `;
@@ -232,7 +247,7 @@
                     
                     if (report.early_reason) {
                         html += `
-                            <div class="reason-box">
+                            <div class="reason-box reason-late">
                                 <div class="reason-label">⚠️ EARLY DEPARTURE REASON:</div>
                                 <div class="reason-text">${report.early_reason}</div>
                             </div>
@@ -241,8 +256,8 @@
                     
                     if (report.overtime_hours && report.overtime_hours > 0) {
                         html += `
-                            <div class="overtime-box">
-                                <div class="overtime-label">⏰ OVERTIME: ${report.overtime_hours} extra hours</div>
+                            <div class="reason-box reason-overtime">
+                                <div class="reason-label">⏰ OVERTIME: ${report.overtime_hours} extra hours</div>
                             </div>
                         `;
                     }
