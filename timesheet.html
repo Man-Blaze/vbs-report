@@ -138,35 +138,10 @@
         let currentUserEmail = null;
         let currentUserName = null;
         
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('currentTime').innerHTML = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        }
-        setInterval(updateTime, 1000);
-        updateTime();
-        
-        function setMode(mode) {
-            currentMode = mode;
-            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            if (mode === 'focal') {
-                document.querySelector('.mode-btn:first-child').classList.add('active');
-                document.getElementById('focalMode').style.display = 'block';
-                document.getElementById('selfMode').style.display = 'none';
-                document.getElementById('modeAlert').style.display = 'none';
-                loadStaffList();
-            } else {
-                document.querySelector('.mode-btn:last-child').classList.add('active');
-                document.getElementById('focalMode').style.display = 'none';
-                document.getElementById('selfMode').style.display = 'block';
-                document.getElementById('modeAlert').style.display = 'block';
-                document.getElementById('modeAlert').innerHTML = '<strong>🔓 Self Clock Mode Active</strong><br>Focal point is absent. You are clocking yourself. Manager will approve.';
-                loadSelfInfo();
-            }
-            loadTodayStatus();
-        }
-        
         async function checkAuth() {
             const token = localStorage.getItem('vbs_token');
+            const userType = localStorage.getItem('vbs_user_type');
+            
             if (!token) {
                 window.location.href = 'login.html';
                 return;
@@ -176,26 +151,34 @@
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 currentUserEmail = payload.email;
                 
-                // Check if user is focal point
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/focal_points?email=eq.${currentUserEmail}`, {
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
-                });
-                const focalPoints = await response.json();
-                
-                if (focalPoints.length > 0) {
-                    currentFocalPoint = focalPoints[0].name;
-                    currentFocalPointDivision = focalPoints[0].division;
-                    currentFocalPointLocation = focalPoints[0].location;
-                    document.getElementById('userName').innerText = `${currentFocalPoint} (Focal Point)`;
-                    document.getElementById('modeSelector').style.display = 'flex';
-                    setMode('focal');
-                } else {
-                    // Regular staff - can only use self mode
-                    currentUserName = currentUserEmail.split('@')[0];
-                    document.getElementById('userName').innerText = `${currentUserName} (Staff)`;
-                    document.getElementById('modeSelector').style.display = 'none';
-                    setMode('self');
+                if (userType === 'focal_point') {
+                    // Focal point mode
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/focal_points?email=eq.${currentUserEmail}`, {
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+                    });
+                    const focalPoints = await response.json();
+                    
+                    if (focalPoints.length > 0) {
+                        currentFocalPoint = focalPoints[0].name;
+                        currentFocalPointDivision = focalPoints[0].division;
+                        currentFocalPointLocation = focalPoints[0].location;
+                        document.getElementById('userName').innerText = `${currentFocalPoint} (Focal Point)`;
+                        document.getElementById('modeSelector').style.display = 'flex';
+                        setMode('focal');
+                        loadStaffList();
+                        loadTodayStatus();
+                        return;
+                    }
                 }
+                
+                // Staff mode (not focal point)
+                currentUserName = currentUserEmail.split('@')[0];
+                document.getElementById('userName').innerText = `${currentUserName} (Staff - Self Clock Mode)`;
+                document.getElementById('modeSelector').style.display = 'none';
+                setMode('self');
+                loadSelfInfo();
+                loadTodayStatus();
+                
             } catch (e) {
                 logout();
             }
