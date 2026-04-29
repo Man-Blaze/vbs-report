@@ -3,12 +3,12 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from supabase import create_client
-from datetime import datetime
+from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')
 
 # ============================================
-# VBS CEO DASHBOARD - MATCHES YOUR SCHEMA
+# VBS CEO DASHBOARD - WITH TIMESHEET
 # ============================================
 
 SUPABASE_URL = "https://pdwctzueksfuspwwumdy.supabase.co"
@@ -34,7 +34,7 @@ st.caption(f"Vanuatu Bureau of Standards | Live Data | {datetime.now().strftime(
 # ============================================
 # DATA FUNCTIONS
 # ============================================
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=30)
 def load_table(table_name, status_filter=None):
     try:
         query = supabase.table(table_name).select("*")
@@ -45,7 +45,7 @@ def load_table(table_name, status_filter=None):
     except:
         return pd.DataFrame()
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=30)
 def get_stats():
     tables = {
         '🌾 Provincial': 'provincial_reports',
@@ -55,7 +55,6 @@ def get_stats():
         '📋 Administration': 'administration_reports',
         '✅ Conformity': 'conformity_assessment',
         '📝 General': 'general_activity_log',
-        '⏰ Timesheet': 'timesheet',
         '📋 Leave': 'leave_requests'
     }
     stats = {}
@@ -67,25 +66,54 @@ def get_stats():
             stats[name] = {
                 'total': total.count or 0,
                 'approved': approved.count or 0,
-                'pending': pending.count or 0,
-                'table': table
+                'pending': pending.count or 0
             }
         except:
-            stats[name] = {'total': 0, 'approved': 0, 'pending': 0, 'table': table}
+            stats[name] = {'total': 0, 'approved': 0, 'pending': 0}
     return stats
 
-stats = get_stats()
-total_reports = sum(s['total'] for s in stats.values())
-total_pending = sum(s['pending'] for s in stats.values())
+def is_late(time_in):
+    if not time_in:
+        return False
+    try:
+        parts = str(time_in).split(':')
+        hour = int(parts[0])
+        minute = int(parts[1]) if len(parts) > 1 else 0
+        return hour > 8 or (hour == 8 and minute > 15)
+    except:
+        return False
+
+def is_early(time_out):
+    if not time_out:
+        return False
+    try:
+        parts = str(time_out).split(':')
+        hour = int(parts[0])
+        return hour < 17
+    except:
+        return False
 
 # ============================================
 # TOP METRICS
 # ============================================
-col1, col2, col3, col4 = st.columns(4)
+stats = get_stats()
+total_reports = sum(s['total'] for s in stats.values())
+total_pending = sum(s['pending'] for s in stats.values())
+
+col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric("📊 TOTAL REPORTS", f"{total_reports:,}")
 col2.metric("✅ APPROVED", f"{sum(s['approved'] for s in stats.values()):,}")
 col3.metric("⏳ PENDING", f"{total_pending:,}", delta="Needs approval" if total_pending > 0 else None)
-col4.metric("📂 ACTIVE", f"{len([s for s in stats.values() if s['total'] > 0])} of {len(stats)}")
+col4.metric("📂 ACTIVE", f"{len([s for s in stats.values() if s['total'] > 0])} Divisions")
+
+# Timesheet specific metrics
+timesheet_df = load_table('timesheet', 'APPROVED')
+if not timesheet_df.empty:
+    total_hours = timesheet_df['hours_worked'].sum() if 'hours_worked' in timesheet_df.columns else 0
+    total_staff = timesheet_df['officer_name'].nunique() if 'officer_name' in timesheet_df.columns else 0
+    col5.metric("⏰ TOTAL HOURS", f"{total_hours:.1f}")
+else:
+    col5.metric("⏰ TOTAL HOURS", "0")
 
 st.divider()
 
@@ -119,6 +147,106 @@ st.plotly_chart(fig, use_container_width=True)
 st.divider()
 
 # ============================================
+# TIMESHEET SECTION (LIVE ATTENDANCE)
+# ============================================
+st.subheader("⏰ STAFF ATTENDANCE - TODAY'S CLOCK IN/OUT")
+
+# Date selector for timesheet
+selected_date = st.date_input("Select Date", datetime.now().date())
+
+# Load timesheet for selected date
+timesheet = load_table('timesheet', None)
+timesheet_today = timesheet[timesheet['report_date'] == str(selected_date)] if not timesheet.empty else pd.DataFrame()
+
+# Load staff list
+staff_list = []
+try:
+    staff_response = supabase.table('staff_list').select("*").eq("is_active", True).execute()
+    staff_list = pd.DataFrame(staff_response.data)
+except:
+    staff_list = pd.DataFrame()
+
+if not timesheet_today.empty or not staff_list.empty:
+    # Prepare attendance data
+    attendance_data = []
+    
+    if not staff_list.empty:
+        for _, staff in staff_list.iterrows():
+            staff_name = staff['staff_name']
+            record = timesheet_today[timesheet_today['officer_name'] == staff_name]
+            
+            time_in = record['time_in'].iloc[0] if not record.empty and pd.notna(record['time_in'].iloc[0]) else None
+            time_out = record['time_out'].iloc[0] if not record.empty and pd.notna(record['time_out'].iloc[0]) else None
+            hours = record['hours_worked'].iloc[0] if not record.empty and pd.notna(record['hours_worked'].iloc[0]) else 0
+            late_reason = record['late_reason'].iloc[0] if not record.empty and pd.notna(record['late_reason'].iloc[0]) else None
+            early_reason = record['early_reason'].iloc[0] if not record.empty and pd.notna(record['early_reason'].iloc[0]) else None
+            status = record['status'].iloc[0] if not record.empty and pd.notna(record['status'].iloc[0]) else 'PENDING'
+            
+            is_late_arrival = is_late(time_in) if time_in else False
+            is_early_departure = is_early(time_out) if time_out else False
+            is_early_start = False
+            if time_in:
+                try:
+                    hour = int(str(time_in).split(':')[0])
+                    is_early_start = hour < 8
+                except:
+                    pass
+            
+            attendance_data.append({
+                'Staff Name': staff_name,
+                'Division': staff['division'],
+                'Location': staff.get('location', '-'),
+                'Clock In': time_in if time_in else '-',
+                'Clock Out': time_out if time_out else '-',
+                'Hours': hours if hours else 0,
+                'Status': status,
+                'Late': '⚠️ LATE' if is_late_arrival else ('🌅 EARLY START' if is_early_start else '-'),
+                'Late Reason': late_reason if late_reason else '-',
+                'Early Reason': early_reason if early_reason else '-'
+            })
+    
+    df_attendance = pd.DataFrame(attendance_data)
+    
+    # Summary stats
+    present_count = len(df_attendance[df_attendance['Clock In'] != '-'])
+    late_count = len(df_attendance[df_attendance['Late'] == '⚠️ LATE'])
+    early_start_count = len(df_attendance[df_attendance['Late'] == '🌅 EARLY START'])
+    pending_count = len(df_attendance[df_attendance['Status'] == 'PENDING'])
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric("👥 Total Staff", len(df_attendance))
+    col2.metric("✅ Present", present_count)
+    col3.metric("⚠️ Late", late_count)
+    col4.metric("🌅 Early Start", early_start_count)
+    col5.metric("⏳ Pending Approval", pending_count)
+    
+    # Display table
+    st.dataframe(
+        df_attendance[['Staff Name', 'Division', 'Location', 'Clock In', 'Clock Out', 'Hours', 'Late', 'Late Reason', 'Early Reason']],
+        use_container_width=True,
+        hide_index=True
+    )
+    
+    # Weekly summary
+    st.subheader("📊 Weekly Hours Summary")
+    if not timesheet.empty:
+        timesheet['date'] = pd.to_datetime(timesheet['report_date'])
+        last_7_days = timesheet[timesheet['date'] >= (datetime.now() - timedelta(days=7))]
+        if not last_7_days.empty:
+            weekly_summary = last_7_days.groupby('officer_name')['hours_worked'].sum().reset_index()
+            weekly_summary.columns = ['Staff Name', 'Total Hours']
+            weekly_summary = weekly_summary.sort_values('Total Hours', ascending=False)
+            st.dataframe(weekly_summary, use_container_width=True, hide_index=True)
+        else:
+            st.info("No timesheet data in last 7 days")
+    else:
+        st.info("No timesheet data available")
+else:
+    st.info(f"📭 No attendance records for {selected_date}")
+
+st.divider()
+
+# ============================================
 # PROVINCIAL DIVISION
 # ============================================
 provincial = load_table('provincial_reports', 'APPROVED')
@@ -133,11 +261,10 @@ if not provincial.empty:
     with col3:
         st.metric("Non-Compliance", provincial['non_compliance_cases'].sum())
     
-    # Top locations
     if 'location' in provincial.columns:
         locations = provincial['location'].value_counts().head(5).reset_index()
         locations.columns = ['Location', 'Count']
-        fig = px.bar(locations, x='Location', y='Count', title="Top 5 Inspection Locations", color='Count')
+        fig = px.bar(locations, x='Location', y='Count', title="Top 5 Inspection Locations")
         st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("No approved provincial data yet")
@@ -255,30 +382,6 @@ else:
 st.divider()
 
 # ============================================
-# TIMESHEET
-# ============================================
-timesheet = load_table('timesheet', 'APPROVED')
-st.subheader("⏰ Timesheet")
-if not timesheet.empty:
-    total_hours = timesheet['hours_worked'].sum()
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total Hours", f"{total_hours:.1f}")
-    with col2:
-        st.metric("Total Entries", len(timesheet))
-    with col3:
-        st.metric("Avg Hours/Day", f"{total_hours/len(timesheet):.1f}" if len(timesheet) > 0 else "0")
-    
-    if 'report_date' in timesheet.columns:
-        timesheet['date'] = pd.to_datetime(timesheet['report_date'])
-        hours_by_day = timesheet.groupby('date')['hours_worked'].sum().reset_index()
-        fig = px.bar(hours_by_day, x='date', y='hours_worked', title="Daily Hours")
-        st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info("No approved timesheet data yet")
-st.divider()
-
-# ============================================
 # TOP OFFICERS
 # ============================================
 st.subheader("👥 Top Officers")
@@ -287,6 +390,11 @@ for table in ['provincial_reports', 'laboratory_reports', 'packhouse_reports', '
     df = load_table(table, 'APPROVED')
     if not df.empty and 'officer_name' in df.columns:
         all_officers.extend(df['officer_name'].tolist())
+
+# Also add timesheet officers
+if not timesheet.empty and 'officer_name' in timesheet.columns:
+    all_officers.extend(timesheet[timesheet['status'] == 'APPROVED']['officer_name'].tolist())
+
 if all_officers:
     officer_counts = pd.Series(all_officers).value_counts().head(10).reset_index()
     officer_counts.columns = ['Officer', 'Reports']
