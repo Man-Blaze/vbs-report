@@ -4,7 +4,7 @@
     <title>VBS Timesheet - Focal Point</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial; max-width: 650px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        body { font-family: Arial; max-width: 700px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
         .container { background: white; padding: 20px; border-radius: 10px; }
         h1 { color: #2c7a4d; }
         .user-info { background: #e8f5e9; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
@@ -25,18 +25,15 @@
         .small-text { font-size: 12px; color: #666; margin-top: 10px; }
         .current-time { text-align: center; font-size: 28px; font-weight: bold; color: #2c7a4d; margin: 10px 0; }
         .reason-box { background: #fff3cd; padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
-        .info-box { background: #d4edda; padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
-        .work-hours { background: #e8f5e9; padding: 8px; border-radius: 8px; font-size: 12px; text-align: center; margin-bottom: 15px; }
+        .time-override { background: #e8f5e9; padding: 10px; border-radius: 8px; margin-top: 10px; display: none; border-left: 3px solid #2c7a4d; }
+        .row { display: flex; gap: 10px; }
+        .row > div { flex: 1; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>⏰ VBS Timesheet</h1>
         <p>Focal Point - Select staff and click Kam In / Kam Out</p>
-        
-        <div class="work-hours">
-            ⏰ Standard Hours: 8:00 AM - 12:00 PM | 1:00 PM - 5:00 PM (8 hours)
-        </div>
         
         <div class="user-info">
             <span>👤 <span id="userName"></span></span>
@@ -53,30 +50,40 @@
         <label>Date:</label>
         <input type="date" id="reportDate" required>
         
-        <!-- Clock In Reason Boxes -->
-        <div id="earlyArrivalBox" class="info-box">
-            <label>📝 Reason for early arrival (before 8:00 AM):</label>
-            <textarea id="earlyArrivalReason" rows="2" placeholder="e.g., Meeting, caught early flight"></textarea>
+        <!-- TIME OVERRIDE for early/late -->
+        <div id="timeOverrideBox" class="time-override">
+            <label>📝 Staff arrived earlier than current time?</label>
+            <div class="row">
+                <div><label>Actual Clock In Time:</label><input type="time" id="actualTimeIn"></div>
+                <div><label>Reason for early clock in:</label><input type="text" id="earlyArrivalReason" placeholder="e.g., Started early, meeting"></div>
+            </div>
+            <small>Check if staff arrived before your clock in action</small>
         </div>
         
-        <div id="lateArrivalBox" class="reason-box">
-            <label>📝 Reason for being late (after 8:15 AM):</label>
+        <div id="lateReasonBox" class="reason-box">
+            <label>📝 Reason for being late:</label>
             <textarea id="lateReason" rows="2" placeholder="e.g., Traffic, transport issue, personal matter"></textarea>
         </div>
         
-        <!-- Clock Out Reason Boxes -->
-        <div id="earlyDepartureBox" class="reason-box">
-            <label>📝 Reason for leaving early (before 5:00 PM):</label>
+        <div id="earlyReasonBox" class="reason-box">
+            <label>📝 Reason for leaving early:</label>
             <textarea id="earlyReason" rows="2" placeholder="e.g., Sick, appointment, emergency"></textarea>
         </div>
         
-        <div id="lateDepartureBox" class="info-box">
-            <label>📝 Reason for staying late (after 5:00 PM):</label>
-            <textarea id="lateDepartureReason" rows="2" placeholder="e.g., Overtime, urgent task, meeting"></textarea>
+        <div id="overtimeBox" class="time-override" style="background:#d4edda;">
+            <label>📝 Staff staying late (overtime)?</label>
+            <div class="row">
+                <div><label>Actual Clock Out Time:</label><input type="time" id="actualTimeOut"></div>
+                <div><label>Overtime Reason:</label><input type="text" id="overtimeReason" placeholder="e.g., Pending work, meeting"></div>
+            </div>
+            <small>Overtime hours will be calculated automatically</small>
         </div>
         
         <button id="clockInBtn" class="clock-in" onclick="prepareClockIn()">✅ KAM IN - Clock In</button>
         <button id="clockOutBtn" class="clock-out" onclick="prepareClockOut()">❌ KAM OUT - Clock Out</button>
+        
+        <!-- Self Clock In button for when focal point is absent -->
+        <button id="selfClockInBtn" class="clock-in" style="background:#17a2b8; margin-top:5px;" onclick="selfClockIn()">🔓 SELF CLOCK IN (No Focal Point)</button>
         
         <div class="staff-list">
             <strong>📋 Today's Staff Status</strong>
@@ -84,8 +91,12 @@
         </div>
         
         <div class="small-text">
-            ⏰ Early arrival (before 8am) and late departure (after 5pm) are tracked<br>
-            ⏰ Manager approves all timesheets before CEO sees them
+            ⏰ Standard hours: 8:00 AM - 12:00 PM, 1:00 PM - 5:00 PM (8 hours)<br>
+            ⏰ Early arrival (<8:00 AM) → No penalty, record actual time<br>
+            ⏰ Late arrival (>8:15 AM) → Requires reason + manager approval<br>
+            ⏰ Early departure (<5:00 PM) → Requires reason + manager approval<br>
+            ⏰ Overtime (>5:00 PM) → Recorded separately<br>
+            🔓 Self Clock In: Use when focal point is absent (requires manager approval)
         </div>
     </div>
     
@@ -97,6 +108,7 @@
         let currentFocalPointDivision = null;
         let currentFocalPointLocation = null;
         let selectedStaffName = null;
+        let staffEmail = null;
         
         function updateTime() {
             const now = new Date();
@@ -115,24 +127,30 @@
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const userEmail = payload.email;
+                staffEmail = userEmail;
                 
+                // Check if user is focal point OR allow self clock in for all staff
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/focal_points?email=eq.${userEmail}`, {
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
                 });
                 const focalPoints = await response.json();
                 
-                if (focalPoints.length === 0) {
-                    alert('Access denied. Only focal points can use this system.');
-                    logout();
-                    return;
+                if (focalPoints.length > 0) {
+                    currentFocalPoint = focalPoints[0].name;
+                    currentFocalPointDivision = focalPoints[0].division;
+                    currentFocalPointLocation = focalPoints[0].location;
+                    document.getElementById('userName').innerText = `${currentFocalPoint} (Focal Point - ${currentFocalPointDivision})`;
+                    document.getElementById('selfClockInBtn').style.display = 'none';
+                } else {
+                    // Not a focal point - can only self clock in
+                    currentFocalPoint = userEmail.split('@')[0];
+                    document.getElementById('userName').innerText = `${currentFocalPoint} (Staff - Self Clock In Only)`;
+                    document.getElementById('selfClockInBtn').style.display = 'block';
+                    document.getElementById('clockInBtn').style.display = 'none';
+                    document.getElementById('clockOutBtn').style.display = 'none';
                 }
                 
-                currentFocalPoint = focalPoints[0].name;
-                currentFocalPointDivision = focalPoints[0].division;
-                currentFocalPointLocation = focalPoints[0].location;
-                document.getElementById('userName').innerText = `${currentFocalPoint} (${currentFocalPointDivision})`;
-                
-                loadStaffList();
+                loadStaffListForSelf();
                 loadTodayStatus();
             } catch (e) {
                 logout();
@@ -147,29 +165,76 @@
         document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('reportDate').addEventListener('change', () => {
             loadTodayStatus();
-            loadStaffList();
+            loadStaffListForSelf();
         });
         
-        async function loadStaffList() {
-            const token = localStorage.getItem('vbs_token');
-            
-            let url = `${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true&order=staff_name.asc`;
-            
-            if (currentFocalPointDivision === 'Provincial') {
-                url += `&division=eq.${currentFocalPointDivision}&location=eq.${currentFocalPointLocation}`;
-            } else {
-                url += `&division=eq.${currentFocalPointDivision}`;
+        async function loadStaffListForSelf() {
+            if (currentFocalPoint) {
+                // Focal point loads their staff
+                const token = localStorage.getItem('vbs_token');
+                let url = `${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true&order=staff_name.asc`;
+                
+                if (currentFocalPointDivision === 'Provincial') {
+                    url += `&division=eq.${currentFocalPointDivision}&location=eq.${currentFocalPointLocation}`;
+                } else if (currentFocalPointDivision) {
+                    url += `&division=eq.${currentFocalPointDivision}`;
+                }
+                
+                const response = await fetch(url, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+                });
+                const staff = await response.json();
+                
+                const select = document.getElementById('staffSelect');
+                select.innerHTML = '<option value="">-- Select Staff --</option>';
+                for (let s of staff) {
+                    select.innerHTML += `<option value="${s.staff_name}">${s.staff_name}</option>`;
+                }
             }
+        }
+        
+        async function selfClockIn() {
+            // Staff clocks themselves in (when focal point absent)
+            const token = localStorage.getItem('vbs_token');
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const userEmail = payload.email;
             
-            const response = await fetch(url, {
+            // Get staff name from email
+            const staffResponse = await fetch(`${SUPABASE_URL}/rest/v1/staff_list?email=eq.${userEmail}`, {
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
             });
-            const staff = await response.json();
+            const staffData = await staffResponse.json();
             
-            const select = document.getElementById('staffSelect');
-            select.innerHTML = '<option value="">-- Select Staff --</option>';
-            for (let s of staff) {
-                select.innerHTML += `<option value="${s.staff_name}">${s.staff_name}</option>`;
+            if (staffData.length === 0) {
+                alert('Your email is not registered in staff list');
+                return;
+            }
+            
+            const staffName = staffData[0].staff_name;
+            const date = document.getElementById('reportDate').value;
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            
+            const data = {
+                officer_name: staffName,
+                division: staffData[0].division,
+                report_date: date,
+                time_in: timeStr,
+                late_reason: 'Self clock in (focal point absent)',
+                status: 'PENDING'
+            };
+            
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet`, {
+                method: 'POST',
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                alert(`✅ Self clocked IN at ${timeStr}`);
+                loadTodayStatus();
+            } else {
+                alert('Failed to clock in');
             }
         }
         
@@ -177,19 +242,30 @@
             const date = document.getElementById('reportDate').value;
             const token = localStorage.getItem('vbs_token');
             
-            let url = `${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true&order=staff_name.asc`;
-            if (currentFocalPointDivision === 'Provincial') {
-                url += `&division=eq.${currentFocalPointDivision}&location=eq.${currentFocalPointLocation}`;
+            // Get staff list based on role
+            let staffList = [];
+            if (currentFocalPoint && currentFocalPointDivision) {
+                let url = `${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true&order=staff_name.asc`;
+                if (currentFocalPointDivision === 'Provincial') {
+                    url += `&division=eq.${currentFocalPointDivision}&location=eq.${currentFocalPointLocation}`;
+                } else if (currentFocalPointDivision) {
+                    url += `&division=eq.${currentFocalPointDivision}`;
+                }
+                const staffResponse = await fetch(url, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+                });
+                staffList = await staffResponse.json();
             } else {
-                url += `&division=eq.${currentFocalPointDivision}`;
+                // Self view - get only current staff
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const userEmail = payload.email;
+                const staffResponse = await fetch(`${SUPABASE_URL}/rest/v1/staff_list?email=eq.${userEmail}`, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+                });
+                staffList = await staffResponse.json();
             }
             
-            const staffResponse = await fetch(url, {
-                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
-            });
-            const allStaff = await staffResponse.json();
-            
-            if (allStaff.length === 0) {
+            if (staffList.length === 0) {
                 document.getElementById('staffStatusList').innerHTML = '<div style="padding:10px; text-align:center;">No staff assigned</div>';
                 return;
             }
@@ -202,21 +278,21 @@
             let presentCount = 0;
             let html = '';
             
-            for (let staff of allStaff) {
+            for (let staff of staffList) {
                 const record = records.find(r => r.officer_name === staff.staff_name);
                 let statusText = 'ABSENT';
                 let statusClass = 'status-absent';
                 
                 if (record && record.time_in && !record.time_out) {
+                    const isLate = record.late_reason && record.late_reason !== 'Self clock in (focal point absent)';
                     statusText = `✅ PRESENT (IN: ${record.time_in})`;
-                    if (record.late_reason) statusText += ` ⚠️ LATE`;
-                    if (record.early_arrival_reason) statusText += ` ⭐ EARLY`;
+                    if (isLate) statusText += ` ⚠️ LATE`;
                     statusClass = 'status-present';
                     presentCount++;
                 } else if (record && record.time_out) {
+                    const isEarly = record.early_reason;
                     statusText = `⏳ CLOCKED OUT (${record.hours_worked} hrs)`;
-                    if (record.early_reason) statusText += ` ⚠️ EARLY`;
-                    if (record.late_departure_reason) statusText += ` ⭐ LATE DEPARTURE`;
+                    if (isEarly) statusText += ` ⚠️ EARLY`;
                     if (record.status === 'PENDING') statusText += ` (Pending Approval)`;
                     statusClass = 'status-pending';
                 }
@@ -230,47 +306,19 @@
             }
             
             document.getElementById('staffStatusList').innerHTML = html;
-            document.querySelector('.staff-list strong').innerHTML = `📋 Today's Staff Status (${presentCount}/${allStaff.length} Present)`;
+            document.querySelector('.staff-list strong').innerHTML = `📋 Today's Staff Status (${presentCount}/${staffList.length} Present)`;
         }
         
         function prepareClockIn() {
             selectedStaffName = document.getElementById('staffSelect').value;
             if (!selectedStaffName) { alert('Select staff first'); return; }
             
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            
-            // Hide all boxes first
-            document.getElementById('earlyArrivalBox').style.display = 'none';
-            document.getElementById('lateArrivalBox').style.display = 'none';
+            // Always show time override for focal points to enter actual time
+            document.getElementById('timeOverrideBox').style.display = 'block';
+            document.getElementById('lateReasonBox').style.display = 'none';
             document.getElementById('clockInBtn').style.display = 'none';
-            
-            // Check if early arrival (before 8:00 AM)
-            if (currentHour < 8) {
-                document.getElementById('earlyArrivalBox').style.display = 'block';
-                confirmEarlyArrivalBtn.style.display = 'block';
-            }
-            // Check if late arrival (after 8:15 AM)
-            else if (currentHour > 8 || (currentHour === 8 && currentMinute > 15)) {
-                document.getElementById('lateArrivalBox').style.display = 'block';
-                confirmLateBtn.style.display = 'block';
-            }
-            // On time (8:00 - 8:15)
-            else {
-                clockIn(selectedStaffName, null, null);
-            }
-        }
-        
-        async function confirmEarlyArrival() {
-            const reason = document.getElementById('earlyArrivalReason').value || 'Early arrival';
-            clockIn(selectedStaffName, reason, 'early');
-        }
-        
-        async function confirmLateArrival() {
-            const reason = document.getElementById('lateReason').value;
-            if (!reason) { alert('Please provide a reason for being late'); return; }
-            clockIn(selectedStaffName, reason, 'late');
+            confirmEarlyBtn.style.display = 'none';
+            confirmLateWithOverrideBtn.style.display = 'block';
         }
         
         function prepareClockOut() {
@@ -279,40 +327,110 @@
             
             const now = new Date();
             const currentHour = now.getHours();
+            const standardEndHour = 17;
             
-            // Hide all boxes first
-            document.getElementById('earlyDepartureBox').style.display = 'none';
-            document.getElementById('lateDepartureBox').style.display = 'none';
-            document.getElementById('clockOutBtn').style.display = 'none';
-            
-            // Check if early departure (before 5:00 PM)
-            if (currentHour < 17) {
-                document.getElementById('earlyDepartureBox').style.display = 'block';
+            if (currentHour < standardEndHour) {
+                document.getElementById('earlyReasonBox').style.display = 'block';
+                document.getElementById('overtimeBox').style.display = 'none';
+                document.getElementById('clockOutBtn').style.display = 'none';
+                confirmEarlyBtn.style.display = 'block';
+            } else {
+                document.getElementById('overtimeBox').style.display = 'block';
+                document.getElementById('earlyReasonBox').style.display = 'none';
+                document.getElementById('clockOutBtn').style.display = 'none';
                 confirmEarlyBtn.style.display = 'block';
             }
-            // Check if late departure (after 5:00 PM)
-            else if (currentHour >= 17) {
-                document.getElementById('lateDepartureBox').style.display = 'block';
-                confirmLateDepartureBtn.style.display = 'block';
+        }
+        
+        async function confirmLateWithOverride() {
+            const actualTime = document.getElementById('actualTimeIn').value;
+            const earlyArrivalReason = document.getElementById('earlyArrivalReason').value;
+            const lateReason = document.getElementById('lateReason').value;
+            
+            let timeIn = actualTime || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            let reason = null;
+            let isLate = false;
+            
+            // Check if actual time is after 8:15 AM
+            if (actualTime) {
+                const [hours, minutes] = actualTime.split(':');
+                const hour = parseInt(hours);
+                const minute = parseInt(minutes);
+                if (hour > 8 || (hour === 8 && minute > 15)) {
+                    isLate = true;
+                    if (!lateReason) {
+                        alert('Please provide a reason for being late');
+                        return;
+                    }
+                    reason = lateReason;
+                } else if (hour < 8) {
+                    reason = earlyArrivalReason || 'Started early';
+                }
+            } else {
+                const now = new Date();
+                const currentHour = now.getHours();
+                if (currentHour > 8 || (currentHour === 8 && now.getMinutes() > 15)) {
+                    isLate = true;
+                    if (!lateReason) {
+                        alert('Please provide a reason for being late');
+                        return;
+                    }
+                    reason = lateReason;
+                    timeIn = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                }
             }
+            
+            clockIn(selectedStaffName, reason, timeIn, isLate);
         }
         
-        async function confirmEarlyDeparture() {
-            const reason = document.getElementById('earlyReason').value;
-            if (!reason) { alert('Please provide a reason for leaving early'); return; }
-            clockOut(selectedStaffName, reason, 'early');
+        async function confirmEarlyWithOverride() {
+            const actualTimeOut = document.getElementById('actualTimeOut').value;
+            const overtimeReason = document.getElementById('overtimeReason').value;
+            const earlyReason = document.getElementById('earlyReason').value;
+            
+            let timeOut = actualTimeOut || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            let reason = null;
+            let isEarly = false;
+            let isOvertime = false;
+            
+            // Check if actual time is before 5 PM
+            if (actualTimeOut) {
+                const [hours] = actualTimeOut.split(':');
+                if (parseInt(hours) < 17) {
+                    isEarly = true;
+                    if (!earlyReason) {
+                        alert('Please provide a reason for leaving early');
+                        return;
+                    }
+                    reason = earlyReason;
+                } else if (parseInt(hours) > 17) {
+                    isOvertime = true;
+                    reason = overtimeReason || 'Stayed late for work';
+                }
+            } else {
+                const now = new Date();
+                const currentHour = now.getHours();
+                if (currentHour < 17) {
+                    isEarly = true;
+                    if (!earlyReason) {
+                        alert('Please provide a reason for leaving early');
+                        return;
+                    }
+                    reason = earlyReason;
+                    timeOut = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                } else if (currentHour > 17) {
+                    isOvertime = true;
+                    reason = overtimeReason || 'Stayed late for work';
+                    timeOut = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                }
+            }
+            
+            clockOut(selectedStaffName, reason, timeOut, isEarly, isOvertime);
         }
         
-        async function confirmLateDeparture() {
-            const reason = document.getElementById('lateDepartureReason').value || 'Late departure';
-            clockOut(selectedStaffName, reason, 'late');
-        }
-        
-        async function clockIn(staffName, reason, type) {
+        async function clockIn(staffName, reason, timeIn, isLate) {
             const date = document.getElementById('reportDate').value;
             const token = localStorage.getItem('vbs_token');
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
             const check = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${staffName}&report_date=eq.${date}`, {
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
@@ -329,12 +447,10 @@
                 officer_name: staffName,
                 division: currentFocalPointDivision,
                 report_date: date,
-                time_in: timeStr,
+                time_in: timeIn,
+                late_reason: isLate ? reason : (reason && !isLate ? `Early start: ${reason}` : null),
                 status: 'PENDING'
             };
-            
-            if (type === 'early') data.early_arrival_reason = reason;
-            if (type === 'late') data.late_reason = reason;
             
             const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet`, {
                 method: 'POST',
@@ -343,19 +459,16 @@
             });
             
             if (response.ok) {
-                let msg = `✅ ${staffName} clocked IN at ${timeStr}`;
-                if (type === 'early') msg = `⭐ ${staffName} clocked in EARLY at ${timeStr}\nReason: ${reason}`;
-                if (type === 'late') msg = `⚠️ ${staffName} clocked in LATE at ${timeStr}\nReason: ${reason}`;
+                const msg = isLate ? `⚠️ ${staffName} clocked IN LATE at ${timeIn}\nReason: ${reason}` : `✅ ${staffName} clocked IN at ${timeIn}`;
                 alert(msg);
                 resetForms();
                 loadTodayStatus();
-                loadStaffList();
             } else {
                 alert('Failed to clock in');
             }
         }
         
-        async function clockOut(staffName, reason, type) {
+        async function clockOut(staffName, reason, timeOut, isEarly, isOvertime) {
             const date = document.getElementById('reportDate').value;
             const token = localStorage.getItem('vbs_token');
             
@@ -374,94 +487,82 @@
             if (!record.time_in) { alert('No clock-in record found'); resetForms(); return; }
             if (record.time_out) { alert(`${staffName} already clocked out today`); resetForms(); return; }
             
-            const now = new Date();
-            const timeOutStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            
             const timeInParts = record.time_in.split(':');
-            const timeOutParts = timeOutStr.split(':');
+            const timeOutParts = timeOut.split(':');
             let hours = parseInt(timeOutParts[0]) - parseInt(timeInParts[0]);
             let minutes = parseInt(timeOutParts[1]) - parseInt(timeInParts[1]);
             if (minutes < 0) { hours--; minutes += 60; }
             const totalHours = hours + minutes / 60;
             
-            const updateData = {
-                time_out: timeOutStr,
-                hours_worked: totalHours.toFixed(2),
-                status: 'PENDING'
-            };
+            let earlyReason = null;
+            let overtimeHours = 0;
             
-            if (type === 'early') updateData.early_reason = reason;
-            if (type === 'late') updateData.late_departure_reason = reason;
+            if (isEarly) {
+                earlyReason = reason;
+            }
+            if (isOvertime) {
+                const standardEndHour = 17;
+                const overtimeEndHour = parseInt(timeOutParts[0]);
+                overtimeHours = overtimeEndHour - standardEndHour + (parseInt(timeOutParts[1]) / 60);
+            }
             
             const update = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${record.id}`, {
                 method: 'PATCH',
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(updateData)
+                body: JSON.stringify({
+                    time_out: timeOut,
+                    hours_worked: totalHours.toFixed(2),
+                    early_reason: earlyReason,
+                    overtime_hours: overtimeHours.toFixed(2),
+                    status: 'PENDING'
+                })
             });
             
             if (update.ok) {
-                let msg = `❌ ${staffName} clocked OUT at ${timeOutStr} | Hours: ${totalHours.toFixed(2)}`;
-                if (type === 'early') msg = `⚠️ ${staffName} clocked out EARLY at ${timeOutStr}\nHours: ${totalHours.toFixed(2)}\nReason: ${reason}\nWaiting for manager approval`;
-                if (type === 'late') msg = `⭐ ${staffName} clocked out LATE at ${timeOutStr}\nHours: ${totalHours.toFixed(2)}\nReason: ${reason}`;
+                const msg = isEarly ? `⚠️ ${staffName} clocked OUT EARLY at ${timeOut}\nHours: ${totalHours.toFixed(2)}\nReason: ${reason}\nWaiting for manager approval` : 
+                           (isOvertime ? `⏰ ${staffName} clocked OUT at ${timeOut}\nOvertime: ${overtimeHours.toFixed(2)} hrs\nReason: ${reason}` :
+                           `❌ ${staffName} clocked OUT at ${timeOut} | Hours: ${totalHours.toFixed(2)}`);
                 alert(msg);
                 resetForms();
                 loadTodayStatus();
-                loadStaffList();
             } else {
                 alert('Failed to clock out');
             }
         }
         
         function resetForms() {
-            document.getElementById('earlyArrivalBox').style.display = 'none';
-            document.getElementById('lateArrivalBox').style.display = 'none';
-            document.getElementById('earlyDepartureBox').style.display = 'none';
-            document.getElementById('lateDepartureBox').style.display = 'none';
+            document.getElementById('timeOverrideBox').style.display = 'none';
+            document.getElementById('lateReasonBox').style.display = 'none';
+            document.getElementById('earlyReasonBox').style.display = 'none';
+            document.getElementById('overtimeBox').style.display = 'none';
             document.getElementById('clockInBtn').style.display = 'block';
             document.getElementById('clockOutBtn').style.display = 'block';
-            confirmEarlyArrivalBtn.style.display = 'none';
-            confirmLateBtn.style.display = 'none';
+            confirmLateWithOverrideBtn.style.display = 'none';
             confirmEarlyBtn.style.display = 'none';
-            confirmLateDepartureBtn.style.display = 'none';
+            document.getElementById('actualTimeIn').value = '';
+            document.getElementById('actualTimeOut').value = '';
             document.getElementById('earlyArrivalReason').value = '';
             document.getElementById('lateReason').value = '';
             document.getElementById('earlyReason').value = '';
-            document.getElementById('lateDepartureReason').value = '';
+            document.getElementById('overtimeReason').value = '';
             document.getElementById('staffSelect').value = '';
         }
         
-        // Create confirmation buttons
-        const confirmEarlyArrivalBtn = document.createElement('button');
-        confirmEarlyArrivalBtn.id = 'confirmEarlyArrivalBtn';
-        confirmEarlyArrivalBtn.className = 'clock-in';
-        confirmEarlyArrivalBtn.innerHTML = '⭐ CONFIRM EARLY ARRIVAL';
-        confirmEarlyArrivalBtn.style.display = 'none';
-        confirmEarlyArrivalBtn.onclick = confirmEarlyArrival;
-        document.querySelector('.container').appendChild(confirmEarlyArrivalBtn);
-        
-        const confirmLateBtn = document.createElement('button');
-        confirmLateBtn.id = 'confirmLateBtn';
-        confirmLateBtn.className = 'clock-in';
-        confirmLateBtn.innerHTML = '⚠️ CONFIRM LATE ARRIVAL';
-        confirmLateBtn.style.display = 'none';
-        confirmLateBtn.onclick = confirmLateArrival;
-        document.querySelector('.container').appendChild(confirmLateBtn);
+        const confirmLateWithOverrideBtn = document.createElement('button');
+        confirmLateWithOverrideBtn.id = 'confirmClockInBtn';
+        confirmLateWithOverrideBtn.className = 'clock-in';
+        confirmLateWithOverrideBtn.innerHTML = '✅ CONFIRM CLOCK IN (With Time)';
+        confirmLateWithOverrideBtn.style.display = 'none';
+        confirmLateWithOverrideBtn.onclick = confirmLateWithOverride;
+        document.querySelector('.container').appendChild(confirmLateWithOverrideBtn);
         
         const confirmEarlyBtn = document.createElement('button');
-        confirmEarlyBtn.id = 'confirmEarlyBtn';
+        confirmEarlyBtn.id = 'confirmClockOutBtn';
         confirmEarlyBtn.className = 'clock-out';
-        confirmEarlyBtn.innerHTML = '⚠️ CONFIRM EARLY DEPARTURE';
+        confirmEarlyBtn.innerHTML = '❌ CONFIRM CLOCK OUT (With Time)';
         confirmEarlyBtn.style.display = 'none';
-        confirmEarlyBtn.onclick = confirmEarlyDeparture;
+        confirmEarlyBtn.onclick = confirmEarlyWithOverride;
         document.querySelector('.container').appendChild(confirmEarlyBtn);
-        
-        const confirmLateDepartureBtn = document.createElement('button');
-        confirmLateDepartureBtn.id = 'confirmLateDepartureBtn';
-        confirmLateDepartureBtn.className = 'clock-out';
-        confirmLateDepartureBtn.innerHTML = '⭐ CONFIRM LATE DEPARTURE';
-        confirmLateDepartureBtn.style.display = 'none';
-        confirmLateDepartureBtn.onclick = confirmLateDeparture;
-        document.querySelector('.container').appendChild(confirmLateDepartureBtn);
         
         checkAuth();
     </script>
