@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VBS - Supabase Tables Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #1a5a3a 0%, #0d3b24 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .header h1 { margin-bottom: 5px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 28px; font-weight: bold; color: #1a5a3a; }
+        .stat-label { font-size: 12px; color: #666; }
+        .table-selector { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        select { padding: 10px 20px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; min-width: 250px; }
+        button { padding: 10px 20px; background: #1a5a3a; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        button:hover { background: #0e3d26; }
+        .refresh-btn { background: #17a2b8; }
+        .export-btn { background: #28a745; }
+        .table-container { background: white; border-radius: 10px; overflow-x: auto; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #1a5a3a; color: white; position: sticky; top: 0; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .error { color: red; padding: 20px; text-align: center; }
+        .info { background: #cce5ff; padding: 10px; border-radius: 8px; margin-bottom: 15px; color: #004085; }
+        .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 VBS Supabase Database Viewer</h1>
+            <p>CEO View - All tables and data (Read Only)</p>
+        </div>
+        
+        <div class="stats" id="stats"></div>
+        
+        <div class="table-selector">
+            <select id="tableSelect">
+                <option value="">-- Select Table --</option>
+                <option value="timesheet">⏰ Timesheet</option>
+                <option value="provincial_reports">🌾 Provincial Reports</option>
+                <option value="laboratory_reports">🔬 Laboratory Reports</option>
+                <option value="packhouse_reports">📦 Packhouse Reports</option>
+                <option value="standards_reports">📜 Standards Reports</option>
+                <option value="administration_reports">📋 Administration Reports</option>
+                <option value="conformity_assessment">✅ Conformity Assessment</option>
+                <option value="general_activity_log">📝 General Activity Log</option>
+                <option value="leave_requests">📋 Leave Requests</option>
+                <option value="staff_list">👥 Staff List</option>
+                <option value="focal_points">⭐ Focal Points</option>
+                <option value="lab_chemicals">🧪 Lab Chemicals</option>
+                <option value="lab_glassware">🔍 Lab Glassware</option>
+                <option value="lab_equipment">⚙️ Lab Equipment</option>
+            </select>
+            <button class="refresh-btn" onclick="loadTable()">🔄 Load Table</button>
+            <button class="export-btn" onclick="exportToCSV()">📎 Export CSV</button>
+        </div>
+        
+        <div class="info" id="tableInfo"></div>
+        
+        <div class="table-container" id="tableContainer">
+            <div class="loading">Select a table to view data</div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Vanuatu Bureau of Standards • Data from Supabase • Read Only View</p>
+        </div>
+    </div>
+    
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        let currentData = [];
+        let currentTableName = '';
+        
+        async function loadStats() {
+            const tables = ['timesheet', 'provincial_reports', 'laboratory_reports', 'packhouse_reports', 
+                           'standards_reports', 'administration_reports', 'conformity_assessment', 
+                           'general_activity_log', 'leave_requests', 'staff_list', 'focal_points'];
+            
+            let statsHtml = '';
+            for (let table of tables) {
+                try {
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id&limit=1`, {
+                        headers: { 'apikey': SUPABASE_KEY }
+                    });
+                    const count = response.headers.get('content-range');
+                    let rowCount = 0;
+                    if (count) {
+                        const match = count.match(/\/(\d+)/);
+                        if (match) rowCount = parseInt(match[1]);
+                    } else {
+                        const data = await response.json();
+                        rowCount = data.length;
+                    }
+                    statsHtml += `<div class="stat-card"><div class="stat-number">${rowCount}</div><div class="stat-label">${table.replace('_', ' ')}</div></div>`;
+                } catch(e) {
+                    statsHtml += `<div class="stat-card"><div class="stat-number">0</div><div class="stat-label">${table.replace('_', ' ')}</div></div>`;
+                }
+            }
+            document.getElementById('stats').innerHTML = statsHtml;
+        }
+        
+        async function loadTable() {
+            const tableName = document.getElementById('tableSelect').value;
+            if (!tableName) return;
+            
+            currentTableName = tableName;
+            const container = document.getElementById('tableContainer');
+            const infoDiv = document.getElementById('tableInfo');
+            
+            container.innerHTML = '<div class="loading">Loading data...</div>';
+            infoDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/${tableName}?limit=500`, {
+                    headers: { 'apikey': SUPABASE_KEY }
+                });
+                const data = await response.json();
+                currentData = data;
+                
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="loading">📭 No data in this table</div>';
+                    infoDiv.innerHTML = `<strong>${tableName.replace('_', ' ').toUpperCase()}</strong> - 0 records`;
+                    return;
+                }
+                
+                infoDiv.innerHTML = `<strong>${tableName.replace('_', ' ').toUpperCase()}</strong> - ${data.length} records found`;
+                
+                // Create table headers
+                const columns = Object.keys(data[0]);
+                let html = '<table><thead><tr>';
+                for (let col of columns) {
+                    html += `<th>${col}</th>`;
+                }
+                html += '</tr></thead><tbody>';
+                
+                // Create table rows
+                for (let row of data) {
+                    html += '<tr>';
+                    for (let col of columns) {
+                        let value = row[col];
+                        if (value === null || value === undefined) value = '-';
+                        if (typeof value === 'object') value = JSON.stringify(value);
+                        if (typeof value === 'string' && value.length > 50) value = value.substring(0, 50) + '...';
+                        html += `<td>${value}</td>`;
+                    }
+                    html += '</tr>';
+                }
+                html += '</tbody></table>';
+                container.innerHTML = html;
+                
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error loading table: ${error.message}</div>`;
+            }
+        }
+        
+        function exportToCSV() {
+            if (currentData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            
+            const columns = Object.keys(currentData[0]);
+            let csv = columns.join(',') + '\n';
+            
+            for (let row of currentData) {
+                const rowData = columns.map(col => {
+                    let value = row[col];
+                    if (value === null || value === undefined) value = '';
+                    if (typeof value === 'object') value = JSON.stringify(value);
+                    if (typeof value === 'string') value = value.replace(/"/g, '""');
+                    return `"${value}"`;
+                }).join(',');
+                csv += rowData + '\n';
+            }
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentTableName}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        loadStats();
+    </script>
+</body>
+</html>
