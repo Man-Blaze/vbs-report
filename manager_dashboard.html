@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VBS Manager Dashboard</title>
+    <title>VBS Manager Dashboard - Timesheet Approval</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f7fb; padding: 24px; }
@@ -32,11 +32,13 @@
         .detail-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
         .detail-field { display: flex; align-items: center; gap: 10px; min-width: 200px; }
         .field-icon { font-size: 18px; width: 28px; }
-        .field-label { font-size: 13px; color: #6c7a8a; font-weight: 500; min-width: 90px; }
+        .field-label { font-size: 13px; color: #6c7a8a; font-weight: 500; min-width: 100px; }
         .field-value { font-size: 14px; color: #1e293b; font-weight: 500; }
-        .notes-section { margin-top: 16px; padding: 12px 16px; background: #f8fafc; border-radius: 14px; border-left: 3px solid #1a5a3a; }
-        .notes-label { font-size: 12px; font-weight: 600; color: #1a5a3a; margin-bottom: 6px; }
-        .notes-text { font-size: 13px; color: #334155; }
+        .reason-box { background: #fff3cd; padding: 12px; border-radius: 10px; margin-top: 12px; border-left: 4px solid #ffc107; }
+        .reason-label { font-weight: bold; font-size: 12px; color: #856404; margin-bottom: 4px; }
+        .reason-text { font-size: 13px; color: #856404; }
+        .overtime-box { background: #d4edda; padding: 12px; border-radius: 10px; margin-top: 12px; border-left: 4px solid #28a745; }
+        .overtime-label { font-weight: bold; font-size: 12px; color: #155724; margin-bottom: 4px; }
         .card-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; background: #fafcff; border-top: 1px solid #eef2f6; }
         .btn-approve { background: #1a5a3a; color: white; border: none; padding: 10px 28px; border-radius: 40px; cursor: pointer; font-size: 14px; font-weight: 500; }
         .btn-approve:hover { background: #0e3d26; }
@@ -47,6 +49,9 @@
         .empty-state h3 { font-size: 18px; font-weight: 500; color: #1e293b; margin-bottom: 8px; }
         .empty-state p { color: #6c7a8a; font-size: 14px; }
         .loading { text-align: center; padding: 60px; color: #6c7a8a; }
+        .badge-late { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 20px; font-size: 11px; margin-left: 8px; }
+        .badge-early { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 20px; font-size: 11px; margin-left: 8px; }
+        .badge-overtime { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 20px; font-size: 11px; margin-left: 8px; }
         @media (max-width: 768px) {
             body { padding: 16px; }
             .stats-grid { grid-template-columns: 1fr; gap: 12px; }
@@ -61,49 +66,45 @@
 <body>
     <div class="dashboard-container">
         <div class="header">
-            <h1>Manager Dashboard</h1>
-            <p>Review and approve pending reports from your team</p>
+            <h1>Manager Dashboard - Timesheet Approval</h1>
+            <p>Review and approve staff attendance with accurate times and reasons</p>
         </div>
         
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number" id="totalPending">0</div>
-                <div class="stat-label">Pending Approval</div>
+                <div class="stat-label">Pending Timesheets</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="totalApproved">0</div>
-                <div class="stat-label">Approved Today</div>
+                <div class="stat-number" id="totalLate">0</div>
+                <div class="stat-label">Late Arrivals</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="divisionsCount">10</div>
-                <div class="stat-label">Divisions</div>
+                <div class="stat-number" id="totalEarly">0</div>
+                <div class="stat-label">Early Departures</div>
             </div>
         </div>
         
         <div class="filter-bar">
             <div class="filter-group">
-                <label>📂 Division</label>
-                <select id="divisionSelect">
-                    <option value="provincial">Provincial</option>
-                    <option value="laboratory">Laboratory</option>
-                    <option value="packhouse">Packhouse</option>
-                    <option value="standards">Standards & Certification</option>
-                    <option value="administration">Administration</option>
-                    <option value="conformity">Conformity Assessment</option>
-                    <option value="general">General Activity</option>
-                    <option value="timesheet">Timesheet</option>
-                    <option value="leave_requests">📋 Leave Requests</option>
-                    <option value="admin_report">Administration Report</option>
+                <label>📂 Division:</label>
+                <select id="divisionFilter">
+                    <option value="">All Divisions</option>
+                    <option value="Laboratory">Laboratory</option>
+                    <option value="Provincial">Provincial</option>
+                    <option value="Packhouse">Packhouse</option>
+                    <option value="Standards">Standards</option>
+                    <option value="Administration">Administration</option>
                 </select>
             </div>
             <div class="filter-group">
                 <span id="pendingBadge" class="pending-badge">0 pending</span>
-                <button class="refresh-btn" onclick="loadReports()">↻ Refresh</button>
+                <button class="refresh-btn" onclick="loadTimesheets()">↻ Refresh</button>
             </div>
         </div>
         
         <div id="reportsContainer">
-            <div class="loading">Loading...</div>
+            <div class="loading">Loading timesheets...</div>
         </div>
     </div>
     
@@ -111,63 +112,62 @@
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        // Direct table name mapping
-        const tableMap = {
-            provincial: 'provincial_reports',
-            laboratory: 'laboratory_reports',
-            packhouse: 'packhouse_reports',
-            standards: 'standards_reports',
-            administration: 'administration_reports',
-            conformity: 'conformity_assessment',
-            general: 'general_activity_log',
-            timesheet: 'timesheet',
-            leave_requests: 'leave_requests',
-            admin_report: 'administration_reports'
-        };
+        let allTimesheets = [];
         
-        function getDetailFields(report, division) {
-            // For leave requests, show leave-specific fields
-            if (division === 'leave_requests') {
-                return `
-                    <div class="detail-field"><span class="field-icon">📋</span><span class="field-label">Leave Type</span><span class="field-value">${report.leave_type || 'Annual'}</span></div>
-                    <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">Start Date</span><span class="field-value">${report.start_date || 'Not set'}</span></div>
-                    <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">End Date</span><span class="field-value">${report.end_date || 'Not set'}</span></div>
-                    <div class="detail-field"><span class="field-icon">⏱️</span><span class="field-label">Duration</span><span class="field-value">${report.total_days || 0} days</span></div>
-                    <div class="detail-field"><span class="field-icon">👤</span><span class="field-label">Supervisor</span><span class="field-value">${report.supervisor_name || 'Not specified'}</span></div>
-                    ${report.reason ? `<div class="notes-section"><div class="notes-label">📝 Reason</div><div class="notes-text">${report.reason}</div></div>` : ''}
-                `;
-            }
-            
-            // Default for other divisions
-            return `<div class="notes-section"><div class="notes-text">${report.inspector_notes || report.notes || 'Report submitted'}</div></div>`;
+        function isLate(timeIn) {
+            if (!timeIn) return false;
+            const [hours, minutes] = timeIn.split(':');
+            const hour = parseInt(hours);
+            const minute = parseInt(minutes);
+            return hour > 8 || (hour === 8 && minute > 15);
         }
         
-        async function loadReports() {
-            const division = document.getElementById('divisionSelect').value;
-            const table = tableMap[division];
+        function isEarly(timeOut) {
+            if (!timeOut) return false;
+            const [hours] = timeOut.split(':');
+            return parseInt(hours) < 17;
+        }
+        
+        function hasOvertime(timeOut) {
+            if (!timeOut) return false;
+            const [hours] = timeOut.split(':');
+            return parseInt(hours) > 17;
+        }
+        
+        async function loadTimesheets() {
+            const divisionFilter = document.getElementById('divisionFilter').value;
             const container = document.getElementById('reportsContainer');
             
-            console.log('Loading from table:', table);
-            
-            container.innerHTML = '<div class="loading">Loading...</div>';
+            container.innerHTML = '<div class="loading">Loading timesheets...</div>';
             
             try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?status=eq.PENDING&order=created_at.desc`, {
+                let url = `${SUPABASE_URL}/rest/v1/timesheet?status=eq.PENDING&order=created_at.desc`;
+                const response = await fetch(url, {
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
                 });
-                const data = await response.json();
+                let data = await response.json();
                 
-                console.log('Data received:', data);
+                // Apply division filter
+                if (divisionFilter) {
+                    data = data.filter(t => t.division === divisionFilter);
+                }
+                
+                allTimesheets = data;
+                
+                const lateCount = data.filter(t => isLate(t.time_in)).length;
+                const earlyCount = data.filter(t => isEarly(t.time_out)).length;
                 
                 document.getElementById('pendingBadge').innerHTML = `${data.length} pending`;
                 document.getElementById('totalPending').innerText = data.length;
+                document.getElementById('totalLate').innerText = lateCount;
+                document.getElementById('totalEarly').innerText = earlyCount;
                 
                 if (data.length === 0) {
                     container.innerHTML = `
                         <div class="empty-state">
                             <div class="icon">✅</div>
                             <h3>All caught up!</h3>
-                            <p>No pending reports for this division</p>
+                            <p>No pending timesheets for approval</p>
                         </div>
                     `;
                     return;
@@ -175,39 +175,89 @@
                 
                 let html = '';
                 for (let report of data) {
-                    const reportDate = report.report_date || report.created_at?.split('T')[0] || 'N/A';
+                    const reportDate = report.report_date || 'N/A';
+                    const isLateArrival = isLate(report.time_in);
+                    const isEarlyDeparture = isEarly(report.time_out);
+                    const hasOvertimeHours = hasOvertime(report.time_out);
+                    
+                    let badges = '';
+                    if (isLateArrival) badges += '<span class="badge-late">⚠️ LATE</span>';
+                    if (isEarlyDeparture) badges += '<span class="badge-early">⚠️ EARLY</span>';
+                    if (hasOvertimeHours) badges += '<span class="badge-overtime">⏰ OVERTIME</span>';
+                    
                     html += `
                         <div class="report-card">
                             <div class="card-header">
                                 <div class="officer-info">
                                     <div class="officer-avatar">👤</div>
                                     <div class="officer-name">${report.officer_name || 'Unknown'}</div>
+                                    ${badges}
                                 </div>
                                 <div class="report-date">📅 ${reportDate}</div>
                             </div>
                             <div class="card-body">
                                 <div class="detail-grid">
                                     <div class="detail-row">
-                                        ${getDetailFields(report, division)}
+                                        <div class="detail-field">
+                                            <span class="field-icon">⏰</span>
+                                            <span class="field-label">Clock In</span>
+                                            <span class="field-value">${report.time_in || '—'}</span>
+                                        </div>
+                                        <div class="detail-field">
+                                            <span class="field-icon">⏰</span>
+                                            <span class="field-label">Clock Out</span>
+                                            <span class="field-value">${report.time_out || '—'}</span>
+                                        </div>
+                                        <div class="detail-field">
+                                            <span class="field-icon">📅</span>
+                                            <span class="field-label">Hours Worked</span>
+                                            <span class="field-value">${report.hours_worked || '0'} hrs</span>
+                                        </div>
+                                        <div class="detail-field">
+                                            <span class="field-icon">📍</span>
+                                            <span class="field-label">Location</span>
+                                            <span class="field-value">${report.location || '—'}</span>
+                                        </div>
                                     </div>
+                            `;
+                    
+                    if (report.late_reason) {
+                        html += `
+                            <div class="reason-box">
+                                <div class="reason-label">⚠️ LATE REASON:</div>
+                                <div class="reason-text">${report.late_reason}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (report.early_reason) {
+                        html += `
+                            <div class="reason-box">
+                                <div class="reason-label">⚠️ EARLY DEPARTURE REASON:</div>
+                                <div class="reason-text">${report.early_reason}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (report.overtime_hours && report.overtime_hours > 0) {
+                        html += `
+                            <div class="overtime-box">
+                                <div class="overtime-label">⏰ OVERTIME: ${report.overtime_hours} extra hours</div>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `
                                 </div>
                             </div>
                             <div class="card-footer">
-                                <button class="btn-approve" data-table="${table}" data-id="${report.id}">✓ Approve</button>
-                                <button class="btn-reject" data-table="${table}" data-id="${report.id}">✗ Reject</button>
+                                <button class="btn-approve" onclick="approveTimesheet(${report.id})">✓ Approve Timesheet</button>
+                                <button class="btn-reject" onclick="rejectTimesheet(${report.id})">✗ Reject</button>
                             </div>
                         </div>
                     `;
                 }
                 container.innerHTML = html;
-                
-                // Attach event listeners
-                document.querySelectorAll('.btn-approve').forEach(btn => {
-                    btn.addEventListener('click', () => approveReport(btn.dataset.table, parseInt(btn.dataset.id)));
-                });
-                document.querySelectorAll('.btn-reject').forEach(btn => {
-                    btn.addEventListener('click', () => rejectReport(btn.dataset.table, parseInt(btn.dataset.id)));
-                });
                 
             } catch (error) {
                 console.error('Error:', error);
@@ -215,17 +265,17 @@
             }
         }
         
-        async function approveReport(table, id) {
-            if (!confirm('Approve this report?')) return;
+        async function approveTimesheet(id) {
+            if (!confirm('Approve this timesheet? This will send it to CEO dashboard.')) return;
             try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${id}`, {
                     method: 'PATCH',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'APPROVED', approved_by: 'Manager', approved_at: new Date().toISOString() })
                 });
                 if (response.ok) {
-                    alert('✓ Report approved');
-                    loadReports();
+                    alert('✓ Timesheet approved and sent to CEO');
+                    loadTimesheets();
                 } else {
                     const error = await response.text();
                     alert('Error: ' + error);
@@ -235,18 +285,18 @@
             }
         }
         
-        async function rejectReport(table, id) {
-            const reason = prompt('Reason for rejection:');
+        async function rejectTimesheet(id) {
+            const reason = prompt('Reason for rejection (will be visible to staff):');
             if (!reason) return;
             try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${id}`, {
                     method: 'PATCH',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'REJECTED', manager_comment: reason })
                 });
                 if (response.ok) {
-                    alert('✗ Report rejected');
-                    loadReports();
+                    alert('✗ Timesheet rejected');
+                    loadTimesheets();
                 } else {
                     const error = await response.text();
                     alert('Error: ' + error);
@@ -256,9 +306,8 @@
             }
         }
         
-        // Load on page load and when dropdown changes
-        document.getElementById('divisionSelect').addEventListener('change', loadReports);
-        loadReports();
+        document.getElementById('divisionFilter').addEventListener('change', loadTimesheets);
+        loadTimesheets();
     </script>
 </body>
 </html>
