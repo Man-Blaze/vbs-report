@@ -4,7 +4,7 @@
     <title>VBS Timesheet - Focal Point</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial; max-width: 600px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        body { font-family: Arial; max-width: 650px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
         .container { background: white; padding: 20px; border-radius: 10px; }
         h1 { color: #2c7a4d; }
         .user-info { background: #e8f5e9; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
@@ -25,12 +25,18 @@
         .small-text { font-size: 12px; color: #666; margin-top: 10px; }
         .current-time { text-align: center; font-size: 28px; font-weight: bold; color: #2c7a4d; margin: 10px 0; }
         .reason-box { background: #fff3cd; padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
+        .info-box { background: #d4edda; padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
+        .work-hours { background: #e8f5e9; padding: 8px; border-radius: 8px; font-size: 12px; text-align: center; margin-bottom: 15px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>⏰ VBS Timesheet</h1>
         <p>Focal Point - Select staff and click Kam In / Kam Out</p>
+        
+        <div class="work-hours">
+            ⏰ Standard Hours: 8:00 AM - 12:00 PM | 1:00 PM - 5:00 PM (8 hours)
+        </div>
         
         <div class="user-info">
             <span>👤 <span id="userName"></span></span>
@@ -47,14 +53,26 @@
         <label>Date:</label>
         <input type="date" id="reportDate" required>
         
-        <div id="lateReasonBox" class="reason-box">
-            <label>📝 Reason for being late:</label>
+        <!-- Clock In Reason Boxes -->
+        <div id="earlyArrivalBox" class="info-box">
+            <label>📝 Reason for early arrival (before 8:00 AM):</label>
+            <textarea id="earlyArrivalReason" rows="2" placeholder="e.g., Meeting, caught early flight"></textarea>
+        </div>
+        
+        <div id="lateArrivalBox" class="reason-box">
+            <label>📝 Reason for being late (after 8:15 AM):</label>
             <textarea id="lateReason" rows="2" placeholder="e.g., Traffic, transport issue, personal matter"></textarea>
         </div>
         
-        <div id="earlyReasonBox" class="reason-box">
-            <label>📝 Reason for leaving early:</label>
+        <!-- Clock Out Reason Boxes -->
+        <div id="earlyDepartureBox" class="reason-box">
+            <label>📝 Reason for leaving early (before 5:00 PM):</label>
             <textarea id="earlyReason" rows="2" placeholder="e.g., Sick, appointment, emergency"></textarea>
+        </div>
+        
+        <div id="lateDepartureBox" class="info-box">
+            <label>📝 Reason for staying late (after 5:00 PM):</label>
+            <textarea id="lateDepartureReason" rows="2" placeholder="e.g., Overtime, urgent task, meeting"></textarea>
         </div>
         
         <button id="clockInBtn" class="clock-in" onclick="prepareClockIn()">✅ KAM IN - Clock In</button>
@@ -66,8 +84,8 @@
         </div>
         
         <div class="small-text">
-            ⏰ Clock out requires manager approval for early leave<br>
-            📊 CEO sees only approved timesheets
+            ⏰ Early arrival (before 8am) and late departure (after 5pm) are tracked<br>
+            ⏰ Manager approves all timesheets before CEO sees them
         </div>
     </div>
     
@@ -192,13 +210,14 @@
                 if (record && record.time_in && !record.time_out) {
                     statusText = `✅ PRESENT (IN: ${record.time_in})`;
                     if (record.late_reason) statusText += ` ⚠️ LATE`;
+                    if (record.early_arrival_reason) statusText += ` ⭐ EARLY`;
                     statusClass = 'status-present';
                     presentCount++;
                 } else if (record && record.time_out) {
-                    const isPending = record.status === 'PENDING';
                     statusText = `⏳ CLOCKED OUT (${record.hours_worked} hrs)`;
                     if (record.early_reason) statusText += ` ⚠️ EARLY`;
-                    if (isPending) statusText += ` (Pending Approval)`;
+                    if (record.late_departure_reason) statusText += ` ⭐ LATE DEPARTURE`;
+                    if (record.status === 'PENDING') statusText += ` (Pending Approval)`;
                     statusClass = 'status-pending';
                 }
                 
@@ -220,16 +239,38 @@
             
             const now = new Date();
             const currentHour = now.getHours();
-            const standardStartHour = 8;
+            const currentMinute = now.getMinutes();
             
-            if (currentHour > standardStartHour || (currentHour === standardStartHour && now.getMinutes() > 15)) {
-                document.getElementById('lateReasonBox').style.display = 'block';
-                document.getElementById('earlyReasonBox').style.display = 'none';
-                document.getElementById('clockInBtn').style.display = 'none';
-                confirmLateBtn.style.display = 'block';
-            } else {
-                clockIn(selectedStaffName, null);
+            // Hide all boxes first
+            document.getElementById('earlyArrivalBox').style.display = 'none';
+            document.getElementById('lateArrivalBox').style.display = 'none';
+            document.getElementById('clockInBtn').style.display = 'none';
+            
+            // Check if early arrival (before 8:00 AM)
+            if (currentHour < 8) {
+                document.getElementById('earlyArrivalBox').style.display = 'block';
+                confirmEarlyArrivalBtn.style.display = 'block';
             }
+            // Check if late arrival (after 8:15 AM)
+            else if (currentHour > 8 || (currentHour === 8 && currentMinute > 15)) {
+                document.getElementById('lateArrivalBox').style.display = 'block';
+                confirmLateBtn.style.display = 'block';
+            }
+            // On time (8:00 - 8:15)
+            else {
+                clockIn(selectedStaffName, null, null);
+            }
+        }
+        
+        async function confirmEarlyArrival() {
+            const reason = document.getElementById('earlyArrivalReason').value || 'Early arrival';
+            clockIn(selectedStaffName, reason, 'early');
+        }
+        
+        async function confirmLateArrival() {
+            const reason = document.getElementById('lateReason').value;
+            if (!reason) { alert('Please provide a reason for being late'); return; }
+            clockIn(selectedStaffName, reason, 'late');
         }
         
         function prepareClockOut() {
@@ -238,31 +279,36 @@
             
             const now = new Date();
             const currentHour = now.getHours();
-            const standardEndHour = 17;
             
-            if (currentHour < standardEndHour) {
-                document.getElementById('earlyReasonBox').style.display = 'block';
-                document.getElementById('lateReasonBox').style.display = 'none';
-                document.getElementById('clockOutBtn').style.display = 'none';
+            // Hide all boxes first
+            document.getElementById('earlyDepartureBox').style.display = 'none';
+            document.getElementById('lateDepartureBox').style.display = 'none';
+            document.getElementById('clockOutBtn').style.display = 'none';
+            
+            // Check if early departure (before 5:00 PM)
+            if (currentHour < 17) {
+                document.getElementById('earlyDepartureBox').style.display = 'block';
                 confirmEarlyBtn.style.display = 'block';
-            } else {
-                clockOut(selectedStaffName, null);
+            }
+            // Check if late departure (after 5:00 PM)
+            else if (currentHour >= 17) {
+                document.getElementById('lateDepartureBox').style.display = 'block';
+                confirmLateDepartureBtn.style.display = 'block';
             }
         }
         
-        async function confirmLateClockIn() {
-            const reason = document.getElementById('lateReason').value;
-            if (!reason) { alert('Please provide a reason for being late'); return; }
-            clockIn(selectedStaffName, reason);
-        }
-        
-        async function confirmEarlyClockOut() {
+        async function confirmEarlyDeparture() {
             const reason = document.getElementById('earlyReason').value;
             if (!reason) { alert('Please provide a reason for leaving early'); return; }
-            clockOut(selectedStaffName, reason);
+            clockOut(selectedStaffName, reason, 'early');
         }
         
-        async function clockIn(staffName, lateReason) {
+        async function confirmLateDeparture() {
+            const reason = document.getElementById('lateDepartureReason').value || 'Late departure';
+            clockOut(selectedStaffName, reason, 'late');
+        }
+        
+        async function clockIn(staffName, reason, type) {
             const date = document.getElementById('reportDate').value;
             const token = localStorage.getItem('vbs_token');
             const now = new Date();
@@ -284,9 +330,11 @@
                 division: currentFocalPointDivision,
                 report_date: date,
                 time_in: timeStr,
-                late_reason: lateReason || null,
                 status: 'PENDING'
             };
+            
+            if (type === 'early') data.early_arrival_reason = reason;
+            if (type === 'late') data.late_reason = reason;
             
             const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet`, {
                 method: 'POST',
@@ -295,7 +343,9 @@
             });
             
             if (response.ok) {
-                const msg = lateReason ? `⚠️ ${staffName} clocked IN LATE at ${timeStr}\nReason: ${lateReason}` : `✅ ${staffName} clocked IN at ${timeStr}`;
+                let msg = `✅ ${staffName} clocked IN at ${timeStr}`;
+                if (type === 'early') msg = `⭐ ${staffName} clocked in EARLY at ${timeStr}\nReason: ${reason}`;
+                if (type === 'late') msg = `⚠️ ${staffName} clocked in LATE at ${timeStr}\nReason: ${reason}`;
                 alert(msg);
                 resetForms();
                 loadTodayStatus();
@@ -305,7 +355,7 @@
             }
         }
         
-        async function clockOut(staffName, earlyReason) {
+        async function clockOut(staffName, reason, type) {
             const date = document.getElementById('reportDate').value;
             const token = localStorage.getItem('vbs_token');
             
@@ -334,19 +384,25 @@
             if (minutes < 0) { hours--; minutes += 60; }
             const totalHours = hours + minutes / 60;
             
+            const updateData = {
+                time_out: timeOutStr,
+                hours_worked: totalHours.toFixed(2),
+                status: 'PENDING'
+            };
+            
+            if (type === 'early') updateData.early_reason = reason;
+            if (type === 'late') updateData.late_departure_reason = reason;
+            
             const update = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${record.id}`, {
                 method: 'PATCH',
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    time_out: timeOutStr,
-                    hours_worked: totalHours.toFixed(2),
-                    early_reason: earlyReason || null,
-                    status: 'PENDING'
-                })
+                body: JSON.stringify(updateData)
             });
             
             if (update.ok) {
-                const msg = earlyReason ? `⚠️ ${staffName} clocked OUT EARLY at ${timeOutStr}\nHours: ${totalHours.toFixed(2)}\nReason: ${earlyReason}\nWaiting for manager approval` : `❌ ${staffName} clocked OUT at ${timeOutStr} | Hours: ${totalHours.toFixed(2)}`;
+                let msg = `❌ ${staffName} clocked OUT at ${timeOutStr} | Hours: ${totalHours.toFixed(2)}`;
+                if (type === 'early') msg = `⚠️ ${staffName} clocked out EARLY at ${timeOutStr}\nHours: ${totalHours.toFixed(2)}\nReason: ${reason}\nWaiting for manager approval`;
+                if (type === 'late') msg = `⭐ ${staffName} clocked out LATE at ${timeOutStr}\nHours: ${totalHours.toFixed(2)}\nReason: ${reason}`;
                 alert(msg);
                 resetForms();
                 loadTodayStatus();
@@ -357,32 +413,55 @@
         }
         
         function resetForms() {
-            document.getElementById('lateReasonBox').style.display = 'none';
-            document.getElementById('earlyReasonBox').style.display = 'none';
+            document.getElementById('earlyArrivalBox').style.display = 'none';
+            document.getElementById('lateArrivalBox').style.display = 'none';
+            document.getElementById('earlyDepartureBox').style.display = 'none';
+            document.getElementById('lateDepartureBox').style.display = 'none';
             document.getElementById('clockInBtn').style.display = 'block';
             document.getElementById('clockOutBtn').style.display = 'block';
+            confirmEarlyArrivalBtn.style.display = 'none';
             confirmLateBtn.style.display = 'none';
             confirmEarlyBtn.style.display = 'none';
+            confirmLateDepartureBtn.style.display = 'none';
+            document.getElementById('earlyArrivalReason').value = '';
             document.getElementById('lateReason').value = '';
             document.getElementById('earlyReason').value = '';
+            document.getElementById('lateDepartureReason').value = '';
             document.getElementById('staffSelect').value = '';
         }
         
+        // Create confirmation buttons
+        const confirmEarlyArrivalBtn = document.createElement('button');
+        confirmEarlyArrivalBtn.id = 'confirmEarlyArrivalBtn';
+        confirmEarlyArrivalBtn.className = 'clock-in';
+        confirmEarlyArrivalBtn.innerHTML = '⭐ CONFIRM EARLY ARRIVAL';
+        confirmEarlyArrivalBtn.style.display = 'none';
+        confirmEarlyArrivalBtn.onclick = confirmEarlyArrival;
+        document.querySelector('.container').appendChild(confirmEarlyArrivalBtn);
+        
         const confirmLateBtn = document.createElement('button');
-        confirmLateBtn.id = 'confirmClockInBtn';
+        confirmLateBtn.id = 'confirmLateBtn';
         confirmLateBtn.className = 'clock-in';
-        confirmLateBtn.innerHTML = '⚠️ CONFIRM LATE CLOCK IN';
+        confirmLateBtn.innerHTML = '⚠️ CONFIRM LATE ARRIVAL';
         confirmLateBtn.style.display = 'none';
-        confirmLateBtn.onclick = confirmLateClockIn;
+        confirmLateBtn.onclick = confirmLateArrival;
         document.querySelector('.container').appendChild(confirmLateBtn);
         
         const confirmEarlyBtn = document.createElement('button');
-        confirmEarlyBtn.id = 'confirmClockOutBtn';
+        confirmEarlyBtn.id = 'confirmEarlyBtn';
         confirmEarlyBtn.className = 'clock-out';
-        confirmEarlyBtn.innerHTML = '⚠️ CONFIRM EARLY CLOCK OUT';
+        confirmEarlyBtn.innerHTML = '⚠️ CONFIRM EARLY DEPARTURE';
         confirmEarlyBtn.style.display = 'none';
-        confirmEarlyBtn.onclick = confirmEarlyClockOut;
+        confirmEarlyBtn.onclick = confirmEarlyDeparture;
         document.querySelector('.container').appendChild(confirmEarlyBtn);
+        
+        const confirmLateDepartureBtn = document.createElement('button');
+        confirmLateDepartureBtn.id = 'confirmLateDepartureBtn';
+        confirmLateDepartureBtn.className = 'clock-out';
+        confirmLateDepartureBtn.innerHTML = '⭐ CONFIRM LATE DEPARTURE';
+        confirmLateDepartureBtn.style.display = 'none';
+        confirmLateDepartureBtn.onclick = confirmLateDeparture;
+        document.querySelector('.container').appendChild(confirmLateDepartureBtn);
         
         checkAuth();
     </script>
