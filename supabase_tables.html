@@ -9,25 +9,38 @@
         .container { max-width: 1400px; margin: 0 auto; }
         .header { background: linear-gradient(135deg, #1a5a3a 0%, #0d3b24 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
         .header h1 { margin-bottom: 5px; }
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .stat-card { background: white; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .stat-number { font-size: 28px; font-weight: bold; color: #1a5a3a; }
-        .stat-label { font-size: 12px; color: #666; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 20px; font-weight: bold; color: #1a5a3a; }
+        .stat-label { font-size: 10px; color: #666; }
         .table-selector { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-        select { padding: 10px 20px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; min-width: 250px; }
+        select { padding: 10px 20px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; min-width: 200px; }
         button { padding: 10px 20px; background: #1a5a3a; color: white; border: none; border-radius: 8px; cursor: pointer; }
         button:hover { background: #0e3d26; }
         .refresh-btn { background: #17a2b8; }
         .export-btn { background: #28a745; }
+        .filter-section { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
+        .filter-section label { font-weight: bold; }
+        .filter-section input, .filter-section select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; }
+        .filter-section button { background: #ffc107; color: #333; padding: 8px 16px; }
+        .summary { background: #e8f5e9; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
+        .summary-item { font-size: 14px; }
+        .summary-number { font-weight: bold; font-size: 20px; color: #1a5a3a; }
         .table-container { background: white; border-radius: 10px; overflow-x: auto; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background: #1a5a3a; color: white; position: sticky; top: 0; }
         tr:nth-child(even) { background: #f8f9fa; }
+        .late-row { background: #fff3cd !important; }
+        .early-row { background: #fff3cd !important; }
         .loading { text-align: center; padding: 40px; color: #666; }
         .error { color: red; padding: 20px; text-align: center; }
         .info { background: #cce5ff; padding: 10px; border-radius: 8px; margin-bottom: 15px; color: #004085; }
         .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
+        .badge-late { background: #fff3cd; color: #856404; }
+        .badge-early { background: #fff3cd; color: #856404; }
+        .badge-normal { background: #d4edda; color: #155724; }
     </style>
 </head>
 <body>
@@ -40,7 +53,7 @@
         <div class="stats" id="stats"></div>
         
         <div class="table-selector">
-            <select id="tableSelect">
+            <select id="tableSelect" onchange="toggleFilters()">
                 <option value="">-- Select Table --</option>
                 <option value="timesheet">⏰ Timesheet</option>
                 <option value="provincial_reports">🌾 Provincial Reports</option>
@@ -61,7 +74,39 @@
             <button class="export-btn" onclick="exportToCSV()">📎 Export CSV</button>
         </div>
         
+        <!-- Timesheet Filters (only visible when timesheet selected) -->
+        <div id="timesheetFilters" class="filter-section" style="display:none;">
+            <div>
+                <label>📅 Start Date:</label>
+                <input type="date" id="startDate">
+            </div>
+            <div>
+                <label>📅 End Date:</label>
+                <input type="date" id="endDate">
+            </div>
+            <div>
+                <label>⏰ Filter by:</label>
+                <select id="statusFilter">
+                    <option value="all">All</option>
+                    <option value="late">⚠️ Late Arrivals Only</option>
+                    <option value="early">⚠️ Early Departures Only</option>
+                    <option value="normal">✅ Normal (On Time)</option>
+                    <option value="pending">⏳ Pending Approval</option>
+                    <option value="approved">✅ Approved</option>
+                </select>
+            </div>
+            <div>
+                <label>👤 Staff Name:</label>
+                <input type="text" id="staffNameFilter" placeholder="Search staff...">
+            </div>
+            <button onclick="applyTimesheetFilters()">🔍 Apply Filters</button>
+            <button onclick="clearTimesheetFilters()">🗑️ Clear</button>
+        </div>
+        
         <div class="info" id="tableInfo"></div>
+        
+        <!-- Timesheet Summary (only visible when timesheet selected) -->
+        <div id="timesheetSummary" class="summary" style="display:none;"></div>
         
         <div class="table-container" id="tableContainer">
             <div class="loading">Select a table to view data</div>
@@ -76,8 +121,43 @@
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        let currentData = [];
+        let fullData = [];
         let currentTableName = '';
+        let filteredData = [];
+        
+        function isLate(timeIn) {
+            if (!timeIn) return false;
+            const [hours, minutes] = timeIn.split(':');
+            const hour = parseInt(hours);
+            const minute = parseInt(minutes) || 0;
+            return hour > 8 || (hour === 8 && minute > 15);
+        }
+        
+        function isEarly(timeOut) {
+            if (!timeOut) return false;
+            const [hours] = timeOut.split(':');
+            return parseInt(hours) < 17;
+        }
+        
+        function toggleFilters() {
+            const tableName = document.getElementById('tableSelect').value;
+            const filtersDiv = document.getElementById('timesheetFilters');
+            const summaryDiv = document.getElementById('timesheetSummary');
+            
+            if (tableName === 'timesheet') {
+                filtersDiv.style.display = 'flex';
+                summaryDiv.style.display = 'flex';
+                // Set default dates to this week
+                const today = new Date();
+                const startOfWeek = new Date(today);
+                startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+                document.getElementById('startDate').value = startOfWeek.toISOString().split('T')[0];
+                document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            } else {
+                filtersDiv.style.display = 'none';
+                summaryDiv.style.display = 'none';
+            }
+        }
         
         async function loadStats() {
             const tables = ['timesheet', 'provincial_reports', 'laboratory_reports', 'packhouse_reports', 
@@ -99,9 +179,10 @@
                         const data = await response.json();
                         rowCount = data.length;
                     }
-                    statsHtml += `<div class="stat-card"><div class="stat-number">${rowCount}</div><div class="stat-label">${table.replace('_', ' ')}</div></div>`;
+                    const displayName = table.replace('_', ' ').replace('reports', '');
+                    statsHtml += `<div class="stat-card"><div class="stat-number">${rowCount}</div><div class="stat-label">${displayName}</div></div>`;
                 } catch(e) {
-                    statsHtml += `<div class="stat-card"><div class="stat-number">0</div><div class="stat-label">${table.replace('_', ' ')}</div></div>`;
+                    statsHtml += `<div class="stat-card"><div class="stat-number">0</div><div class="stat-label">${table}</div></div>`;
                 }
             }
             document.getElementById('stats').innerHTML = statsHtml;
@@ -119,11 +200,12 @@
             infoDiv.innerHTML = '';
             
             try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/${tableName}?limit=500`, {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/${tableName}?limit=1000`, {
                     headers: { 'apikey': SUPABASE_KEY }
                 });
                 const data = await response.json();
-                currentData = data;
+                fullData = data;
+                filteredData = data;
                 
                 if (data.length === 0) {
                     container.innerHTML = '<div class="loading">📭 No data in this table</div>';
@@ -131,46 +213,141 @@
                     return;
                 }
                 
-                infoDiv.innerHTML = `<strong>${tableName.replace('_', ' ').toUpperCase()}</strong> - ${data.length} records found`;
-                
-                // Create table headers
-                const columns = Object.keys(data[0]);
-                let html = '<table><thead><tr>';
-                for (let col of columns) {
-                    html += `<th>${col}</th>`;
+                if (tableName === 'timesheet') {
+                    applyTimesheetFilters();
+                } else {
+                    renderTable(data);
+                    infoDiv.innerHTML = `<strong>${tableName.replace('_', ' ').toUpperCase()}</strong> - ${data.length} records found`;
                 }
-                html += '</tr></thead><tbody>';
-                
-                // Create table rows
-                for (let row of data) {
-                    html += '<tr>';
-                    for (let col of columns) {
-                        let value = row[col];
-                        if (value === null || value === undefined) value = '-';
-                        if (typeof value === 'object') value = JSON.stringify(value);
-                        if (typeof value === 'string' && value.length > 50) value = value.substring(0, 50) + '...';
-                        html += `<td>${value}</td>`;
-                    }
-                    html += '</tr>';
-                }
-                html += '</tbody></table>';
-                container.innerHTML = html;
                 
             } catch (error) {
                 container.innerHTML = `<div class="error">❌ Error loading table: ${error.message}</div>`;
             }
         }
         
+        function renderTable(data) {
+            if (data.length === 0) {
+                document.getElementById('tableContainer').innerHTML = '<div class="loading">📭 No records match your filters</div>';
+                return;
+            }
+            
+            const columns = Object.keys(data[0]);
+            let html = '<table><thead><tr>';
+            for (let col of columns) {
+                html += `<th>${col}</th>`;
+            }
+            html += '</tr></thead><tbody>';
+            
+            for (let row of data) {
+                let rowClass = '';
+                if (currentTableName === 'timesheet') {
+                    const isLateArrival = isLate(row.time_in);
+                    const isEarlyDeparture = isEarly(row.time_out);
+                    if (isLateArrival) rowClass = 'late-row';
+                    if (isEarlyDeparture) rowClass = 'early-row';
+                }
+                html += `<tr class="${rowClass}">`;
+                for (let col of columns) {
+                    let value = row[col];
+                    if (value === null || value === undefined) value = '-';
+                    if (typeof value === 'object') value = JSON.stringify(value);
+                    if (typeof value === 'string' && value.length > 50) value = value.substring(0, 50) + '...';
+                    
+                    // Add badges for late/early status
+                    if (col === 'time_in' && isLate(value) && currentTableName === 'timesheet') {
+                        html += `<td>${value} <span class="badge badge-late">⚠️ LATE</span></td>`;
+                    } else if (col === 'time_out' && isEarly(value) && currentTableName === 'timesheet') {
+                        html += `<td>${value} <span class="badge badge-early">⚠️ EARLY</span></td>`;
+                    } else {
+                        html += `<td>${value}</td>`;
+                    }
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            document.getElementById('tableContainer').innerHTML = html;
+        }
+        
+        function applyTimesheetFilters() {
+            if (currentTableName !== 'timesheet') return;
+            
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const staffName = document.getElementById('staffNameFilter').value.toLowerCase();
+            
+            let filtered = [...fullData];
+            
+            // Date filter
+            if (startDate) {
+                filtered = filtered.filter(row => row.report_date >= startDate);
+            }
+            if (endDate) {
+                filtered = filtered.filter(row => row.report_date <= endDate);
+            }
+            
+            // Staff name filter
+            if (staffName) {
+                filtered = filtered.filter(row => (row.officer_name || '').toLowerCase().includes(staffName));
+            }
+            
+            // Status filter (late/early/normal)
+            if (statusFilter === 'late') {
+                filtered = filtered.filter(row => isLate(row.time_in));
+            } else if (statusFilter === 'early') {
+                filtered = filtered.filter(row => isEarly(row.time_out));
+            } else if (statusFilter === 'normal') {
+                filtered = filtered.filter(row => !isLate(row.time_in) && !isEarly(row.time_out));
+            } else if (statusFilter === 'pending') {
+                filtered = filtered.filter(row => row.status === 'PENDING');
+            } else if (statusFilter === 'approved') {
+                filtered = filtered.filter(row => row.status === 'APPROVED');
+            }
+            
+            filteredData = filtered;
+            renderTable(filtered);
+            
+            // Update summary
+            const lateCount = filtered.filter(row => isLate(row.time_in)).length;
+            const earlyCount = filtered.filter(row => isEarly(row.time_out)).length;
+            const normalCount = filtered.filter(row => !isLate(row.time_in) && !isEarly(row.time_out)).length;
+            const pendingCount = filtered.filter(row => row.status === 'PENDING').length;
+            const totalHours = filtered.reduce((sum, row) => sum + (parseFloat(row.hours_worked) || 0), 0);
+            
+            document.getElementById('timesheetSummary').innerHTML = `
+                <div class="summary-item"><span class="summary-number">${filtered.length}</span><br>Total Records</div>
+                <div class="summary-item"><span class="summary-number" style="color:#856404;">${lateCount}</span><br>⚠️ Late Arrivals</div>
+                <div class="summary-item"><span class="summary-number" style="color:#856404;">${earlyCount}</span><br>⚠️ Early Departures</div>
+                <div class="summary-item"><span class="summary-number" style="color:#155724;">${normalCount}</span><br>✅ Normal</div>
+                <div class="summary-item"><span class="summary-number" style="color:#856404;">${pendingCount}</span><br>⏳ Pending Approval</div>
+                <div class="summary-item"><span class="summary-number">${totalHours.toFixed(1)}</span><br>Total Hours</div>
+            `;
+            
+            document.getElementById('tableInfo').innerHTML = `<strong>TIMESHEET</strong> - ${filtered.length} records found (filtered)`;
+        }
+        
+        function clearTimesheetFilters() {
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+            document.getElementById('startDate').value = startOfWeek.toISOString().split('T')[0];
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            document.getElementById('statusFilter').value = 'all';
+            document.getElementById('staffNameFilter').value = '';
+            applyTimesheetFilters();
+        }
+        
         function exportToCSV() {
-            if (currentData.length === 0) {
+            const dataToExport = filteredData.length > 0 ? filteredData : fullData;
+            if (dataToExport.length === 0) {
                 alert('No data to export');
                 return;
             }
             
-            const columns = Object.keys(currentData[0]);
+            const columns = Object.keys(dataToExport[0]);
             let csv = columns.join(',') + '\n';
             
-            for (let row of currentData) {
+            for (let row of dataToExport) {
                 const rowData = columns.map(col => {
                     let value = row[col];
                     if (value === null || value === undefined) value = '';
@@ -189,6 +366,13 @@
             a.click();
             URL.revokeObjectURL(url);
         }
+        
+        // Set default dates
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+        document.getElementById('startDate').value = startOfWeek.toISOString().split('T')[0];
+        document.getElementById('endDate').value = today.toISOString().split('T')[0];
         
         loadStats();
     </script>
