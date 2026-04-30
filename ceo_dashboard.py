@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ============================================
-# VBS CEO DASHBOARD - ENHANCED VERSION
+# VBS CEO DASHBOARD - TOGGLE VIEW
 # ============================================
 
 SUPABASE_URL = "https://pdwctzueksfuspwwumdy.supabase.co"
@@ -30,6 +30,15 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 st.title("📊 VBS CEO Dashboard")
 st.caption(f"Vanuatu Bureau of Standards | Live Data | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+# ============================================
+# VIEW TOGGLE FUNCTION
+# ============================================
+def view_selector(section_key, label):
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        return st.radio(label, ["📊 Graph", "📋 Table"], key=section_key, horizontal=True)
+    return "📊 Graph"
 
 # ============================================
 # QUICK LINKS
@@ -147,27 +156,33 @@ if total_pending > 0:
     st.divider()
 
 # ============================================
-# REPORTS BY DIVISION (Bar Chart)
+# REPORTS BY DIVISION (Bar Chart with Table Toggle)
 # ============================================
 st.subheader("📊 Reports by Division")
+view = view_selector("reports_by_div", "View")
+
 div_data = pd.DataFrame([
     {'Division': name, 'Approved': s['approved'], 'Pending': s['pending']} 
     for name, s in stats.items()
 ])
-fig = px.bar(div_data, x='Division', y=['Approved', 'Pending'], 
-             color_discrete_sequence=['#2c7a4d', '#ffc107'],
-             barmode='group')
-fig.update_layout(height=400, margin=dict(l=0, r=0, t=40, b=40))
-st.plotly_chart(fig, use_container_width=True)
+
+if view == "📊 Graph":
+    fig = px.bar(div_data, x='Division', y=['Approved', 'Pending'], 
+                 color_discrete_sequence=['#2c7a4d', '#ffc107'],
+                 barmode='group')
+    fig.update_layout(height=450, margin=dict(l=0, r=0, t=40, b=40))
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.dataframe(div_data, use_container_width=True, hide_index=True)
 
 st.divider()
 
 # ============================================
-# TREND LINE GRAPH (Reports Over Time)
+# TREND LINE GRAPH with Table Toggle
 # ============================================
 st.subheader("📈 Reports Trend (Last 30 Days)")
+view_trend = view_selector("trend_view", "View")
 
-# Collect data from all tables for trend
 all_tables = ['provincial_reports', 'laboratory_reports', 'packhouse_reports', 
               'standards_reports', 'administration_reports', 'conformity_assessment']
 trend_data = []
@@ -181,11 +196,14 @@ for table in all_tables:
 
 if trend_data:
     trend_df = pd.concat(trend_data, ignore_index=True)
-    fig = px.line(trend_df, x='date', y=0, color='source', 
-                  title="Daily Reports by Division",
-                  markers=True, line_shape='linear')
-    fig.update_layout(height=400, xaxis_title="Date", yaxis_title="Number of Reports")
-    st.plotly_chart(fig, use_container_width=True)
+    if view_trend == "📊 Graph":
+        fig = px.line(trend_df, x='date', y=0, color='source', 
+                      title="Daily Reports by Division",
+                      markers=True, line_shape='linear')
+        fig.update_layout(height=450, xaxis_title="Date", yaxis_title="Number of Reports")
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.dataframe(trend_df, use_container_width=True, hide_index=True)
 else:
     st.info("No trend data available yet")
 
@@ -208,7 +226,6 @@ try:
 except:
     staff_list = pd.DataFrame()
 
-# Load general activity with evidence links
 general_activity = load_table('general_activity_log', 'APPROVED')
 
 if not timesheet_today.empty or not staff_list.empty:
@@ -236,7 +253,6 @@ if not timesheet_today.empty or not staff_list.empty:
                 except:
                     pass
             
-            # Check for evidence in general activity
             evidence_links = []
             if not general_activity.empty:
                 staff_activities = general_activity[general_activity['officer_name'] == staff_name]
@@ -282,14 +298,10 @@ if not timesheet_today.empty or not staff_list.empty:
     col4.metric("🔓 Self Clock", self_clock_count)
     col5.metric("⏳ Pending", len(df_attendance[df_attendance['Status'] == 'PENDING']))
     
-    # Display as HTML table with clickable links for evidence
+    # Always show table for attendance (this is the raw data CEO wants)
     st.markdown("### 📋 Staff Attendance Details")
+    st.dataframe(df_attendance, use_container_width=True, hide_index=True)
     
-    # Convert to HTML for better rendering of links
-    html_table = df_attendance.to_html(escape=False, index=False)
-    st.markdown(html_table, unsafe_allow_html=True)
-    
-    # Download button
     csv = df_attendance.to_csv(index=False).encode('utf-8')
     st.download_button("📎 Download Attendance CSV", csv, f"attendance_{selected_date}.csv", "text/csv")
     
@@ -299,23 +311,174 @@ else:
 st.divider()
 
 # ============================================
-# GENERAL ACTIVITY WITH EVIDENCE VIEWER
+# PROVINCIAL DIVISION with Toggle
+# ============================================
+provincial = load_table('provincial_reports', 'APPROVED')
+st.subheader("🌾 Provincial Division")
+view_prov = view_selector("provincial_view", "View")
+
+if not provincial.empty:
+    if view_prov == "📊 Graph":
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            pass_rate = ((provincial['inspection_result'] == 'Pass').sum() / len(provincial)) * 100
+            st.metric("Pass Rate", f"{pass_rate:.1f}%")
+        with col2:
+            st.metric("Total Inspections", len(provincial))
+        with col3:
+            st.metric("Non-Compliance", provincial['non_compliance_cases'].sum())
+        
+        if 'location' in provincial.columns:
+            locations = provincial['location'].value_counts().head(5).reset_index()
+            locations.columns = ['Location', 'Count']
+            fig = px.bar(locations, x='Location', y='Count', title="Top 5 Inspection Locations")
+            st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.dataframe(provincial, use_container_width=True, hide_index=True)
+else:
+    st.info("No approved provincial data yet")
+st.divider()
+
+# ============================================
+# PACKHOUSE with Toggle
+# ============================================
+packhouse = load_table('packhouse_reports', 'APPROVED')
+st.subheader("📦 Packhouse")
+view_pack = view_selector("packhouse_view", "View")
+
+if not packhouse.empty:
+    if view_pack == "📊 Graph":
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Processed", f"{packhouse['volume_processed_kg'].sum():,.0f} kg")
+        with col2:
+            st.metric("Avg Waste", f"{packhouse['waste_percent'].mean():.1f}%")
+        with col3:
+            st.metric("Avg Rejection", f"{packhouse['rejection_rate_percent'].mean():.1f}%")
+    else:
+        st.dataframe(packhouse, use_container_width=True, hide_index=True)
+else:
+    st.info("No approved packhouse data yet")
+st.divider()
+
+# ============================================
+# LABORATORY with Toggle
+# ============================================
+laboratory = load_table('laboratory_reports', 'APPROVED')
+st.subheader("🔬 Laboratory")
+view_lab = view_selector("laboratory_view", "View")
+
+if not laboratory.empty:
+    if view_lab == "📊 Graph":
+        col1, col2 = st.columns(2)
+        with col1:
+            pass_rate = (laboratory['test_result'] == 'Pass').mean() * 100
+            fig = go.Figure(go.Indicator(mode="gauge+number", value=pass_rate,
+                                         title={'text': "Test Pass Rate (%)"},
+                                         gauge={'axis': {'range': [0, 100]}, 'bar': {'color': "#2c7a4d"}}))
+            fig.update_layout(height=250)
+            st.plotly_chart(fig, use_container_width=True)
+        with col2:
+            if 'test_type' in laboratory.columns:
+                test_counts = laboratory['test_type'].value_counts().reset_index()
+                test_counts.columns = ['Test Type', 'Count']
+                fig = px.pie(test_counts, values='Count', names='Test Type', title="Tests by Type")
+                st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.dataframe(laboratory, use_container_width=True, hide_index=True)
+else:
+    st.info("No approved laboratory data yet")
+st.divider()
+
+# ============================================
+# STANDARDS with Toggle
+# ============================================
+standards = load_table('standards_reports', 'APPROVED')
+st.subheader("📜 Standards & Certification")
+view_std = view_selector("standards_view", "View")
+
+if not standards.empty:
+    if view_std == "📊 Graph":
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Standards Developed", standards['standards_developed'].sum())
+        with col2:
+            st.metric("Certifications Issued", standards['certifications_issued'].sum())
+    else:
+        st.dataframe(standards, use_container_width=True, hide_index=True)
+else:
+    st.info("No approved standards data yet")
+st.divider()
+
+# ============================================
+# CONFORMITY ASSESSMENT with Toggle
+# ============================================
+conformity = load_table('conformity_assessment', 'APPROVED')
+st.subheader("✅ Conformity Assessment")
+view_conf = view_selector("conformity_view", "View")
+
+if not conformity.empty:
+    if view_conf == "📊 Graph":
+        compliant = (conformity['assessment_result'] == 'Compliant').sum()
+        non_compliant = len(conformity) - compliant
+        fig = go.Figure(go.Pie(labels=['Compliant', 'Non-Compliant'],
+                               values=[compliant, non_compliant],
+                               marker_colors=['#2c7a4d', '#dc3545'], hole=0.4))
+        fig.update_layout(height=350)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.dataframe(conformity, use_container_width=True, hide_index=True)
+else:
+    st.info("No approved conformity data yet")
+st.divider()
+
+# ============================================
+# TOP OFFICERS (TABLE Only - CEO wants names)
+# ============================================
+st.subheader("👥 Staff Activity Summary")
+
+all_officers = []
+for table in ['provincial_reports', 'laboratory_reports', 'packhouse_reports', 'standards_reports']:
+    df = load_table(table, 'APPROVED')
+    if not df.empty and 'officer_name' in df.columns:
+        all_officers.extend(df['officer_name'].tolist())
+
+if not timesheet.empty and 'officer_name' in timesheet.columns:
+    all_officers.extend(timesheet[timesheet['status'] == 'APPROVED']['officer_name'].tolist())
+
+if all_officers:
+    officer_counts = pd.Series(all_officers).value_counts().reset_index()
+    officer_counts.columns = ['Officer Name', 'Total Reports']
+    st.dataframe(officer_counts, use_container_width=True, hide_index=True)
+    
+    # Simple bar chart for top 10
+    top10 = officer_counts.head(10)
+    fig = px.bar(top10, x='Officer Name', y='Total Reports', 
+                 color='Total Reports', color_continuous_scale='Greens',
+                 title="Top 10 Officers by Activity")
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("No officer data yet")
+
+st.divider()
+
+# ============================================
+# GENERAL ACTIVITY WITH EVIDENCE
 # ============================================
 st.subheader("📎 General Activity Reports with Evidence")
 
 general = load_table('general_activity_log', 'APPROVED')
 if not general.empty:
-    # Display general activity with evidence links
-    for _, activity in general.head(20).iterrows():
-        with st.expander(f"📝 {activity['activity_name']} - {activity['officer_name']} ({activity['report_date']})"):
-            st.write(f"**Activity Type:** {activity['activity_type']}")
-            st.write(f"**Description:** {activity['activity_description']}")
-            st.write(f"**Stakeholder:** {activity.get('stakeholder_name', 'N/A')}")
-            st.write(f"**Outcome:** {activity.get('outcome', 'N/A')}")
-            
-            # Display evidence links
+    # Show as table first, then expandable details
+    st.dataframe(general[['officer_name', 'activity_type', 'activity_name', 'report_date']].head(20), 
+                 use_container_width=True, hide_index=True)
+    
+    with st.expander("View Detailed Activity with Evidence"):
+        for _, activity in general.head(20).iterrows():
+            st.write(f"**{activity['activity_name']}** - {activity['officer_name']} ({activity['report_date']})")
+            st.write(f"Type: {activity['activity_type']}")
+            st.write(f"Description: {activity['activity_description']}")
             if 'evidence_urls' in activity and activity['evidence_urls']:
-                st.write("**Evidence Attached:**")
                 urls = activity['evidence_urls']
                 if isinstance(urls, str):
                     try:
@@ -327,132 +490,9 @@ if not general.empty:
                     for url in urls:
                         if url and isinstance(url, str):
                             st.markdown(f'<a href="{url}" target="_blank">📎 View Evidence</a>', unsafe_allow_html=True)
-            else:
-                st.write("**Evidence:** No evidence attached")
+            st.divider()
 else:
     st.info("No general activity reports yet")
-
-st.divider()
-
-# ============================================
-# PROVINCIAL DIVISION
-# ============================================
-provincial = load_table('provincial_reports', 'APPROVED')
-st.subheader("🌾 Provincial Division")
-if not provincial.empty:
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        pass_rate = ((provincial['inspection_result'] == 'Pass').sum() / len(provincial)) * 100
-        st.metric("Pass Rate", f"{pass_rate:.1f}%")
-    with col2:
-        st.metric("Total Inspections", len(provincial))
-    with col3:
-        st.metric("Non-Compliance", provincial['non_compliance_cases'].sum())
-    
-    if 'location' in provincial.columns:
-        locations = provincial['location'].value_counts().head(5).reset_index()
-        locations.columns = ['Location', 'Count']
-        fig = px.bar(locations, x='Location', y='Count', title="Top 5 Inspection Locations")
-        st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info("No approved provincial data yet")
-st.divider()
-
-# ============================================
-# PACKHOUSE
-# ============================================
-packhouse = load_table('packhouse_reports', 'APPROVED')
-st.subheader("📦 Packhouse")
-if not packhouse.empty:
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total Processed", f"{packhouse['volume_processed_kg'].sum():,.0f} kg")
-    with col2:
-        st.metric("Avg Waste", f"{packhouse['waste_percent'].mean():.1f}%")
-    with col3:
-        st.metric("Avg Rejection", f"{packhouse['rejection_rate_percent'].mean():.1f}%")
-else:
-    st.info("No approved packhouse data yet")
-st.divider()
-
-# ============================================
-# LABORATORY
-# ============================================
-laboratory = load_table('laboratory_reports', 'APPROVED')
-st.subheader("🔬 Laboratory")
-if not laboratory.empty:
-    col1, col2 = st.columns(2)
-    with col1:
-        pass_rate = (laboratory['test_result'] == 'Pass').mean() * 100
-        fig = go.Figure(go.Indicator(mode="gauge+number", value=pass_rate,
-                                     title={'text': "Test Pass Rate (%)"},
-                                     gauge={'axis': {'range': [0, 100]}, 'bar': {'color': "#2c7a4d"}}))
-        fig.update_layout(height=250)
-        st.plotly_chart(fig, use_container_width=True)
-    with col2:
-        if 'test_type' in laboratory.columns:
-            test_counts = laboratory['test_type'].value_counts().reset_index()
-            test_counts.columns = ['Test Type', 'Count']
-            fig = px.pie(test_counts, values='Count', names='Test Type', title="Tests by Type")
-            st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info("No approved laboratory data yet")
-st.divider()
-
-# ============================================
-# STANDARDS
-# ============================================
-standards = load_table('standards_reports', 'APPROVED')
-st.subheader("📜 Standards & Certification")
-if not standards.empty:
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Standards Developed", standards['standards_developed'].sum())
-    with col2:
-        st.metric("Certifications Issued", standards['certifications_issued'].sum())
-else:
-    st.info("No approved standards data yet")
-st.divider()
-
-# ============================================
-# CONFORMITY ASSESSMENT
-# ============================================
-conformity = load_table('conformity_assessment', 'APPROVED')
-st.subheader("✅ Conformity Assessment")
-if not conformity.empty:
-    compliant = (conformity['assessment_result'] == 'Compliant').sum()
-    non_compliant = len(conformity) - compliant
-    fig = go.Figure(go.Pie(labels=['Compliant', 'Non-Compliant'],
-                           values=[compliant, non_compliant],
-                           marker_colors=['#2c7a4d', '#dc3545'], hole=0.4))
-    fig.update_layout(height=350)
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info("No approved conformity data yet")
-st.divider()
-
-# ============================================
-# TOP OFFICERS
-# ============================================
-st.subheader("👥 Top Officers")
-all_officers = []
-for table in ['provincial_reports', 'laboratory_reports', 'packhouse_reports', 'standards_reports']:
-    df = load_table(table, 'APPROVED')
-    if not df.empty and 'officer_name' in df.columns:
-        all_officers.extend(df['officer_name'].tolist())
-
-# Add timesheet officers
-if not timesheet.empty and 'officer_name' in timesheet.columns:
-    all_officers.extend(timesheet[timesheet['status'] == 'APPROVED']['officer_name'].tolist())
-
-if all_officers:
-    officer_counts = pd.Series(all_officers).value_counts().head(10).reset_index()
-    officer_counts.columns = ['Officer', 'Reports']
-    fig = px.bar(officer_counts, x='Officer', y='Reports', color='Reports',
-                 color_continuous_scale='Greens', title="Top 10 Officers by Activity")
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info("No officer data yet")
 
 st.divider()
 
@@ -485,7 +525,4 @@ with col3:
 
 st.divider()
 
-# ============================================
-# FOOTER
-# ============================================
 st.caption(f"© 2026 Vanuatu Bureau of Standards | Data from Supabase | Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
