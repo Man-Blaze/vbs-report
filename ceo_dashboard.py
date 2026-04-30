@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ============================================
-# VBS CEO DASHBOARD - WITH DATABASE VIEWER LINK
+# VBS CEO DASHBOARD - ENHANCED VERSION
 # ============================================
 
 SUPABASE_URL = "https://pdwctzueksfuspwwumdy.supabase.co"
@@ -32,7 +32,7 @@ st.title("📊 VBS CEO Dashboard")
 st.caption(f"Vanuatu Bureau of Standards | Live Data | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 # ============================================
-# QUICK LINKS AT THE TOP (CEO NAVIGATION)
+# QUICK LINKS
 # ============================================
 st.subheader("🔗 Quick Navigation")
 col1, col2, col3, col4, col5 = st.columns(5)
@@ -163,7 +163,36 @@ st.plotly_chart(fig, use_container_width=True)
 st.divider()
 
 # ============================================
-# TIMESHEET SECTION (LIVE ATTENDANCE)
+# TREND LINE GRAPH (Reports Over Time)
+# ============================================
+st.subheader("📈 Reports Trend (Last 30 Days)")
+
+# Collect data from all tables for trend
+all_tables = ['provincial_reports', 'laboratory_reports', 'packhouse_reports', 
+              'standards_reports', 'administration_reports', 'conformity_assessment']
+trend_data = []
+for table in all_tables:
+    df = load_table(table, 'APPROVED')
+    if not df.empty and 'created_at' in df.columns:
+        df['date'] = pd.to_datetime(df['created_at']).dt.date
+        daily = df.groupby('date').size().reset_index()
+        daily['source'] = table.replace('_reports', '').capitalize()
+        trend_data.append(daily)
+
+if trend_data:
+    trend_df = pd.concat(trend_data, ignore_index=True)
+    fig = px.line(trend_df, x='date', y=0, color='source', 
+                  title="Daily Reports by Division",
+                  markers=True, line_shape='linear')
+    fig.update_layout(height=400, xaxis_title="Date", yaxis_title="Number of Reports")
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("No trend data available yet")
+
+st.divider()
+
+# ============================================
+# TIMESHEET SECTION (COMPLETE ATTENDANCE TABLE)
 # ============================================
 st.subheader("⏰ STAFF ATTENDANCE - TODAY'S CLOCK IN/OUT")
 
@@ -179,6 +208,9 @@ try:
 except:
     staff_list = pd.DataFrame()
 
+# Load general activity with evidence links
+general_activity = load_table('general_activity_log', 'APPROVED')
+
 if not timesheet_today.empty or not staff_list.empty:
     attendance_data = []
     
@@ -193,6 +225,7 @@ if not timesheet_today.empty or not staff_list.empty:
             late_reason = record['late_reason'].iloc[0] if not record.empty and pd.notna(record['late_reason'].iloc[0]) else None
             early_reason = record['early_reason'].iloc[0] if not record.empty and pd.notna(record['early_reason'].iloc[0]) else None
             status = record['status'].iloc[0] if not record.empty and pd.notna(record['status'].iloc[0]) else 'PENDING'
+            clock_method = record['clock_method'].iloc[0] if not record.empty and pd.notna(record['clock_method'].iloc[0]) else 'focal_point'
             
             is_late_arrival = is_late(time_in) if time_in else False
             is_early_start = False
@@ -203,6 +236,24 @@ if not timesheet_today.empty or not staff_list.empty:
                 except:
                     pass
             
+            # Check for evidence in general activity
+            evidence_links = []
+            if not general_activity.empty:
+                staff_activities = general_activity[general_activity['officer_name'] == staff_name]
+                for _, act in staff_activities.iterrows():
+                    if 'evidence_urls' in act and act['evidence_urls']:
+                        urls = act['evidence_urls']
+                        if isinstance(urls, str):
+                            try:
+                                import json
+                                urls = json.loads(urls)
+                            except:
+                                urls = [urls]
+                        if isinstance(urls, list):
+                            for url in urls:
+                                if url and isinstance(url, str):
+                                    evidence_links.append(f'<a href="{url}" target="_blank">📎 View</a>')
+            
             attendance_data.append({
                 'Staff Name': staff_name,
                 'Division': staff['division'],
@@ -211,29 +262,75 @@ if not timesheet_today.empty or not staff_list.empty:
                 'Clock Out': time_out if time_out else '-',
                 'Hours': hours if hours else 0,
                 'Status': status,
+                'Method': '👔 Focal Point' if clock_method == 'focal_point' else '🔓 Self Clock',
                 'Late': '⚠️ LATE' if is_late_arrival else ('🌅 EARLY START' if is_early_start else '-'),
                 'Late Reason': late_reason if late_reason else '-',
-                'Early Reason': early_reason if early_reason else '-'
+                'Early Reason': early_reason if early_reason else '-',
+                'Evidence': ', '.join(evidence_links) if evidence_links else '-'
             })
     
     df_attendance = pd.DataFrame(attendance_data)
     
     present_count = len(df_attendance[df_attendance['Clock In'] != '-'])
     late_count = len(df_attendance[df_attendance['Late'] == '⚠️ LATE'])
+    self_clock_count = len(df_attendance[df_attendance['Method'] == '🔓 Self Clock'])
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("👥 Total Staff", len(df_attendance))
     col2.metric("✅ Present", present_count)
     col3.metric("⚠️ Late", late_count)
-    col4.metric("⏳ Pending Approval", len(df_attendance[df_attendance['Status'] == 'PENDING']))
+    col4.metric("🔓 Self Clock", self_clock_count)
+    col5.metric("⏳ Pending", len(df_attendance[df_attendance['Status'] == 'PENDING']))
     
-    st.dataframe(
-        df_attendance[['Staff Name', 'Division', 'Location', 'Clock In', 'Clock Out', 'Hours', 'Late', 'Late Reason', 'Early Reason']],
-        use_container_width=True,
-        hide_index=True
-    )
+    # Display as HTML table with clickable links for evidence
+    st.markdown("### 📋 Staff Attendance Details")
+    
+    # Convert to HTML for better rendering of links
+    html_table = df_attendance.to_html(escape=False, index=False)
+    st.markdown(html_table, unsafe_allow_html=True)
+    
+    # Download button
+    csv = df_attendance.to_csv(index=False).encode('utf-8')
+    st.download_button("📎 Download Attendance CSV", csv, f"attendance_{selected_date}.csv", "text/csv")
+    
 else:
     st.info(f"📭 No attendance records for {selected_date}")
+
+st.divider()
+
+# ============================================
+# GENERAL ACTIVITY WITH EVIDENCE VIEWER
+# ============================================
+st.subheader("📎 General Activity Reports with Evidence")
+
+general = load_table('general_activity_log', 'APPROVED')
+if not general.empty:
+    # Display general activity with evidence links
+    for _, activity in general.head(20).iterrows():
+        with st.expander(f"📝 {activity['activity_name']} - {activity['officer_name']} ({activity['report_date']})"):
+            st.write(f"**Activity Type:** {activity['activity_type']}")
+            st.write(f"**Description:** {activity['activity_description']}")
+            st.write(f"**Stakeholder:** {activity.get('stakeholder_name', 'N/A')}")
+            st.write(f"**Outcome:** {activity.get('outcome', 'N/A')}")
+            
+            # Display evidence links
+            if 'evidence_urls' in activity and activity['evidence_urls']:
+                st.write("**Evidence Attached:**")
+                urls = activity['evidence_urls']
+                if isinstance(urls, str):
+                    try:
+                        import json
+                        urls = json.loads(urls)
+                    except:
+                        urls = [urls]
+                if isinstance(urls, list):
+                    for url in urls:
+                        if url and isinstance(url, str):
+                            st.markdown(f'<a href="{url}" target="_blank">📎 View Evidence</a>', unsafe_allow_html=True)
+            else:
+                st.write("**Evidence:** No evidence attached")
+else:
+    st.info("No general activity reports yet")
 
 st.divider()
 
@@ -343,11 +440,16 @@ for table in ['provincial_reports', 'laboratory_reports', 'packhouse_reports', '
     df = load_table(table, 'APPROVED')
     if not df.empty and 'officer_name' in df.columns:
         all_officers.extend(df['officer_name'].tolist())
+
+# Add timesheet officers
+if not timesheet.empty and 'officer_name' in timesheet.columns:
+    all_officers.extend(timesheet[timesheet['status'] == 'APPROVED']['officer_name'].tolist())
+
 if all_officers:
     officer_counts = pd.Series(all_officers).value_counts().head(10).reset_index()
     officer_counts.columns = ['Officer', 'Reports']
     fig = px.bar(officer_counts, x='Officer', y='Reports', color='Reports',
-                 color_continuous_scale='Greens', title="Top 10 Officers")
+                 color_continuous_scale='Greens', title="Top 10 Officers by Activity")
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("No officer data yet")
@@ -355,7 +457,7 @@ else:
 st.divider()
 
 # ============================================
-# QUICK LINKS SECTION (Bottom Navigation)
+# QUICK LINKS SECTION
 # ============================================
 st.subheader("🔗 Resources & Links")
 
@@ -379,7 +481,6 @@ with col3:
     st.markdown("### 👑 CEO Tools")
     st.markdown("- [🗄️ Database Viewer](https://Man-Blaze.github.io/vbs-report/supabase_tables.html)")
     st.markdown("- [Staff Attendance Report](https://Man-Blaze.github.io/vbs-report/ceo_attendance.html)")
-    st.markdown("- [Power BI Dashboard](https://Man-Blaze.github.io/vbs-report/)")
     st.markdown("- [Central Hub](https://Man-Blaze.github.io/vbs-report/)")
 
 st.divider()
