@@ -26,13 +26,14 @@
         .summary { background: #e8f5e9; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
         .summary-item { font-size: 14px; }
         .summary-number { font-weight: bold; font-size: 20px; color: #1a5a3a; }
-        .table-container { background: white; border-radius: 10px; overflow-x: auto; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .table-container { background: white; border-radius: 10px; overflow-x: auto; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-height: 600px; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background: #1a5a3a; color: white; position: sticky; top: 0; }
+        th { background: #1a5a3a; color: white; position: sticky; top: 0; z-index: 10; }
         tr:nth-child(even) { background: #f8f9fa; }
         .late-row { background: #fff3cd !important; }
         .early-row { background: #fff3cd !important; }
+        .today-row { background: #e8f5e9 !important; font-weight: bold; }
         .loading { text-align: center; padding: 40px; color: #666; }
         .error { color: red; padding: 20px; text-align: center; }
         .info { background: #cce5ff; padding: 10px; border-radius: 8px; margin-bottom: 15px; color: #004085; }
@@ -41,6 +42,7 @@
         .badge-late { background: #fff3cd; color: #856404; }
         .badge-early { background: #fff3cd; color: #856404; }
         .badge-normal { background: #d4edda; color: #155724; }
+        .badge-today { background: #1a5a3a; color: white; }
     </style>
 </head>
 <body>
@@ -88,6 +90,7 @@
                 <label>⏰ Filter by:</label>
                 <select id="statusFilter">
                     <option value="all">All</option>
+                    <option value="today">📅 Today Only</option>
                     <option value="late">⚠️ Late Arrivals Only</option>
                     <option value="early">⚠️ Early Departures Only</option>
                     <option value="normal">✅ Normal (On Time)</option>
@@ -137,6 +140,11 @@
             if (!timeOut) return false;
             const [hours] = timeOut.split(':');
             return parseInt(hours) < 17;
+        }
+        
+        function isToday(dateStr) {
+            const today = new Date().toISOString().split('T')[0];
+            return dateStr === today;
         }
         
         function toggleFilters() {
@@ -200,7 +208,13 @@
             infoDiv.innerHTML = '';
             
             try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/${tableName}?limit=1000`, {
+                // Sort by date descending (latest first) for timesheet
+                let url = `${SUPABASE_URL}/rest/v1/${tableName}?limit=1000`;
+                if (tableName === 'timesheet') {
+                    url += `&order=report_date.desc`;
+                }
+                
+                const response = await fetch(url, {
                     headers: { 'apikey': SUPABASE_KEY }
                 });
                 const data = await response.json();
@@ -243,8 +257,11 @@
                 if (currentTableName === 'timesheet') {
                     const isLateArrival = isLate(row.time_in);
                     const isEarlyDeparture = isEarly(row.time_out);
-                    if (isLateArrival) rowClass = 'late-row';
-                    if (isEarlyDeparture) rowClass = 'early-row';
+                    const isTodayRecord = isToday(row.report_date);
+                    
+                    if (isTodayRecord) rowClass = 'today-row';
+                    else if (isLateArrival) rowClass = 'late-row';
+                    else if (isEarlyDeparture) rowClass = 'early-row';
                 }
                 html += `<tr class="${rowClass}">`;
                 for (let col of columns) {
@@ -258,6 +275,8 @@
                         html += `<td>${value} <span class="badge badge-late">⚠️ LATE</span></td>`;
                     } else if (col === 'time_out' && isEarly(value) && currentTableName === 'timesheet') {
                         html += `<td>${value} <span class="badge badge-early">⚠️ EARLY</span></td>`;
+                    } else if (col === 'report_date' && isToday(value) && currentTableName === 'timesheet') {
+                        html += `<td>${value} <span class="badge badge-today">📅 TODAY</span></td>`;
                     } else {
                         html += `<td>${value}</td>`;
                     }
@@ -291,8 +310,11 @@
                 filtered = filtered.filter(row => (row.officer_name || '').toLowerCase().includes(staffName));
             }
             
-            // Status filter (late/early/normal)
-            if (statusFilter === 'late') {
+            // Status filter
+            if (statusFilter === 'today') {
+                const today = new Date().toISOString().split('T')[0];
+                filtered = filtered.filter(row => row.report_date === today);
+            } else if (statusFilter === 'late') {
                 filtered = filtered.filter(row => isLate(row.time_in));
             } else if (statusFilter === 'early') {
                 filtered = filtered.filter(row => isEarly(row.time_out));
@@ -304,26 +326,32 @@
                 filtered = filtered.filter(row => row.status === 'APPROVED');
             }
             
+            // Sort by date descending (latest first)
+            filtered.sort((a, b) => (b.report_date || '').localeCompare(a.report_date || ''));
+            
             filteredData = filtered;
             renderTable(filtered);
             
             // Update summary
+            const today = new Date().toISOString().split('T')[0];
             const lateCount = filtered.filter(row => isLate(row.time_in)).length;
             const earlyCount = filtered.filter(row => isEarly(row.time_out)).length;
-            const normalCount = filtered.filter(row => !isLate(row.time_in) && !isEarly(row.time_out)).length;
+            const normalCount = filtered.filter(row => !isLate(row.time_in) && !isEarly(row.time_out));
             const pendingCount = filtered.filter(row => row.status === 'PENDING').length;
+            const todayCount = filtered.filter(row => row.report_date === today).length;
             const totalHours = filtered.reduce((sum, row) => sum + (parseFloat(row.hours_worked) || 0), 0);
             
             document.getElementById('timesheetSummary').innerHTML = `
                 <div class="summary-item"><span class="summary-number">${filtered.length}</span><br>Total Records</div>
+                <div class="summary-item"><span class="summary-number" style="color:#1a5a3a;">${todayCount}</span><br>📅 Today</div>
                 <div class="summary-item"><span class="summary-number" style="color:#856404;">${lateCount}</span><br>⚠️ Late Arrivals</div>
                 <div class="summary-item"><span class="summary-number" style="color:#856404;">${earlyCount}</span><br>⚠️ Early Departures</div>
-                <div class="summary-item"><span class="summary-number" style="color:#155724;">${normalCount}</span><br>✅ Normal</div>
-                <div class="summary-item"><span class="summary-number" style="color:#856404;">${pendingCount}</span><br>⏳ Pending Approval</div>
+                <div class="summary-item"><span class="summary-number" style="color:#155724;">${normalCount.length}</span><br>✅ Normal</div>
+                <div class="summary-item"><span class="summary-number" style="color:#856404;">${pendingCount}</span><br>⏳ Pending</div>
                 <div class="summary-item"><span class="summary-number">${totalHours.toFixed(1)}</span><br>Total Hours</div>
             `;
             
-            document.getElementById('tableInfo').innerHTML = `<strong>TIMESHEET</strong> - ${filtered.length} records found (filtered)`;
+            document.getElementById('tableInfo').innerHTML = `<strong>TIMESHEET</strong> - ${filtered.length} records found (latest first)`;
         }
         
         function clearTimesheetFilters() {
