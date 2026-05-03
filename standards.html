@@ -481,125 +481,130 @@
 </div>
 
 <script>
-    // SUPABASE CREDENTIALS
-    const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    (function() {
+        // SUPABASE CREDENTIALS - declared inside IIFE to avoid global conflicts
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function showMessage(elementId, text, isError = false) {
-        const msgDiv = document.getElementById(elementId);
-        msgDiv.textContent = text;
-        msgDiv.className = `message ${isError ? 'error' : 'success'}`;
-        msgDiv.style.display = 'block';
-        setTimeout(() => { msgDiv.style.display = 'none'; }, 5000);
-    }
-
-    async function submitForm(formElement, tableName, successMsg, msgDivId) {
-        const formData = new FormData(formElement);
-        let rawData = {};
-        formData.forEach((value, key) => { rawData[key] = value; });
-        
-        // Process checkbox groups
-        if (tableName === 'nsc_updates') {
-            const nscValues = [];
-            if (formElement.querySelector('[name="nsc_new_added"]:checked')) nscValues.push('New standards added');
-            if (formElement.querySelector('[name="nsc_under_review"]:checked')) nscValues.push('Standards under review');
-            if (formElement.querySelector('[name="nsc_withdrawn"]:checked')) nscValues.push('Standards withdrawn');
-            if (formElement.querySelector('[name="nsc_no_updates"]:checked')) nscValues.push('No updates made');
-            rawData.nsc_updates_selected = nscValues.join(', ');
+        function showMessage(elementId, text, isError = false) {
+            const msgDiv = document.getElementById(elementId);
+            if (msgDiv) {
+                msgDiv.textContent = text;
+                msgDiv.className = `message ${isError ? 'error' : 'success'}`;
+                msgDiv.style.display = 'block';
+                setTimeout(() => { msgDiv.style.display = 'none'; }, 5000);
+            }
         }
-        if (tableName === 'sales_distribution') {
-            const paymentValues = [];
-            if (formElement.querySelector('[name="payment_cash"]:checked')) paymentValues.push('Cash Payment');
-            if (formElement.querySelector('[name="payment_cheque"]:checked')) paymentValues.push('Cheque Payment');
-            if (formElement.querySelector('[name="payment_gjt"]:checked')) paymentValues.push('Government Journal Transfer');
-            rawData.payment_methods = paymentValues.join(', ');
+
+        async function submitForm(formElement, tableName, successMsg, msgDivId) {
+            const formData = new FormData(formElement);
+            let rawData = {};
+            formData.forEach((value, key) => { rawData[key] = value; });
             
-            const customerValues = [];
-            if (formElement.querySelector('[name="customer_gov"]:checked')) customerValues.push('Government/SOE');
-            if (formElement.querySelector('[name="customer_private"]:checked')) customerValues.push('Private sector');
-            if (formElement.querySelector('[name="customer_individuals"]:checked')) customerValues.push('Individuals');
-            rawData.customer_types = customerValues.join(', ');
-        }
-        if (tableName === 'international_engagement') {
-            const actValues = [];
-            if (formElement.querySelector('[name="act_adoption"]:checked')) actValues.push('Standards adoption');
-            if (formElement.querySelector('[name="act_review"]:checked')) actValues.push('Standard review');
-            if (formElement.querySelector('[name="act_votes"]:checked')) actValues.push('Submission of Votes/comments');
-            if (formElement.querySelector('[name="act_meetings"]:checked')) actValues.push('Attend Meetings');
-            rawData.activities_undertaken = actValues.join(', ');
-        }
-        if (tableName === 'standards_development') {
-            const typeValues = [];
-            if (formElement.querySelector('[name="type_national"]:checked')) typeValues.push('National');
-            if (formElement.querySelector('[name="type_regional"]:checked')) typeValues.push('Regional');
-            rawData.standard_type = typeValues.join(', ');
-            
-            const stageValues = [];
-            if (formElement.querySelector('[name="stage_proposal"]:checked')) stageValues.push('Proposal');
-            if (formElement.querySelector('[name="stage_tc"]:checked')) stageValues.push('TC formation');
-            if (formElement.querySelector('[name="stage_draft"]:checked')) stageValues.push('Draft');
-            if (formElement.querySelector('[name="stage_consult"]:checked')) stageValues.push('Consultation');
-            if (formElement.querySelector('[name="stage_approval"]:checked')) stageValues.push('Approval');
-            if (formElement.querySelector('[name="stage_publishing"]:checked')) stageValues.push('Publishing');
-            rawData.standard_stage = stageValues.join(', ');
-        }
-        
-        // Clean up temporary fields
-        const tempFields = ['nsc_new_added', 'nsc_under_review', 'nsc_withdrawn', 'nsc_no_updates', 'payment_cash', 'payment_cheque', 'payment_gjt', 'customer_gov', 'customer_private', 'customer_individuals', 'act_adoption', 'act_review', 'act_votes', 'act_meetings', 'type_national', 'type_regional', 'stage_proposal', 'stage_tc', 'stage_draft', 'stage_consult', 'stage_approval', 'stage_publishing'];
-        tempFields.forEach(field => delete rawData[field]);
-        
-        rawData.created_at = new Date().toISOString();
-        
-        try {
-            const { error } = await supabase.from(tableName).insert([rawData]);
-            if (error) throw error;
-            showMessage(msgDivId, successMsg, false);
-            formElement.reset();
-            const dateInputs = formElement.querySelectorAll('input[type="date"]');
-            dateInputs.forEach(inp => { if(inp && !inp.value) inp.value = new Date().toISOString().split('T')[0]; });
-        } catch (err) {
-            console.error(err);
-            showMessage(msgDivId, `Error: ${err.message}`, true);
-        }
-    }
-
-    // Set today's date on all date fields
-    document.querySelectorAll('input[type="date"]').forEach(inp => { if(!inp.value) inp.value = new Date().toISOString().split('T')[0]; });
-
-    // Form submissions
-    document.getElementById('formNSC').addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'nsc_updates', '✅ NSC update recorded!', 'msg1'); });
-    document.getElementById('formSales').addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'sales_distribution', '✅ Sales report saved!', 'msg2'); });
-    document.getElementById('formInternational').addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'international_engagement', '✅ International engagement submitted!', 'msg3'); });
-    document.getElementById('formDevelopment').addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'standards_development', '✅ Standards development recorded!', 'msg4'); });
-
-    // FIXED TAB SWITCHING
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    const formCards = document.querySelectorAll('.form-card');
-
-    tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            // Get the tab id
-            const tabId = button.getAttribute('data-tab');
-            
-            // Hide all form cards
-            formCards.forEach(card => {
-                card.classList.remove('active-form');
-            });
-            
-            // Show the selected form card
-            const selectedCard = document.getElementById(tabId);
-            if (selectedCard) {
-                selectedCard.classList.add('active-form');
+            // Process checkbox groups
+            if (tableName === 'nsc_updates') {
+                const nscValues = [];
+                if (formElement.querySelector('[name="nsc_new_added"]:checked')) nscValues.push('New standards added');
+                if (formElement.querySelector('[name="nsc_under_review"]:checked')) nscValues.push('Standards under review');
+                if (formElement.querySelector('[name="nsc_withdrawn"]:checked')) nscValues.push('Standards withdrawn');
+                if (formElement.querySelector('[name="nsc_no_updates"]:checked')) nscValues.push('No updates made');
+                rawData.nsc_updates_selected = nscValues.join(', ');
+            }
+            if (tableName === 'sales_distribution') {
+                const paymentValues = [];
+                if (formElement.querySelector('[name="payment_cash"]:checked')) paymentValues.push('Cash Payment');
+                if (formElement.querySelector('[name="payment_cheque"]:checked')) paymentValues.push('Cheque Payment');
+                if (formElement.querySelector('[name="payment_gjt"]:checked')) paymentValues.push('Government Journal Transfer');
+                rawData.payment_methods = paymentValues.join(', ');
+                
+                const customerValues = [];
+                if (formElement.querySelector('[name="customer_gov"]:checked')) customerValues.push('Government/SOE');
+                if (formElement.querySelector('[name="customer_private"]:checked')) customerValues.push('Private sector');
+                if (formElement.querySelector('[name="customer_individuals"]:checked')) customerValues.push('Individuals');
+                rawData.customer_types = customerValues.join(', ');
+            }
+            if (tableName === 'international_engagement') {
+                const actValues = [];
+                if (formElement.querySelector('[name="act_adoption"]:checked')) actValues.push('Standards adoption');
+                if (formElement.querySelector('[name="act_review"]:checked')) actValues.push('Standard review');
+                if (formElement.querySelector('[name="act_votes"]:checked')) actValues.push('Submission of Votes/comments');
+                if (formElement.querySelector('[name="act_meetings"]:checked')) actValues.push('Attend Meetings');
+                rawData.activities_undertaken = actValues.join(', ');
+            }
+            if (tableName === 'standards_development') {
+                const typeValues = [];
+                if (formElement.querySelector('[name="type_national"]:checked')) typeValues.push('National');
+                if (formElement.querySelector('[name="type_regional"]:checked')) typeValues.push('Regional');
+                rawData.standard_type = typeValues.join(', ');
+                
+                const stageValues = [];
+                if (formElement.querySelector('[name="stage_proposal"]:checked')) stageValues.push('Proposal');
+                if (formElement.querySelector('[name="stage_tc"]:checked')) stageValues.push('TC formation');
+                if (formElement.querySelector('[name="stage_draft"]:checked')) stageValues.push('Draft');
+                if (formElement.querySelector('[name="stage_consult"]:checked')) stageValues.push('Consultation');
+                if (formElement.querySelector('[name="stage_approval"]:checked')) stageValues.push('Approval');
+                if (formElement.querySelector('[name="stage_publishing"]:checked')) stageValues.push('Publishing');
+                rawData.standard_stage = stageValues.join(', ');
             }
             
-            // Update active state on buttons
-            tabButtons.forEach(btn => {
-                btn.classList.remove('active');
+            // Clean up temporary fields
+            const tempFields = ['nsc_new_added', 'nsc_under_review', 'nsc_withdrawn', 'nsc_no_updates', 'payment_cash', 'payment_cheque', 'payment_gjt', 'customer_gov', 'customer_private', 'customer_individuals', 'act_adoption', 'act_review', 'act_votes', 'act_meetings', 'type_national', 'type_regional', 'stage_proposal', 'stage_tc', 'stage_draft', 'stage_consult', 'stage_approval', 'stage_publishing'];
+            tempFields.forEach(field => delete rawData[field]);
+            
+            rawData.created_at = new Date().toISOString();
+            
+            try {
+                const { error } = await supabaseClient.from(tableName).insert([rawData]);
+                if (error) throw error;
+                showMessage(msgDivId, successMsg, false);
+                formElement.reset();
+                const dateInputs = formElement.querySelectorAll('input[type="date"]');
+                dateInputs.forEach(inp => { if(inp && !inp.value) inp.value = new Date().toISOString().split('T')[0]; });
+            } catch (err) {
+                console.error(err);
+                showMessage(msgDivId, `Error: ${err.message}`, true);
+            }
+        }
+
+        // Set today's date on all date fields
+        document.querySelectorAll('input[type="date"]').forEach(inp => { if(!inp.value) inp.value = new Date().toISOString().split('T')[0]; });
+
+        // Form submissions
+        const formNSC = document.getElementById('formNSC');
+        const formSales = document.getElementById('formSales');
+        const formInternational = document.getElementById('formInternational');
+        const formDevelopment = document.getElementById('formDevelopment');
+
+        if (formNSC) formNSC.addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'nsc_updates', '✅ NSC update recorded!', 'msg1'); });
+        if (formSales) formSales.addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'sales_distribution', '✅ Sales report saved!', 'msg2'); });
+        if (formInternational) formInternational.addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'international_engagement', '✅ International engagement submitted!', 'msg3'); });
+        if (formDevelopment) formDevelopment.addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'standards_development', '✅ Standards development recorded!', 'msg4'); });
+
+        // TAB SWITCHING
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const formCards = document.querySelectorAll('.form-card');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                
+                formCards.forEach(card => {
+                    card.classList.remove('active-form');
+                });
+                
+                const selectedCard = document.getElementById(tabId);
+                if (selectedCard) {
+                    selectedCard.classList.add('active-form');
+                }
+                
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
             });
-            button.classList.add('active');
         });
-    });
+    })();
 </script>
 </body>
 </html>
