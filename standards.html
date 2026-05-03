@@ -481,64 +481,71 @@
 </div>
 
 <script>
-    (function() {
-        // SUPABASE CREDENTIALS - declared inside IIFE to avoid global conflicts
-        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Supabase configuration
+        var SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        var supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        function showMessage(elementId, text, isError = false) {
-            const msgDiv = document.getElementById(elementId);
+        function showMessage(elementId, text, isError) {
+            var msgDiv = document.getElementById(elementId);
             if (msgDiv) {
                 msgDiv.textContent = text;
-                msgDiv.className = `message ${isError ? 'error' : 'success'}`;
+                msgDiv.className = 'message ' + (isError ? 'error' : 'success');
                 msgDiv.style.display = 'block';
-                setTimeout(() => { msgDiv.style.display = 'none'; }, 5000);
+                setTimeout(function() { msgDiv.style.display = 'none'; }, 5000);
             }
         }
 
-        async function submitForm(formElement, tableName, successMsg, msgDivId) {
-            const formData = new FormData(formElement);
-            let rawData = {};
-            formData.forEach((value, key) => { rawData[key] = value; });
+        function submitForm(formElement, tableName, successMsg, msgDivId) {
+            var formData = new FormData(formElement);
+            var rawData = {};
+            formData.forEach(function(value, key) { rawData[key] = value; });
             
-            // Process checkbox groups
+            // Process checkbox groups for NSC Updates
             if (tableName === 'nsc_updates') {
-                const nscValues = [];
+                var nscValues = [];
                 if (formElement.querySelector('[name="nsc_new_added"]:checked')) nscValues.push('New standards added');
                 if (formElement.querySelector('[name="nsc_under_review"]:checked')) nscValues.push('Standards under review');
                 if (formElement.querySelector('[name="nsc_withdrawn"]:checked')) nscValues.push('Standards withdrawn');
                 if (formElement.querySelector('[name="nsc_no_updates"]:checked')) nscValues.push('No updates made');
                 rawData.nsc_updates_selected = nscValues.join(', ');
             }
+            
+            // Process checkbox groups for Sales
             if (tableName === 'sales_distribution') {
-                const paymentValues = [];
+                var paymentValues = [];
                 if (formElement.querySelector('[name="payment_cash"]:checked')) paymentValues.push('Cash Payment');
                 if (formElement.querySelector('[name="payment_cheque"]:checked')) paymentValues.push('Cheque Payment');
                 if (formElement.querySelector('[name="payment_gjt"]:checked')) paymentValues.push('Government Journal Transfer');
                 rawData.payment_methods = paymentValues.join(', ');
                 
-                const customerValues = [];
+                var customerValues = [];
                 if (formElement.querySelector('[name="customer_gov"]:checked')) customerValues.push('Government/SOE');
                 if (formElement.querySelector('[name="customer_private"]:checked')) customerValues.push('Private sector');
                 if (formElement.querySelector('[name="customer_individuals"]:checked')) customerValues.push('Individuals');
                 rawData.customer_types = customerValues.join(', ');
             }
+            
+            // Process checkbox groups for International
             if (tableName === 'international_engagement') {
-                const actValues = [];
+                var actValues = [];
                 if (formElement.querySelector('[name="act_adoption"]:checked')) actValues.push('Standards adoption');
                 if (formElement.querySelector('[name="act_review"]:checked')) actValues.push('Standard review');
                 if (formElement.querySelector('[name="act_votes"]:checked')) actValues.push('Submission of Votes/comments');
                 if (formElement.querySelector('[name="act_meetings"]:checked')) actValues.push('Attend Meetings');
                 rawData.activities_undertaken = actValues.join(', ');
             }
+            
+            // Process checkbox groups for Development
             if (tableName === 'standards_development') {
-                const typeValues = [];
+                var typeValues = [];
                 if (formElement.querySelector('[name="type_national"]:checked')) typeValues.push('National');
                 if (formElement.querySelector('[name="type_regional"]:checked')) typeValues.push('Regional');
                 rawData.standard_type = typeValues.join(', ');
                 
-                const stageValues = [];
+                var stageValues = [];
                 if (formElement.querySelector('[name="stage_proposal"]:checked')) stageValues.push('Proposal');
                 if (formElement.querySelector('[name="stage_tc"]:checked')) stageValues.push('TC formation');
                 if (formElement.querySelector('[name="stage_draft"]:checked')) stageValues.push('Draft');
@@ -549,62 +556,94 @@
             }
             
             // Clean up temporary fields
-            const tempFields = ['nsc_new_added', 'nsc_under_review', 'nsc_withdrawn', 'nsc_no_updates', 'payment_cash', 'payment_cheque', 'payment_gjt', 'customer_gov', 'customer_private', 'customer_individuals', 'act_adoption', 'act_review', 'act_votes', 'act_meetings', 'type_national', 'type_regional', 'stage_proposal', 'stage_tc', 'stage_draft', 'stage_consult', 'stage_approval', 'stage_publishing'];
-            tempFields.forEach(field => delete rawData[field]);
+            var tempFields = ['nsc_new_added', 'nsc_under_review', 'nsc_withdrawn', 'nsc_no_updates', 'payment_cash', 'payment_cheque', 'payment_gjt', 'customer_gov', 'customer_private', 'customer_individuals', 'act_adoption', 'act_review', 'act_votes', 'act_meetings', 'type_national', 'type_regional', 'stage_proposal', 'stage_tc', 'stage_draft', 'stage_consult', 'stage_approval', 'stage_publishing'];
+            for (var i = 0; i < tempFields.length; i++) {
+                delete rawData[tempFields[i]];
+            }
             
             rawData.created_at = new Date().toISOString();
             
-            try {
-                const { error } = await supabaseClient.from(tableName).insert([rawData]);
-                if (error) throw error;
+            supabaseClient.from(tableName).insert([rawData]).then(function(result) {
+                if (result.error) throw result.error;
                 showMessage(msgDivId, successMsg, false);
                 formElement.reset();
-                const dateInputs = formElement.querySelectorAll('input[type="date"]');
-                dateInputs.forEach(inp => { if(inp && !inp.value) inp.value = new Date().toISOString().split('T')[0]; });
-            } catch (err) {
+                var dateInputs = formElement.querySelectorAll('input[type="date"]');
+                for (var j = 0; j < dateInputs.length; j++) {
+                    if (dateInputs[j] && !dateInputs[j].value) {
+                        dateInputs[j].value = new Date().toISOString().split('T')[0];
+                    }
+                }
+            }).catch(function(err) {
                 console.error(err);
-                showMessage(msgDivId, `Error: ${err.message}`, true);
-            }
+                showMessage(msgDivId, 'Error: ' + err.message, true);
+            });
         }
 
         // Set today's date on all date fields
-        document.querySelectorAll('input[type="date"]').forEach(inp => { if(!inp.value) inp.value = new Date().toISOString().split('T')[0]; });
+        var allDateInputs = document.querySelectorAll('input[type="date"]');
+        for (var d = 0; d < allDateInputs.length; d++) {
+            if (!allDateInputs[d].value) {
+                allDateInputs[d].value = new Date().toISOString().split('T')[0];
+            }
+        }
 
         // Form submissions
-        const formNSC = document.getElementById('formNSC');
-        const formSales = document.getElementById('formSales');
-        const formInternational = document.getElementById('formInternational');
-        const formDevelopment = document.getElementById('formDevelopment');
+        var formNSC = document.getElementById('formNSC');
+        var formSales = document.getElementById('formSales');
+        var formInternational = document.getElementById('formInternational');
+        var formDevelopment = document.getElementById('formDevelopment');
 
-        if (formNSC) formNSC.addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'nsc_updates', '✅ NSC update recorded!', 'msg1'); });
-        if (formSales) formSales.addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'sales_distribution', '✅ Sales report saved!', 'msg2'); });
-        if (formInternational) formInternational.addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'international_engagement', '✅ International engagement submitted!', 'msg3'); });
-        if (formDevelopment) formDevelopment.addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'standards_development', '✅ Standards development recorded!', 'msg4'); });
+        if (formNSC) {
+            formNSC.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitForm(e.target, 'nsc_updates', '✅ NSC update recorded!', 'msg1');
+            });
+        }
+        
+        if (formSales) {
+            formSales.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitForm(e.target, 'sales_distribution', '✅ Sales report saved!', 'msg2');
+            });
+        }
+        
+        if (formInternational) {
+            formInternational.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitForm(e.target, 'international_engagement', '✅ International engagement submitted!', 'msg3');
+            });
+        }
+        
+        if (formDevelopment) {
+            formDevelopment.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitForm(e.target, 'standards_development', '✅ Standards development recorded!', 'msg4');
+            });
+        }
 
         // TAB SWITCHING
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        const formCards = document.querySelectorAll('.form-card');
+        var tabButtons = document.querySelectorAll('.tab-btn');
+        var formCards = document.querySelectorAll('.form-card');
 
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const tabId = button.getAttribute('data-tab');
-                
-                formCards.forEach(card => {
-                    card.classList.remove('active-form');
-                });
-                
-                const selectedCard = document.getElementById(tabId);
-                if (selectedCard) {
-                    selectedCard.classList.add('active-form');
-                }
-                
-                tabButtons.forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                button.classList.add('active');
-            });
-        });
-    })();
+        for (var t = 0; t < tabButtons.length; t++) {
+            tabButtons[t].addEventListener('click', function(button) {
+                return function() {
+                    var tabId = button.getAttribute('data-tab');
+                    for (var c = 0; c < formCards.length; c++) {
+                        formCards[c].classList.remove('active-form');
+                    }
+                    var selectedCard = document.getElementById(tabId);
+                    if (selectedCard) {
+                        selectedCard.classList.add('active-form');
+                    }
+                    for (var b = 0; b < tabButtons.length; b++) {
+                        tabButtons[b].classList.remove('active');
+                    }
+                    button.classList.add('active');
+                };
+            }(tabButtons[t]));
+        }
+    });
 </script>
 </body>
 </html>
