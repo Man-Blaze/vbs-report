@@ -28,6 +28,26 @@
             margin: 0 auto;
         }
 
+        /* Back button */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            text-decoration: none;
+            color: #2c7a4d;
+            font-weight: 500;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            transition: 0.2s;
+        }
+        .back-btn:hover {
+            background: #2c7a4d;
+            color: white;
+        }
+
         /* Header */
         .header {
             margin-bottom: 2rem;
@@ -48,8 +68,6 @@
         .header h1 i {
             background: none;
             color: #2c7a4d;
-            -webkit-background-clip: unset;
-            background-clip: unset;
         }
 
         .header p {
@@ -99,13 +117,18 @@
             color: #1e4620;
         }
 
-        /* Card Form */
+        /* Form Card */
         .form-card {
             background: white;
             border-radius: 28px;
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
             padding: 28px 32px;
             transition: 0.2s;
+            display: none;
+        }
+
+        .form-card.active-form {
+            display: block;
         }
 
         .form-title {
@@ -267,6 +290,8 @@
 </head>
 <body>
 <div class="container">
+    <a href="https://Man-Blaze.github.io/vbs-report/" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    
     <div class="header">
         <h1><i class="fas fa-certificate"></i> Standards & Certification</h1>
         <p>Vanuatu Bureau of Standards · integrated reporting · NSC updates, sales, international alignment & development</p>
@@ -280,8 +305,8 @@
         <button class="tab-btn" data-tab="tab4"><i class="fas fa-code-branch"></i> Standards Development</button>
     </div>
 
-    <!-- FORM 1: NSC UPDATES (National Standards Catalog) -->
-    <div id="tab1" class="form-card tab-content active-content">
+    <!-- FORM 1: NSC UPDATES -->
+    <div id="tab1" class="form-card active-form">
         <div class="form-title"><i class="fas fa-clipboard-list"></i> NSCs Updates</div>
         <div class="form-sub">National Standards Catalogue – monthly activity tracker</div>
         <form id="formNSC" class="form-grid">
@@ -305,10 +330,10 @@
             <div class="field-row"><label><i class="fas fa-star"></i> Most downloaded/viewed standard</label><input type="text" name="most_downloaded_standard" placeholder="e.g., Vanuatu Food Safety Standard"></div>
             <div class="field-row"><label><i class="fas fa-tasks"></i> Project Status Overview</label>
                 <select name="project_status">
-                    <option value="Completed">☐ Completed</option>
-                    <option value="On Track (Ongoing)">☐ On Track (Ongoing)</option>
-                    <option value="Minor Delay">☐ Minor Delay</option>
-                    <option value="Major Delay (issues)">☐ Major Delay (issues)</option>
+                    <option value="Completed">✅ Completed</option>
+                    <option value="On Track (Ongoing)">🟢 On Track (Ongoing)</option>
+                    <option value="Minor Delay">🟡 Minor Delay</option>
+                    <option value="Major Delay (issues)">🔴 Major Delay (issues)</option>
                 </select>
             </div>
             <div class="field-row"><label><i class="fas fa-chart-simple"></i> Key Results achieved</label><textarea name="key_results" rows="2" placeholder="Summarize achievements..."></textarea></div>
@@ -320,8 +345,8 @@
         </form>
     </div>
 
-    <!-- FORM 2: STANDARDS SALES AND DISTRIBUTION -->
-    <div id="tab2" class="form-card tab-content" style="display:none;">
+    <!-- FORM 2: SALES & DISTRIBUTION -->
+    <div id="tab2" class="form-card">
         <div class="form-title"><i class="fas fa-hand-holding-usd"></i> Standards Sales & Distribution</div>
         <div class="form-sub">Revenue tracking & customer insights</div>
         <form id="formSales" class="form-grid">
@@ -338,7 +363,7 @@
                 <div class="checkbox-group">
                     <label><input type="checkbox" name="payment_cash" value="Cash Payment"> Cash Payment</label>
                     <label><input type="checkbox" name="payment_cheque" value="Cheque Payment"> Cheque Payment</label>
-                    <label><input type="checkbox" name="payment_gjt" value="Government Journal Transfer Payment"> Government Journal Transfer Payment</label>
+                    <label><input type="checkbox" name="payment_gjt" value="Government Journal Transfer"> Government Journal Transfer</label>
                 </div>
             </div>
             <div class="inline-row">
@@ -354,10 +379,10 @@
             </div>
             <div class="field-row"><label><i class="fas fa-chart-line"></i> Project Status Overview</label>
                 <select name="project_status">
-                    <option value="Completed">☐ Completed</option>
-                    <option value="On Track (Ongoing)">☐ On Track (Ongoing)</option>
-                    <option value="Minor Delay">☐ Minor Delay</option>
-                    <option value="Major Delay (issues)">☐ Major Delay (issues)</option>
+                    <option value="Completed">✅ Completed</option>
+                    <option value="On Track (Ongoing)">🟢 On Track (Ongoing)</option>
+                    <option value="Minor Delay">🟡 Minor Delay</option>
+                    <option value="Major Delay (issues)">🔴 Major Delay (issues)</option>
                 </select>
             </div>
             <div class="field-row"><label>Key Results achieved</label><textarea name="key_results" rows="2"></textarea></div>
@@ -370,7 +395,7 @@
     </div>
 
     <!-- FORM 3: INTERNATIONAL ENGAGEMENT -->
-    <div id="tab3" class="form-card tab-content" style="display:none;">
+    <div id="tab3" class="form-card">
         <div class="form-title"><i class="fas fa-handshake"></i> International Engagement</div>
         <div class="form-sub">ISO, Codex, regional collaboration & technical committees</div>
         <form id="formInternational" class="form-grid">
@@ -385,7 +410,7 @@
                     <label><input type="checkbox" name="act_adoption" value="Standards adoption"> Standards adoption</label>
                     <label><input type="checkbox" name="act_review" value="Standard review"> Standard review</label>
                     <label><input type="checkbox" name="act_votes" value="Submission of Votes/comments"> Submission of Votes/comments</label>
-                    <label><input type="checkbox" name="act_meetings" value="Attend Meetings (virtual/In person)"> Attend Meetings</label>
+                    <label><input type="checkbox" name="act_meetings" value="Attend Meetings"> Attend Meetings</label>
                 </div>
             </div>
             <div class="inline-row">
@@ -395,8 +420,10 @@
             </div>
             <div class="field-row"><label>Project Status Overview</label>
                 <select name="project_status">
-                    <option value="Completed">Completed</option><option value="On Track (Ongoing)">On Track (Ongoing)</option>
-                    <option value="Minor Delay">Minor Delay</option><option value="Major Delay (issues)">Major Delay (issues)</option>
+                    <option value="Completed">✅ Completed</option>
+                    <option value="On Track (Ongoing)">🟢 On Track (Ongoing)</option>
+                    <option value="Minor Delay">🟡 Minor Delay</option>
+                    <option value="Major Delay (issues)">🔴 Major Delay (issues)</option>
                 </select>
             </div>
             <div class="field-row"><label>Key Results achieved</label><textarea name="key_results" rows="2"></textarea></div>
@@ -409,7 +436,7 @@
     </div>
 
     <!-- FORM 4: STANDARDS DEVELOPMENT -->
-    <div id="tab4" class="form-card tab-content" style="display:none;">
+    <div id="tab4" class="form-card">
         <div class="form-title"><i class="fas fa-code-merge"></i> Standards Development</div>
         <div class="form-sub">New national/regional standards lifecycle</div>
         <form id="formDevelopment" class="form-grid">
@@ -436,8 +463,10 @@
             </div>
             <div class="field-row"><label>Status Overview</label>
                 <select name="status_overview">
-                    <option value="Completed">Completed</option><option value="On Track (Ongoing)">On Track (Ongoing)</option>
-                    <option value="Minor Delay">Minor Delay</option><option value="Major Delay (issues)">Major Delay (issues)</option>
+                    <option value="Completed">✅ Completed</option>
+                    <option value="On Track (Ongoing)">🟢 On Track (Ongoing)</option>
+                    <option value="Minor Delay">🟡 Minor Delay</option>
+                    <option value="Major Delay (issues)">🔴 Major Delay (issues)</option>
                 </select>
             </div>
             <div class="field-row"><label>Key Results achieved</label><textarea name="key_results" rows="2"></textarea></div>
@@ -448,16 +477,15 @@
             <div id="msg4" class="message"></div>
         </form>
     </div>
-    <footer>Vanuatu Bureau of Standards · Conformity assessment integrated · data stored securely via Supabase</footer>
+    <footer>Vanuatu Bureau of Standards · Data stored securely via Supabase</footer>
 </div>
 
 <script>
-    // SUPABASE CREDENTIALS (anon key provided)
+    // SUPABASE CREDENTIALS
     const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Helper: show message
     function showMessage(elementId, text, isError = false) {
         const msgDiv = document.getElementById(elementId);
         msgDiv.textContent = text;
@@ -466,56 +494,68 @@
         setTimeout(() => { msgDiv.style.display = 'none'; }, 5000);
     }
 
-    // Generic submit handler for any form: sends to specific table based on form type
-    async function submitForm(formElement, tableName, successMsg, msgDivId, transformData = (data) => data) {
+    async function submitForm(formElement, tableName, successMsg, msgDivId) {
         const formData = new FormData(formElement);
         let rawData = {};
         formData.forEach((value, key) => { rawData[key] = value; });
         
-        // handle checkboxes groups -> convert comma separated values for checkbox groups
-        // For simplicity, we convert array-like checkboxes: gather all selected values into array
-        for (let [key, value] of formData.entries()) {
-            if (key.includes('nsc_') || key.includes('payment_') || key.includes('customer_') || key.includes('act_') || key.includes('type_') || key.includes('stage_')) {
-                // skip, we process manually below
-            }
-        }
-        // Better: capture multi-check fields explicitly
-        const processCheckGroup = (fieldNames, targetKey) => {
-            const values = [];
-            fieldNames.forEach(name => {
-                if (formElement.querySelector(`[name="${name}"]:checked`)) {
-                    const val = formElement.querySelector(`[name="${name}"]:checked`).value;
-                    values.push(val);
-                }
-            });
-            if(values.length) rawData[targetKey] = values.join(', ');
-        };
-        // map checkbox groups per form
+        // Process checkbox groups
         if (tableName === 'nsc_updates') {
-            processCheckGroup(['nsc_new_added','nsc_under_review','nsc_withdrawn','nsc_no_updates'], 'nsc_updates_selected');
+            const nscValues = [];
+            if (formElement.querySelector('[name="nsc_new_added"]:checked')) nscValues.push('New standards added');
+            if (formElement.querySelector('[name="nsc_under_review"]:checked')) nscValues.push('Standards under review');
+            if (formElement.querySelector('[name="nsc_withdrawn"]:checked')) nscValues.push('Standards withdrawn');
+            if (formElement.querySelector('[name="nsc_no_updates"]:checked')) nscValues.push('No updates made');
+            rawData.nsc_updates_selected = nscValues.join(', ');
         }
         if (tableName === 'sales_distribution') {
-            processCheckGroup(['payment_cash','payment_cheque','payment_gjt'], 'payment_methods');
-            processCheckGroup(['customer_gov','customer_private','customer_individuals'], 'customer_types');
+            const paymentValues = [];
+            if (formElement.querySelector('[name="payment_cash"]:checked')) paymentValues.push('Cash Payment');
+            if (formElement.querySelector('[name="payment_cheque"]:checked')) paymentValues.push('Cheque Payment');
+            if (formElement.querySelector('[name="payment_gjt"]:checked')) paymentValues.push('Government Journal Transfer');
+            rawData.payment_methods = paymentValues.join(', ');
+            
+            const customerValues = [];
+            if (formElement.querySelector('[name="customer_gov"]:checked')) customerValues.push('Government/SOE');
+            if (formElement.querySelector('[name="customer_private"]:checked')) customerValues.push('Private sector');
+            if (formElement.querySelector('[name="customer_individuals"]:checked')) customerValues.push('Individuals');
+            rawData.customer_types = customerValues.join(', ');
         }
         if (tableName === 'international_engagement') {
-            processCheckGroup(['act_adoption','act_review','act_votes','act_meetings'], 'activities_undertaken');
+            const actValues = [];
+            if (formElement.querySelector('[name="act_adoption"]:checked')) actValues.push('Standards adoption');
+            if (formElement.querySelector('[name="act_review"]:checked')) actValues.push('Standard review');
+            if (formElement.querySelector('[name="act_votes"]:checked')) actValues.push('Submission of Votes/comments');
+            if (formElement.querySelector('[name="act_meetings"]:checked')) actValues.push('Attend Meetings');
+            rawData.activities_undertaken = actValues.join(', ');
         }
         if (tableName === 'standards_development') {
-            processCheckGroup(['type_national','type_regional'], 'standard_type');
-            processCheckGroup(['stage_proposal','stage_tc','stage_draft','stage_consult','stage_approval','stage_publishing'], 'standard_stage');
+            const typeValues = [];
+            if (formElement.querySelector('[name="type_national"]:checked')) typeValues.push('National');
+            if (formElement.querySelector('[name="type_regional"]:checked')) typeValues.push('Regional');
+            rawData.standard_type = typeValues.join(', ');
+            
+            const stageValues = [];
+            if (formElement.querySelector('[name="stage_proposal"]:checked')) stageValues.push('Proposal');
+            if (formElement.querySelector('[name="stage_tc"]:checked')) stageValues.push('TC formation');
+            if (formElement.querySelector('[name="stage_draft"]:checked')) stageValues.push('Draft');
+            if (formElement.querySelector('[name="stage_consult"]:checked')) stageValues.push('Consultation');
+            if (formElement.querySelector('[name="stage_approval"]:checked')) stageValues.push('Approval');
+            if (formElement.querySelector('[name="stage_publishing"]:checked')) stageValues.push('Publishing');
+            rawData.standard_stage = stageValues.join(', ');
         }
         
-        const cleanedData = transformData(rawData);
-        // add timestamp
-        cleanedData.created_at = new Date().toISOString();
+        // Clean up temporary fields
+        const tempFields = ['nsc_new_added', 'nsc_under_review', 'nsc_withdrawn', 'nsc_no_updates', 'payment_cash', 'payment_cheque', 'payment_gjt', 'customer_gov', 'customer_private', 'customer_individuals', 'act_adoption', 'act_review', 'act_votes', 'act_meetings', 'type_national', 'type_regional', 'stage_proposal', 'stage_tc', 'stage_draft', 'stage_consult', 'stage_approval', 'stage_publishing'];
+        tempFields.forEach(field => delete rawData[field]);
+        
+        rawData.created_at = new Date().toISOString();
         
         try {
-            const { error } = await supabase.from(tableName).insert([cleanedData]);
+            const { error } = await supabase.from(tableName).insert([rawData]);
             if (error) throw error;
             showMessage(msgDivId, successMsg, false);
             formElement.reset();
-            // set default date again
             const dateInputs = formElement.querySelectorAll('input[type="date"]');
             dateInputs.forEach(inp => { if(inp && !inp.value) inp.value = new Date().toISOString().split('T')[0]; });
         } catch (err) {
@@ -524,45 +564,42 @@
         }
     }
 
-    // set today date on all date fields
+    // Set today's date on all date fields
     document.querySelectorAll('input[type="date"]').forEach(inp => { if(!inp.value) inp.value = new Date().toISOString().split('T')[0]; });
 
-    // Form 1: NSC
-    document.getElementById('formNSC').addEventListener('submit', (e) => {
-        e.preventDefault();
-        submitForm(e.target, 'nsc_updates', '✅ NSC update recorded!', 'msg1');
-    });
-    // Form 2: Sales
-    document.getElementById('formSales').addEventListener('submit', (e) => {
-        e.preventDefault();
-        submitForm(e.target, 'sales_distribution', '✅ Sales report saved!', 'msg2');
-    });
-    // Form 3: International
-    document.getElementById('formInternational').addEventListener('submit', (e) => {
-        e.preventDefault();
-        submitForm(e.target, 'international_engagement', '✅ International engagement submitted!', 'msg3');
-    });
-    // Form 4: Development
-    document.getElementById('formDevelopment').addEventListener('submit', (e) => {
-        e.preventDefault();
-        submitForm(e.target, 'standards_development', '✅ Standards development recorded!', 'msg4');
-    });
+    // Form submissions
+    document.getElementById('formNSC').addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'nsc_updates', '✅ NSC update recorded!', 'msg1'); });
+    document.getElementById('formSales').addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'sales_distribution', '✅ Sales report saved!', 'msg2'); });
+    document.getElementById('formInternational').addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'international_engagement', '✅ International engagement submitted!', 'msg3'); });
+    document.getElementById('formDevelopment').addEventListener('submit', (e) => { e.preventDefault(); submitForm(e.target, 'standards_development', '✅ Standards development recorded!', 'msg4'); });
 
-    // TAB SWITCHING
-    const tabs = document.querySelectorAll('.tab-btn');
-    const contents = document.querySelectorAll('.tab-content');
-    tabs.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabId = btn.getAttribute('data-tab');
-            contents.forEach(content => content.style.display = 'none');
-            document.getElementById(tabId).style.display = 'block';
-            tabs.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+    // FIXED TAB SWITCHING
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const formCards = document.querySelectorAll('.form-card');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Get the tab id
+            const tabId = button.getAttribute('data-tab');
+            
+            // Hide all form cards
+            formCards.forEach(card => {
+                card.classList.remove('active-form');
+            });
+            
+            // Show the selected form card
+            const selectedCard = document.getElementById(tabId);
+            if (selectedCard) {
+                selectedCard.classList.add('active-form');
+            }
+            
+            // Update active state on buttons
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            button.classList.add('active');
         });
     });
-    
-    // set default visible
-    document.getElementById('tab1').style.display = 'block';
 </script>
 </body>
 </html>
