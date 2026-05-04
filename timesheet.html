@@ -81,7 +81,6 @@
 </div>
 
 <div class="main-content">
-    <!-- Left Panel: Clock In/Out -->
     <div class="clock-panel" id="focalPanel">
         <h3>📋 Staff Clock In/Out</h3>
         <div class="current-time" id="currentTime">--:--:--</div>
@@ -97,29 +96,23 @@
         <button class="btn-clock-in" onclick="clockIn()">✅ KAM IN - Clock In</button>
         <button class="btn-clock-out" onclick="clockOut()">❌ KAM OUT - Clock Out</button>
         
-        <!-- Pending Self-Clock Requests -->
         <div id="pendingRequestsPanel" style="margin-top: 20px;"></div>
     </div>
     
     <div class="clock-panel" id="selfPanel" style="display:none;">
         <h3>🔓 Self Clock Mode</h3>
         <div class="current-time" id="selfCurrentTime">--:--:--</div>
-        <div class="alert warning">⚠️ Self-clock requests need focal point approval. Status will show "PENDING" until approved.</div>
+        <div class="alert warning">⚠️ Self-clock requests need focal point approval.</div>
         
         <label>📅 Date</label>
         <input type="date" id="selfDate">
         
         <label>📝 Reason for self-clock</label>
-        <textarea id="selfReason" rows="2" placeholder="Select reason:
-- Focal point not yet arrived
-- First to arrive at office
-- Remote work
-- Other (specify)"></textarea>
+        <textarea id="selfReason" rows="2" placeholder="e.g., First to arrive, focal point not here yet, remote work..."></textarea>
         
         <button class="btn-clock-in btn-self" onclick="requestSelfClockIn()">📤 REQUEST SELF CLOCK IN</button>
     </div>
     
-    <!-- Right Panel: Staff List -->
     <div class="staff-panel">
         <h3>
             📋 Today's Attendance - <span id="todayDate"></span>
@@ -147,16 +140,15 @@
 </div>
 
 <div class="footer">
-    ✅ Focal point clocks staff = PRESENT immediately<br>
-    📝 Staff self-clock = PENDING until focal point approves<br>
-    ⏰ Hours calculated automatically when clocking out
+    ✅ DATA PERSISTS IN DATABASE - Refreshing page reads existing Supabase data<br>
+    📝 Staff with time_in = PRESENT, Staff with time_out = CLOCKED OUT<br>
+    ⏰ Focal point approves self-clocks, time_in is NEVER changed
 </div>
 
 <script>
     const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
     
-    // Focal points mapping
     const FOCAL_POINTS = {
         'rolina5411139@gmail.com': { name: 'Rollina Kelep', division: 'Laboratory', location: 'Port Vila' },
         'galana@vbs.gov.vu': { name: 'Galana Siro', division: 'Laboratory', location: 'Santo' },
@@ -187,11 +179,7 @@
     
     async function checkAuth() {
         const token = localStorage.getItem('vbs_token');
-        
-        if (!token) {
-            window.location.href = 'login.html';
-            return;
-        }
+        if (!token) { window.location.href = 'login.html'; return; }
         
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
@@ -207,7 +195,7 @@
                 document.getElementById('focalPanel').style.display = 'block';
                 document.getElementById('selfPanel').style.display = 'none';
                 await loadStaffList();
-                await loadAttendance();
+                await loadAttendance();  // THIS PULLS DATA FROM SUPABASE
                 await loadPendingSelfClocks();
             } else {
                 isFocalPoint = false;
@@ -215,16 +203,10 @@
                 document.getElementById('userName').innerHTML = `${userName} <span class="pending-badge">Staff</span>`;
                 setMode('self');
             }
-        } catch(e) {
-            console.error('Auth error:', e);
-            logout();
-        }
+        } catch(e) { console.error('Auth error:', e); logout(); }
     }
     
-    function logout() {
-        localStorage.clear();
-        window.location.href = 'login.html';
-    }
+    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
     
     function setMode(mode) {
         if (mode === 'focal' && isFocalPoint) {
@@ -241,9 +223,7 @@
     
     async function loadStaffList() {
         const token = localStorage.getItem('vbs_token');
-        
         let url = `${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true&order=staff_name.asc`;
-        
         if (currentFocalPointDivision === 'Provincial' && currentFocalPointLocation) {
             url += `&division=eq.Provincial&location=eq.${currentFocalPointLocation}`;
         } else if (currentFocalPointDivision === 'Laboratory' && currentFocalPointLocation) {
@@ -251,109 +231,21 @@
         } else if (currentFocalPointDivision) {
             url += `&division=eq.${currentFocalPointDivision}`;
         }
-        
-        const response = await fetch(url, {
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
-        });
+        const response = await fetch(url, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } });
         const staff = await response.json();
-        
         const select = document.getElementById('staffSelect');
         select.innerHTML = '<option value="">-- Select Staff --</option>';
-        for (let s of staff) {
-            select.innerHTML += `<option value="${s.staff_name}">${s.staff_name}</option>`;
-        }
-        
+        for (let s of staff) { select.innerHTML += `<option value="${s.staff_name}">${s.staff_name}</option>`; }
         document.getElementById('totalStaff').innerText = staff.length;
     }
     
-    async function loadPendingSelfClocks() {
-        const token = localStorage.getItem('vbs_token');
-        const date = document.getElementById('reportDate').value || today;
-        
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?clock_method=eq.self&status=eq.PENDING_APPROVAL&report_date=eq.${date}&select=*`, {
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
-        });
-        const pending = await response.json();
-        
-        document.getElementById('pendingCount').innerText = pending.length;
-        
-        if (pending.length > 0) {
-            let html = `<div class="pending-requests">
-                <h4>⏳ Pending Self-Clock Requests (${pending.length})</h4>`;
-            for (let p of pending) {
-                html += `
-                    <div class="pending-item">
-                        <div>
-                            <strong>${p.officer_name}</strong><br>
-                            <small>Requested at: ${p.time_in} | Reason: ${p.late_reason || 'Not specified'}</small>
-                        </div>
-                        <div>
-                            <button class="btn-approve" onclick="approveSelfClock(${p.id}, '${p.time_in}')">✓ Approve</button>
-                            <button class="btn-reject" onclick="rejectSelfClock(${p.id})">✗ Reject</button>
-                        </div>
-                    </div>`;
-            }
-            html += `</div>`;
-            document.getElementById('pendingRequestsPanel').innerHTML = html;
-        } else {
-            document.getElementById('pendingRequestsPanel').innerHTML = '';
-        }
-    }
-    
-    async function approveSelfClock(id, timeIn) {
-        const token = localStorage.getItem('vbs_token');
-        
-        const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${id}`, {
-            method: 'PATCH',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                status: 'APPROVED', 
-                approved_by: currentFocalPoint?.name,
-                approved_at: new Date().toISOString()
-            })
-        });
-        
-        if (updateRes.ok) {
-            alert(`✅ Self-clock approved! Staff marked as PRESENT.`);
-            await loadAttendance();
-            await loadPendingSelfClocks();
-        } else {
-            alert('Failed to approve');
-        }
-    }
-    
-    async function rejectSelfClock(id) {
-        const reason = prompt('Reason for rejection:');
-        if (!reason) return;
-        
-        const token = localStorage.getItem('vbs_token');
-        
-        const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${id}`, {
-            method: 'PATCH',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                status: 'REJECTED', 
-                rejection_reason: reason,
-                approved_by: currentFocalPoint?.name,
-                approved_at: new Date().toISOString()
-            })
-        });
-        
-        if (updateRes.ok) {
-            alert(`❌ Self-clock rejected. Staff remains ABSENT.`);
-            await loadAttendance();
-            await loadPendingSelfClocks();
-        } else {
-            alert('Failed to reject');
-        }
-    }
-    
+    // FIXED: This function READS from Supabase and displays based on what's stored
     async function loadAttendance() {
         const token = localStorage.getItem('vbs_token');
         const date = document.getElementById('reportDate').value || today;
         
+        // Get all staff in focal point's division
         let staffUrl = `${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true&order=staff_name.asc`;
-        
         if (currentFocalPointDivision === 'Provincial' && currentFocalPointLocation) {
             staffUrl += `&division=eq.Provincial&location=eq.${currentFocalPointLocation}`;
         } else if (currentFocalPointDivision === 'Laboratory' && currentFocalPointLocation) {
@@ -362,43 +254,45 @@
             staffUrl += `&division=eq.${currentFocalPointDivision}`;
         }
         
-        const staffResponse = await fetch(staffUrl, {
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
-        });
+        const staffResponse = await fetch(staffUrl, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } });
         const allStaff = await staffResponse.json();
         
+        // CRITICAL: Get ALL timesheet records for today from Supabase
         const timesheetResponse = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?report_date=eq.${date}&select=*`, {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
         });
         const records = await timesheetResponse.json();
         
-        let present = 0, absent = 0, pending = 0;
+        let present = 0, absent = 0, pending = 0, clockedOut = 0;
         let html = '';
         
         for (let staff of allStaff) {
+            // Find if this staff has a record for today in Supabase
             const record = records.find(r => r.officer_name === staff.staff_name);
             let timeIn = '-', timeOut = '-', hours = '-', statusText = '', statusClass = '';
             
             if (record && record.time_in) {
+                // They HAVE a record in Supabase!
                 timeIn = record.time_in;
                 
-                // Check if it's a pending self-clock
-                if (record.clock_method === 'self' && record.status === 'PENDING_APPROVAL') {
+                if (record.status === 'PENDING_APPROVAL') {
                     statusText = 'PENDING APPROVAL';
                     statusClass = 'status-pending';
                     pending++;
                 } else if (record.time_out) {
                     timeOut = record.time_out;
-                    hours = record.hours_worked;
+                    hours = record.hours_worked || 0;
                     statusText = 'CLOCKED OUT';
                     statusClass = 'status-clocked-out';
                     present++;
+                    clockedOut++;
                 } else {
                     statusText = 'PRESENT';
                     statusClass = 'status-present';
                     present++;
                 }
             } else {
+                // No record in Supabase = ABSENT
                 statusText = 'ABSENT';
                 statusClass = 'status-absent';
                 absent++;
@@ -419,7 +313,63 @@
         document.getElementById('presentCount').innerText = present;
         document.getElementById('absentCount').innerText = absent;
         document.getElementById('pendingCount').innerText = pending;
+        document.getElementById('clockedOutCount').innerText = clockedOut;
         document.getElementById('totalStaff').innerText = allStaff.length;
+    }
+    
+    async function loadPendingSelfClocks() {
+        const token = localStorage.getItem('vbs_token');
+        const date = document.getElementById('reportDate').value || today;
+        
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?clock_method=eq.self&status=eq.PENDING_APPROVAL&report_date=eq.${date}&select=*`, {
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+        });
+        const pending = await response.json();
+        
+        if (pending.length > 0) {
+            let html = `<div class="pending-requests"><h4>⏳ Pending Self-Clock Requests (${pending.length})</h4>`;
+            for (let p of pending) {
+                html += `<div class="pending-item">
+                            <div><strong>${p.officer_name}</strong><br><small>Requested: ${p.time_in} | Reason: ${p.late_reason || 'Not specified'}</small></div>
+                            <div><button class="btn-approve" onclick="approveSelfClock(${p.id}, '${p.time_in}')">✓ Approve</button>
+                            <button class="btn-reject" onclick="rejectSelfClock(${p.id})">✗ Reject</button></div>
+                         </div>`;
+            }
+            html += `</div>`;
+            document.getElementById('pendingRequestsPanel').innerHTML = html;
+        } else {
+            document.getElementById('pendingRequestsPanel').innerHTML = '';
+        }
+    }
+    
+    async function approveSelfClock(id, timeIn) {
+        const token = localStorage.getItem('vbs_token');
+        const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'APPROVED', approved_by: currentFocalPoint?.name, approved_at: new Date().toISOString() })
+        });
+        if (updateRes.ok) {
+            alert(`✅ Self-clock approved! Staff marked as PRESENT. Time in: ${timeIn} preserved.`);
+            await loadAttendance();
+            await loadPendingSelfClocks();
+        } else { alert('Failed to approve'); }
+    }
+    
+    async function rejectSelfClock(id) {
+        const reason = prompt('Reason for rejection:');
+        if (!reason) return;
+        const token = localStorage.getItem('vbs_token');
+        const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'REJECTED', rejection_reason: reason, approved_by: currentFocalPoint?.name, approved_at: new Date().toISOString() })
+        });
+        if (updateRes.ok) {
+            alert(`❌ Self-clock rejected. Staff remains ABSENT.`);
+            await loadAttendance();
+            await loadPendingSelfClocks();
+        } else { alert('Failed to reject'); }
     }
     
     async function loadSelfAttendance() {
@@ -445,29 +395,15 @@
             } else if (r.time_out) {
                 statusText = 'CLOCKED OUT';
                 statusClass = 'status-clocked-out';
-            } else {
-                statusText = 'ABSENT';
-                statusClass = 'status-absent';
             }
-            
-            html = `<tr>
-                        <td><strong>${userName}</strong></td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>${r.time_in || '-'}</td>
-                        <td>${r.time_out || '-'}</td>
-                        <td>${r.hours_worked || 0}</td>
-                        <td><span class="${statusClass}">${statusText}</span></td>
-                     </tr>`;
+            html = `<tr><td><strong>${userName}</strong></td><td>-</td><td>-</td><td>${r.time_in || '-'}</td><td>${r.time_out || '-'}</td><td>${r.hours_worked || 0}</td><td><span class="${statusClass}">${statusText}</span></td></tr>`;
             document.getElementById('presentCount').innerText = (r.time_in && r.status !== 'PENDING_APPROVAL') ? 1 : 0;
         } else {
             html = `<tr><td colspan="7">No record for today. Use Self Clock Mode above.</td></tr>`;
             document.getElementById('presentCount').innerText = 0;
         }
-        
         document.getElementById('attendanceBody').innerHTML = html;
         document.getElementById('totalStaff').innerText = 1;
-        document.getElementById('absentCount').innerText = 1;
     }
     
     async function clockIn() {
@@ -476,17 +412,6 @@
         if (!staffName) { alert('Please select a staff member'); return; }
         
         const token = localStorage.getItem('vbs_token');
-        
-        const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${staffName}&report_date=eq.${date}`, {
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
-        });
-        const existing = await checkRes.json();
-        
-        if (existing.length > 0 && existing[0].time_in && !existing[0].time_out) {
-            alert(`⚠️ ${staffName} already clocked IN at ${existing[0].time_in}`);
-            return;
-        }
-        
         const timeIn = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         
         const data = {
@@ -509,9 +434,7 @@
             alert(`✅ ${staffName} clocked IN at ${timeIn}`);
             await loadAttendance();
             document.getElementById('staffSelect').value = '';
-        } else {
-            alert('Failed to clock in');
-        }
+        } else { alert('Failed to clock in'); }
     }
     
     async function clockOut() {
@@ -520,20 +443,13 @@
         if (!staffName) { alert('Please select a staff member'); return; }
         
         const token = localStorage.getItem('vbs_token');
-        
         const getRes = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${staffName}&report_date=eq.${date}`, {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
         });
         const records = await getRes.json();
         
-        if (records.length === 0 || !records[0].time_in) {
-            alert(`❌ ${staffName} hasn't clocked in today`);
-            return;
-        }
-        if (records[0].time_out) {
-            alert(`⚠️ ${staffName} already clocked out at ${records[0].time_out}`);
-            return;
-        }
+        if (records.length === 0 || !records[0].time_in) { alert(`❌ ${staffName} hasn't clocked in today`); return; }
+        if (records[0].time_out) { alert(`⚠️ ${staffName} already clocked out at ${records[0].time_out}`); return; }
         
         const timeOut = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         const record = records[0];
@@ -555,9 +471,7 @@
             alert(`❌ ${staffName} clocked OUT at ${timeOut} | Hours: ${totalHours.toFixed(2)}`);
             await loadAttendance();
             document.getElementById('staffSelect').value = '';
-        } else {
-            alert('Failed to clock out');
-        }
+        } else { alert('Failed to clock out'); }
     }
     
     async function requestSelfClockIn() {
@@ -567,17 +481,6 @@
         
         const token = localStorage.getItem('vbs_token');
         const userName = currentUser.split('@')[0];
-        
-        const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${userName}&report_date=eq.${date}`, {
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
-        });
-        const existing = await checkRes.json();
-        
-        if (existing.length > 0 && existing[0].time_in) {
-            alert(`⚠️ You already have a record for today. Check with your focal point.`);
-            return;
-        }
-        
         const timeIn = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         
         const data = {
@@ -601,9 +504,7 @@
             alert(`📤 Self-clock request sent at ${timeIn}. Waiting for focal point approval.`);
             await loadSelfAttendance();
             document.getElementById('selfReason').value = '';
-        } else {
-            alert('Failed to submit request');
-        }
+        } else { alert('Failed to submit request'); }
     }
     
     function refreshAttendance() {
