@@ -4,53 +4,34 @@
     <title>VBS Timesheet Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial; max-width: 400px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
-        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #2c7a4d; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        .error { color: red; text-align: center; margin-top: 10px; }
-        .success { color: green; text-align: center; margin-top: 10px; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; background: linear-gradient(135deg, #1a5a3a, #0d3b24); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .container { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        h1 { color: #2c7a4d; text-align: center; margin-bottom: 24px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 12px; background: #2c7a4d; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        button:hover { background: #1e5a38; }
+        .error { color: #dc3545; text-align: center; margin-top: 10px; font-size: 13px; }
         .info { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-        .forgot-link { text-align: center; margin-top: 15px; }
-        .forgot-link a { color: #2c7a4d; text-decoration: none; font-size: 14px; }
-        .forgot-link a:hover { text-decoration: underline; }
-        .reset-form { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
-        .reset-form.active { display: block; }
-        .back-link { text-align: center; margin-top: 10px; }
-        .back-link a { color: #666; text-decoration: none; font-size: 12px; }
+        .register-link { text-align: center; margin-top: 15px; }
+        .register-link a { color: #2c7a4d; text-decoration: none; }
+        .spinner { display: none; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔐 VBS Timesheet</h1>
         
-        <!-- Login Form -->
-        <div id="loginForm">
-            <p>Login with your email</p>
-            <input type="email" id="email" placeholder="Email" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <button onclick="login()">Login</button>
+        <form id="loginForm" onsubmit="event.preventDefault(); login();">
+            <input type="email" id="email" placeholder="Email Address" required autocomplete="email">
+            <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+            <button type="submit">Login</button>
             <div id="errorMsg" class="error"></div>
-            <div class="forgot-link">
-                <a href="#" onclick="showResetForm()">Forgot password?</a>
-            </div>
-            <div class="info">
-                ⚠️ Focal points can manage staff attendance<br>
-                ⚠️ Staff can use Self Clock Mode
-            </div>
-        </div>
+            <div class="spinner" id="spinner">⏳ Logging in...</div>
+        </form>
         
-        <!-- Reset Password Form -->
-        <div id="resetForm" class="reset-form">
-            <p>Reset your password</p>
-            <p style="font-size: 13px; color: #666;">Enter your email and we'll send a password reset link</p>
-            <input type="email" id="resetEmail" placeholder="Email" required>
-            <button onclick="resetPassword()">Send Reset Link</button>
-            <div id="resetMsg" class="success"></div>
-            <div class="back-link">
-                <a href="#" onclick="showLoginForm()">← Back to login</a>
-            </div>
+        <div class="info">
+            🔒 Secure login using Supabase Auth<br>
+            📧 Contact IT to get your credentials
         </div>
     </div>
     
@@ -58,33 +39,15 @@
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        // Focal point emails
-        const focalPointEmails = [
-            'rolina5411139@gmail.com',
-            'galana@vbs.gov.vu',
-            'natachajoel32@gmail.com',
-            'betienne.vbs@gmail.com',
-            'llivu@vbs.gov.vu',
-            'polovbs984@gmail.com'
-        ];
-        
-        function showResetForm() {
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('resetForm').classList.add('active');
-            document.getElementById('resetMsg').innerHTML = '';
-        }
-        
-        function showLoginForm() {
-            document.getElementById('loginForm').style.display = 'block';
-            document.getElementById('resetForm').classList.remove('active');
-            document.getElementById('resetMsg').innerHTML = '';
-        }
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
         async function login() {
-            const email = document.getElementById('email').value.trim().toLowerCase();
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
-            
             const errorDiv = document.getElementById('errorMsg');
+            const spinner = document.getElementById('spinner');
+            const loginBtn = document.querySelector('button[type="submit"]');
+            
             errorDiv.innerHTML = '';
             
             if (!email || !password) {
@@ -92,79 +55,37 @@
                 return;
             }
             
+            spinner.style.display = 'block';
+            loginBtn.disabled = true;
+            
             try {
-                const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-                    method: 'POST',
-                    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
                 });
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    localStorage.clear();
-                    localStorage.setItem('vbs_token', data.access_token);
+                if (error) throw error;
+                
+                if (data.session) {
+                    localStorage.setItem('vbs_token', data.session.access_token);
                     localStorage.setItem('vbs_user', email);
                     
-                    const isFocalPoint = focalPointEmails.includes(email);
-                    localStorage.setItem('vbs_user_type', isFocalPoint ? 'focal_point' : 'staff');
+                    // Get user role from profiles
+                    const { data: profile } = await supabase
+                        .from('user_profiles')
+                        .select('role')
+                        .eq('id', data.user.id)
+                        .single();
                     
+                    localStorage.setItem('vbs_role', profile?.role || 'staff');
                     window.location.href = 'timesheet.html';
-                } else {
-                    const error = await response.json();
-                    errorDiv.innerHTML = '❌ Invalid email or password';
                 }
             } catch (error) {
-                errorDiv.innerHTML = '❌ Connection error. Please try again.';
+                errorDiv.innerHTML = `❌ ${error.message}`;
+                spinner.style.display = 'none';
+                loginBtn.disabled = false;
             }
         }
-        
-        async function resetPassword() {
-            const email = document.getElementById('resetEmail').value.trim().toLowerCase();
-            const msgDiv = document.getElementById('resetMsg');
-            
-            if (!email) {
-                msgDiv.innerHTML = '❌ Please enter your email';
-                msgDiv.style.color = 'red';
-                return;
-            }
-            
-            msgDiv.innerHTML = 'Sending reset link...';
-            msgDiv.style.color = 'green';
-            
-            try {
-                const response = await fetch(`${SUPABASE_URL}/auth/v1/recover`, {
-                    method: 'POST',
-                    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                
-                if (response.ok) {
-                    msgDiv.innerHTML = '✅ Password reset link sent to your email. Check your inbox.';
-                    msgDiv.style.color = 'green';
-                    document.getElementById('resetEmail').value = '';
-                    
-                    // Auto switch back to login after 3 seconds
-                    setTimeout(() => {
-                        showLoginForm();
-                    }, 3000);
-                } else {
-                    const error = await response.json();
-                    msgDiv.innerHTML = `❌ ${error.msg || 'Failed to send reset link'}`;
-                    msgDiv.style.color = 'red';
-                }
-            } catch (error) {
-                msgDiv.innerHTML = '❌ Connection error. Please try again.';
-                msgDiv.style.color = 'red';
-            }
-        }
-        
-        document.getElementById('password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') login();
-        });
-        document.getElementById('resetEmail').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') resetPassword();
-        });
     </script>
 </body>
 </html>
