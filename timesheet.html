@@ -25,9 +25,11 @@
         .status-present { background: #d4edda; color: #155724; }
         .status-absent { background: #f8d7da; color: #721c24; }
         .status-pending { background: #fff3cd; color: #856404; }
+        .status-clocked-out { background: #cce5ff; color: #004085; }
         .small-text { font-size: 12px; color: #666; margin-top: 10px; }
         .current-time { text-align: center; font-size: 28px; font-weight: bold; color: #2c7a4d; margin: 10px 0; }
         .alert-info { background: #cce5ff; padding: 10px; border-radius: 8px; margin-bottom: 15px; color: #004085; }
+        .refresh-btn { background: #6c757d; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-left: 10px; }
     </style>
 </head>
 <body>
@@ -77,12 +79,14 @@
         
         <div class="staff-list">
             <strong>📋 Today's Staff Status</strong>
+            <button class="refresh-btn" onclick="refreshStatus()">↻ Refresh</button>
             <div id="staffStatusList">Loading...</div>
         </div>
         
         <div class="small-text">
             ⏰ Standard hours: 8:00 AM - 5:00 PM<br>
-            🔓 Self Clock: Use when focal point is absent
+            🔓 Self Clock: Use when focal point is absent<br>
+            💡 Status persists across logins - clock in once, stay PRESENT until you clock out
         </div>
     </div>
     
@@ -102,6 +106,15 @@
         }
         setInterval(updateTime, 1000);
         updateTime();
+        
+        function refreshStatus() {
+            const mode = document.getElementById('focalMode').style.display === 'block' ? 'focal' : 'self';
+            if (mode === 'focal') {
+                loadTodayStatus();
+            } else {
+                loadSelfTodayStatus();
+            }
+        }
         
         async function checkAuth() {
             const token = localStorage.getItem('vbs_token');
@@ -137,8 +150,8 @@
                         document.getElementById('modeSelector').style.display = 'flex';
                         document.getElementById('selfMode').style.display = 'none';
                         document.getElementById('focalMode').style.display = 'block';
-                        loadStaffList();
-                        loadTodayStatus();
+                        await loadStaffList();
+                        await loadTodayStatus();
                         return;
                     }
                 }
@@ -166,6 +179,7 @@
                 document.getElementById('focalMode').style.display = 'block';
                 document.getElementById('selfMode').style.display = 'none';
                 loadStaffList();
+                loadTodayStatus();
             } else {
                 document.getElementById('focalMode').style.display = 'none';
                 document.getElementById('selfMode').style.display = 'block';
@@ -204,6 +218,8 @@
             const date = document.getElementById('reportDate').value;
             const token = localStorage.getItem('vbs_token');
             
+            if (!date) return;
+            
             let url = `${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true&order=staff_name.asc`;
             if (currentFocalPointDivision === 'Provincial') {
                 url += `&division=eq.${currentFocalPointDivision}&location=eq.${currentFocalPointLocation}`;
@@ -227,32 +243,48 @@
             const records = await timesheetResponse.json();
             
             let presentCount = 0;
+            let clockedInCount = 0;
             let html = '';
             
             for (let staff of allStaff) {
                 const record = records.find(r => r.officer_name === staff.staff_name);
-                let statusText = 'ABSENT';
+                let statusText = '❌ ABSENT';
                 let statusClass = 'status-absent';
                 
-                if (record && record.time_in && !record.time_out) {
-                    statusText = `✅ PRESENT (IN: ${record.time_in})`;
-                    statusClass = 'status-present';
-                    presentCount++;
-                } else if (record && record.time_out) {
-                    statusText = `⏳ CLOCKED OUT (${record.hours_worked} hrs)`;
-                    statusClass = 'status-pending';
+                // FIX: Check if staff has clocked in (regardless of time)
+                if (record && record.time_in) {
+                    if (record.time_out) {
+                        // Clocked out already
+                        statusText = `⏳ CLOCKED OUT (${record.hours_worked || 0} hrs)`;
+                        statusClass = 'status-clocked-out';
+                        presentCount++;
+                    } else {
+                        // Clocked in, not out yet - PRESENT
+                        statusText = `✅ PRESENT (IN: ${record.time_in})`;
+                        statusClass = 'status-present';
+                        presentCount++;
+                        clockedInCount++;
+                    }
+                } else if (record && !record.time_in) {
+                    statusText = '❌ ABSENT';
+                    statusClass = 'status-absent';
                 }
                 
-                html += `<div class="staff-item"><span class="staff-name">${staff.staff_name}</span><span class="staff-status ${statusClass}">${statusText}</span></div>`;
+                html += `<div class="staff-item">
+                            <span class="staff-name">${staff.staff_name}</span>
+                            <span class="staff-status ${statusClass}">${statusText}</span>
+                         </div>`;
             }
             
             document.getElementById('staffStatusList').innerHTML = html;
-            document.querySelector('.staff-list strong').innerHTML = `📋 Today's Status (${presentCount}/${allStaff.length} Present)`;
+            document.querySelector('.staff-list strong').innerHTML = `📋 Today's Status (${presentCount}/${allStaff.length} Present | ${clockedInCount} Active)`;
         }
         
         async function loadSelfTodayStatus() {
             const date = document.getElementById('selfReportDate').value;
             const token = localStorage.getItem('vbs_token');
+            
+            if (!date) return;
             
             const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${currentUserName}&report_date=eq.${date}`, {
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
@@ -261,14 +293,28 @@
             
             if (records.length > 0) {
                 const r = records[0];
+                let statusText = '';
+                let statusClass = '';
+                
+                if (r.time_in && !r.time_out) {
+                    statusText = `✅ CLOCKED IN at ${r.time_in}`;
+                    statusClass = 'status-present';
+                } else if (r.time_out) {
+                    statusText = `⏳ CLOCKED OUT (${r.hours_worked} hrs)`;
+                    statusClass = 'status-clocked-out';
+                } else {
+                    statusText = '❌ NOT CLOCKED IN';
+                    statusClass = 'status-absent';
+                }
+                
                 document.getElementById('staffStatusList').innerHTML = `
                     <div class="staff-item">
                         <span class="staff-name">${currentUserName}</span>
-                        <span class="staff-status status-pending">${r.time_in ? '✅ CLOCKED IN' : '⏳ PENDING'}</span>
+                        <span class="staff-status ${statusClass}">${statusText}</span>
                     </div>
                 `;
             } else {
-                document.getElementById('staffStatusList').innerHTML = '<div>No clock in today</div>';
+                document.getElementById('staffStatusList').innerHTML = '<div class="staff-item"><span class="staff-name">No clock in today</span><span class="staff-status status-absent">❌ ABSENT</span></div>';
             }
         }
         
@@ -278,6 +324,23 @@
             if (!staffName) { alert('Select staff first'); return; }
             
             const token = localStorage.getItem('vbs_token');
+            
+            // Check if already clocked in today
+            const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${staffName}&report_date=eq.${date}`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+            });
+            const existing = await checkResponse.json();
+            
+            if (existing.length > 0 && existing[0].time_in && !existing[0].time_out) {
+                alert(`⚠️ ${staffName} is already clocked in at ${existing[0].time_in}!`);
+                return;
+            }
+            
+            if (existing.length > 0 && existing[0].time_out) {
+                alert(`⚠️ ${staffName} already clocked out today at ${existing[0].time_out}`);
+                return;
+            }
+            
             const timeIn = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
             const data = {
@@ -298,10 +361,11 @@
             
             if (response.ok) {
                 alert(`✅ ${staffName} clocked IN at ${timeIn}`);
-                loadTodayStatus();
+                await loadTodayStatus();
                 document.getElementById('staffSelect').value = '';
             } else {
-                alert('Failed to clock in');
+                const error = await response.text();
+                alert('Failed to clock in: ' + error);
             }
         }
         
@@ -317,10 +381,19 @@
             });
             const records = await response.json();
             
-            if (records.length === 0) { alert('No clock-in record'); return; }
+            if (records.length === 0) { 
+                alert(`❌ ${staffName} hasn't clocked in today! Cannot clock out.`);
+                return; 
+            }
             const record = records[0];
-            if (!record.time_in) { alert('No clock-in'); return; }
-            if (record.time_out) { alert('Already clocked out'); return; }
+            if (!record.time_in) { 
+                alert(`❌ ${staffName} hasn't clocked in!`);
+                return; 
+            }
+            if (record.time_out) { 
+                alert(`⚠️ ${staffName} already clocked out at ${record.time_out}`);
+                return; 
+            }
             
             const timeOut = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
@@ -331,7 +404,7 @@
             if (minutes < 0) { hours--; minutes += 60; }
             const totalHours = hours + minutes / 60;
             
-            await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${record.id}`, {
+            const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${record.id}`, {
                 method: 'PATCH',
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -341,9 +414,13 @@
                 })
             });
             
-            alert(`❌ ${staffName} clocked OUT at ${timeOut} | Hours: ${totalHours.toFixed(2)}`);
-            loadTodayStatus();
-            document.getElementById('staffSelect').value = '';
+            if (updateResponse.ok) {
+                alert(`❌ ${staffName} clocked OUT at ${timeOut} | Hours: ${totalHours.toFixed(2)}`);
+                await loadTodayStatus();
+                document.getElementById('staffSelect').value = '';
+            } else {
+                alert('Failed to clock out');
+            }
         }
         
         async function selfClockIn() {
@@ -352,6 +429,17 @@
             const token = localStorage.getItem('vbs_token');
             
             if (!reason) { alert('Please provide a reason'); return; }
+            
+            // Check if already clocked in today
+            const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?officer_name=eq.${currentUserName}&report_date=eq.${date}`, {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
+            });
+            const existing = await checkResponse.json();
+            
+            if (existing.length > 0 && existing[0].time_in && !existing[0].time_out) {
+                alert(`⚠️ You are already clocked in at ${existing[0].time_in}!`);
+                return;
+            }
             
             const timeIn = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
@@ -374,10 +462,10 @@
             
             if (response.ok) {
                 alert(`✅ Self clocked IN at ${timeIn}`);
-                loadSelfTodayStatus();
+                await loadSelfTodayStatus();
                 document.getElementById('selfReason').value = '';
             } else {
-                alert('Failed');
+                alert('Failed to clock in');
             }
         }
         
@@ -390,10 +478,19 @@
             });
             const records = await response.json();
             
-            if (records.length === 0) { alert('No clock-in record'); return; }
+            if (records.length === 0) { 
+                alert('You haven\'t clocked in today!');
+                return; 
+            }
             const record = records[0];
-            if (!record.time_in) { alert('No clock-in'); return; }
-            if (record.time_out) { alert('Already clocked out'); return; }
+            if (!record.time_in) { 
+                alert('You haven\'t clocked in!');
+                return; 
+            }
+            if (record.time_out) { 
+                alert(`You already clocked out at ${record.time_out}`);
+                return; 
+            }
             
             const timeOut = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
@@ -404,7 +501,7 @@
             if (minutes < 0) { hours--; minutes += 60; }
             const totalHours = hours + minutes / 60;
             
-            await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${record.id}`, {
+            const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?id=eq.${record.id}`, {
                 method: 'PATCH',
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -414,8 +511,12 @@
                 })
             });
             
-            alert(`❌ Self clocked OUT at ${timeOut} | Hours: ${totalHours.toFixed(2)}`);
-            loadSelfTodayStatus();
+            if (updateResponse.ok) {
+                alert(`❌ Self clocked OUT at ${timeOut} | Hours: ${totalHours.toFixed(2)}`);
+                await loadSelfTodayStatus();
+            } else {
+                alert('Failed to clock out');
+            }
         }
         
         // Start the app
