@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VBS Manager Dashboard</title>
+    <title>VBS Manager Dashboard - Leave & Reports Approval</title>
     <style>
         * {
             margin: 0;
@@ -81,6 +81,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-wrap: wrap;
         }
         
         .filter-group label {
@@ -107,6 +108,16 @@
             border-radius: 40px;
             font-size: 13px;
             font-weight: 500;
+        }
+        
+        .manager-badge {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
         }
         
         .refresh-btn {
@@ -152,6 +163,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-wrap: wrap;
         }
         
         .officer-avatar {
@@ -213,7 +225,7 @@
             font-size: 13px;
             color: #6c7a8a;
             font-weight: 500;
-            min-width: 90px;
+            min-width: 100px;
         }
         
         .field-value {
@@ -285,6 +297,22 @@
             color: white;
         }
         
+        .btn-forward {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .btn-forward:hover {
+            background: #d97706;
+        }
+        
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -316,6 +344,26 @@
             color: #6c7a8a;
         }
         
+        .info-banner {
+            background: #e0f2fe;
+            border-left: 4px solid #0284c7;
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #0c4a6e;
+        }
+        
+        .manager-leave-badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
         @media (max-width: 768px) {
             body { padding: 16px; }
             .stats-grid { grid-template-columns: 1fr; gap: 12px; }
@@ -325,15 +373,21 @@
             .detail-field { min-width: 100%; }
             .detail-row { flex-direction: column; gap: 12px; }
             .card-footer { flex-direction: column; }
-            .btn-approve, .btn-reject { text-align: center; }
+            .btn-approve, .btn-reject, .btn-forward { text-align: center; }
         }
     </style>
 </head>
 <body>
     <div class="dashboard-container">
         <div class="header">
-            <h1>Manager Dashboard</h1>
-            <p>Review and approve pending reports from your team</p>
+            <h1>👔 Manager Dashboard</h1>
+            <p>Review and approve pending reports & leave requests from your team</p>
+        </div>
+        
+        <div class="info-banner">
+            <strong>📋 Approval Workflow:</strong> 
+            • Staff leave → Manager approves → Goes to CEO<br>
+            • Manager leave → Direct to CEO approval (not shown here)
         </div>
         
         <div class="stats-grid">
@@ -342,19 +396,28 @@
                 <div class="stat-label">Pending Approval</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="totalApproved">0</div>
-                <div class="stat-label">Approved Today</div>
+                <div class="stat-number" id="totalLeavePending">0</div>
+                <div class="stat-label">Pending Leave Requests</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="divisionsCount">10</div>
-                <div class="stat-label">Divisions</div>
+                <div class="stat-number" id="totalReportsPending">0</div>
+                <div class="stat-label">Pending Reports</div>
             </div>
         </div>
         
         <div class="filter-bar">
             <div class="filter-group">
-                <label>📂 Division</label>
+                <label>📂 Filter by Type</label>
+                <select id="typeFilter">
+                    <option value="all">All Pending Items</option>
+                    <option value="leave">📋 Leave Requests Only</option>
+                    <option value="reports">📊 Reports Only</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>🏢 Division</label>
                 <select id="divisionSelect">
+                    <option value="all">All Divisions</option>
                     <option value="provincial">🌾 Provincial</option>
                     <option value="laboratory">🔬 Laboratory</option>
                     <option value="packhouse">📦 Packhouse</option>
@@ -362,19 +425,16 @@
                     <option value="administration">📋 Administration</option>
                     <option value="conformity">✅ Conformity Assessment</option>
                     <option value="general">📝 General Activity</option>
-                    <option value="timesheet">⏰ Timesheet</option>
-                    <option value="leave_requests">📋 Leave Requests</option>
-                    <option value="admin_report">💰 Administration Report</option>
                 </select>
             </div>
             <div class="filter-group">
                 <span id="pendingBadge" class="pending-badge">0 pending</span>
-                <button class="refresh-btn" onclick="loadReports()">↻ Refresh</button>
+                <button class="refresh-btn" onclick="loadAllPending()">↻ Refresh</button>
             </div>
         </div>
         
         <div id="reportsContainer">
-            <div class="loading">Loading...</div>
+            <div class="loading">Loading pending items...</div>
         </div>
     </div>
     
@@ -382,224 +442,266 @@
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        const tableMap = {
-            provincial: 'provincial_reports',
-            laboratory: 'laboratory_reports',
-            packhouse: 'packhouse_reports',
-            standards: 'standards_reports',
-            administration: 'administration_reports',
-            conformity: 'conformity_assessment',
-            general: 'general_activity_log',
-            timesheet: 'timesheet',
-            leave_requests: 'leave_requests',
-            admin_report: 'administration_reports'
+        // List of manager names (any staff member with 'Manager' in title)
+        const MANAGER_NAMES = ['Tina Soaki La\'au', 'Manager', 'John Bule', 'Sarah Kalmet'];
+        
+        const reportTables = {
+            provincial: { table: 'provincial_reports', name: 'Provincial', icon: '🌾' },
+            laboratory: { table: 'laboratory_reports', name: 'Laboratory', icon: '🔬' },
+            packhouse: { table: 'packhouse_reports', name: 'Packhouse', icon: '📦' },
+            standards: { table: 'standards_reports', name: 'Standards', icon: '📜' },
+            administration: { table: 'administration_reports', name: 'Administration', icon: '📋' },
+            conformity: { table: 'conformity_assessment', name: 'Conformity', icon: '✅' },
+            general: { table: 'general_activity_log', name: 'General', icon: '📝' }
         };
         
-        function getDetailFields(report, division) {
-            // Leave Requests - special handling
-            if (division === 'leave_requests') {
-                return `
-                    <div class="detail-field"><span class="field-icon">📋</span><span class="field-label">Leave Type</span><span class="field-value">${report.leave_type || 'Annual'}</span></div>
-                    <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">Start Date</span><span class="field-value">${report.start_date || 'Not set'}</span></div>
-                    <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">End Date</span><span class="field-value">${report.end_date || 'Not set'}</span></div>
-                    <div class="detail-field"><span class="field-icon">⏱️</span><span class="field-label">Duration</span><span class="field-value">${report.total_days || 0} days</span></div>
-                    <div class="detail-field"><span class="field-icon">👤</span><span class="field-label">Supervisor</span><span class="field-value">${report.supervisor_name || 'Not specified'}</span></div>
-                    ${report.reason ? `<div class="notes-section"><div class="notes-label">📝 Reason</div><div class="notes-text">${report.reason}</div></div>` : ''}
-                `;
+        let allPendingReports = [];
+        let allPendingLeave = [];
+        
+        async function loadAllPending() {
+            const container = document.getElementById('reportsContainer');
+            container.innerHTML = '<div class="loading">Loading pending items...</div>';
+            
+            try {
+                // Load pending leave requests (status = 'PENDING' - waiting for manager approval)
+                const leaveResponse = await fetch(`${SUPABASE_URL}/rest/v1/leave_requests?status=eq.PENDING&order=created_at.desc`, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                let leaveData = await leaveResponse.json();
+                
+                // Filter out manager leave requests (managers' leave goes directly to CEO)
+                allPendingLeave = leaveData.filter(leave => {
+                    const isManager = MANAGER_NAMES.some(manager => 
+                        leave.officer_name?.toLowerCase().includes(manager.toLowerCase()) ||
+                        leave.position?.toLowerCase().includes('manager')
+                    );
+                    return !isManager; // Only non-manager leave requests appear here
+                });
+                
+                // Load pending reports from all tables
+                allPendingReports = [];
+                for (const [key, config] of Object.entries(reportTables)) {
+                    try {
+                        const response = await fetch(`${SUPABASE_URL}/rest/v1/${config.table}?status=eq.PENDING&order=created_at.desc`, {
+                            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                        });
+                        const data = await response.json();
+                        data.forEach(item => { item._division = key; item._divisionName = config.name; item._icon = config.icon; });
+                        allPendingReports.push(...data);
+                    } catch (e) { console.warn(`Error loading ${config.table}:`, e); }
+                }
+                
+                // Update stats
+                const typeFilter = document.getElementById('typeFilter').value;
+                const divisionFilter = document.getElementById('divisionSelect').value;
+                
+                document.getElementById('totalLeavePending').innerText = allPendingLeave.length;
+                document.getElementById('totalReportsPending').innerText = allPendingReports.length;
+                document.getElementById('totalPending').innerText = allPendingLeave.length + allPendingReports.length;
+                
+                // Filter and display
+                filterAndDisplay(typeFilter, divisionFilter);
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                container.innerHTML = `<div class="empty-state"><div class="icon">❌</div><h3>Error Loading Data</h3><p>${error.message}</p></div>`;
+            }
+        }
+        
+        function filterAndDisplay(typeFilter, divisionFilter) {
+            let items = [];
+            
+            if (typeFilter === 'leave' || typeFilter === 'all') {
+                items.push(...allPendingLeave.map(l => ({ ...l, _type: 'leave', _division: 'leave' })));
+            }
+            if (typeFilter === 'reports' || typeFilter === 'all') {
+                items.push(...allPendingReports.map(r => ({ ...r, _type: 'report' })));
             }
             
-            // Timesheet
-            if (division === 'timesheet') {
-                return `
-                    <div class="detail-field"><span class="field-icon">⏰</span><span class="field-label">Clock In</span><span class="field-value">${report.time_in || 'Not clocked in'}</span></div>
-                    <div class="detail-field"><span class="field-icon">⏰</span><span class="field-label">Clock Out</span><span class="field-value">${report.time_out || 'Not clocked out'}</span></div>
-                    <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">Hours Worked</span><span class="field-value">${report.hours_worked || 0} hours</span></div>
-                    <div class="detail-field"><span class="field-icon">📍</span><span class="field-label">Location</span><span class="field-value">${report.location || 'Not specified'}</span></div>
-                `;
+            // Apply division filter
+            if (divisionFilter !== 'all') {
+                items = items.filter(item => item._division === divisionFilter);
             }
             
-            // Provincial
-            if (division === 'provincial') {
-                return `
+            const container = document.getElementById('reportsContainer');
+            
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">✅</div>
+                        <h3>All caught up!</h3>
+                        <p>No pending items match your filters</p>
+                    </div>
+                `;
+                document.getElementById('pendingBadge').innerHTML = `0 pending`;
+                return;
+            }
+            
+            document.getElementById('pendingBadge').innerHTML = `${items.length} pending`;
+            
+            let html = '';
+            for (const item of items) {
+                if (item._type === 'leave') {
+                    html += renderLeaveCard(item);
+                } else {
+                    html += renderReportCard(item);
+                }
+            }
+            container.innerHTML = html;
+            
+            // Attach event listeners
+            document.querySelectorAll('.btn-approve').forEach(btn => {
+                btn.addEventListener('click', () => approveItem(btn.dataset.type, btn.dataset.table, parseInt(btn.dataset.id)));
+            });
+            document.querySelectorAll('.btn-reject').forEach(btn => {
+                btn.addEventListener('click', () => rejectItem(btn.dataset.type, btn.dataset.table, parseInt(btn.dataset.id)));
+            });
+        }
+        
+        function renderLeaveCard(leave) {
+            const isManager = MANAGER_NAMES.some(m => leave.officer_name?.toLowerCase().includes(m.toLowerCase()));
+            
+            // Determine leave type display
+            let leaveType = leave.leave_type || 'Annual';
+            let leaveDetails = '';
+            
+            if (leaveType === 'Annual') leaveDetails = `Annual Leave - ${leave.total_days || 0} days`;
+            else if (leaveType === 'Sick') leaveDetails = `Sick Leave ${leave.medical_attached ? '(Medical Cert Attached)' : ''}`;
+            else if (leaveType === 'Maternity') leaveDetails = `Maternity Leave - EDB: ${leave.expected_dob || 'Not specified'}`;
+            else if (leaveType === 'Paternity') leaveDetails = `Paternity Leave - ${leave.total_days || 0} days`;
+            else if (leaveType === 'Compassionate') leaveDetails = `Compassionate Leave - Relationship: ${leave.relationship_to_deceased || 'Not specified'}`;
+            else leaveDetails = `${leaveType} Leave - ${leave.total_days || 0} days`;
+            
+            // Check if advance salary requested
+            const advanceSalary = leave.advance_salary_requested ? `💰 Advance Salary Requested (Date: ${leave.advance_salary_date || 'TBD'})` : '';
+            
+            return `
+                <div class="report-card">
+                    <div class="card-header">
+                        <div class="officer-info">
+                            <div class="officer-avatar">📋</div>
+                            <div>
+                                <div class="officer-name">${leave.officer_name || 'Unknown'} 
+                                    <span class="manager-leave-badge">Staff Leave Request</span>
+                                </div>
+                                <div style="font-size: 12px; color: #6c7a8a; margin-top: 4px;">Position: ${leave.position || 'Staff Member'}</div>
+                            </div>
+                        </div>
+                        <div class="report-date">📅 Submitted: ${leave.created_at?.split('T')[0] || leave.report_date || 'N/A'}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="detail-row">
+                            <div class="detail-field"><span class="field-icon">📋</span><span class="field-label">Leave Type</span><span class="field-value">${leaveDetails}</span></div>
+                            <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">Start Date</span><span class="field-value">${leave.start_date || 'Not set'}</span></div>
+                            <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">End Date</span><span class="field-value">${leave.end_date || 'Not set'}</span></div>
+                            <div class="detail-field"><span class="field-icon">⏱️</span><span class="field-label">Duration</span><span class="field-value">${leave.total_days || 0} days</span></div>
+                        </div>
+                        ${advanceSalary ? `<div class="notes-section"><div class="notes-label">💰 Advance Salary</div><div class="notes-text">${advanceSalary}</div></div>` : ''}
+                        ${leave.reason ? `<div class="notes-section"><div class="notes-label">📝 Reason for Leave</div><div class="notes-text">${leave.reason}</div></div>` : ''}
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn-approve" data-type="leave" data-table="leave_requests" data-id="${leave.id}">✓ Approve & Send to CEO</button>
+                        <button class="btn-reject" data-type="leave" data-table="leave_requests" data-id="${leave.id}">✗ Reject</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderReportCard(report) {
+            const divisionName = report._divisionName || report._division;
+            const icon = report._icon || '📊';
+            
+            // Build details based on division
+            let detailsHtml = '';
+            
+            if (report._division === 'provincial') {
+                detailsHtml = `
                     <div class="detail-field"><span class="field-icon">📍</span><span class="field-label">Location</span><span class="field-value">${report.location || 'Not specified'}</span></div>
                     <div class="detail-field"><span class="field-icon">📊</span><span class="field-label">Result</span><span class="field-value">${report.inspection_result || 'N/A'}</span></div>
                     <div class="detail-field"><span class="field-icon">⚠️</span><span class="field-label">Non-Compliance</span><span class="field-value">${report.non_compliance_cases || 0} cases</span></div>
-                    <div class="detail-field"><span class="field-icon">👥</span><span class="field-label">Farmers Engaged</span><span class="field-value">${report.farmers_engaged || 0}</span></div>
-                    ${report.inspector_notes ? `<div class="notes-section"><div class="notes-label">📝 Notes</div><div class="notes-text">${report.inspector_notes}</div></div>` : ''}
                 `;
-            }
-            
-            // Laboratory
-            if (division === 'laboratory') {
-                return `
+            } else if (report._division === 'laboratory') {
+                detailsHtml = `
                     <div class="detail-field"><span class="field-icon">🧪</span><span class="field-label">Sample ID</span><span class="field-value">${report.sample_id || 'Not specified'}</span></div>
                     <div class="detail-field"><span class="field-icon">🔬</span><span class="field-label">Test Type</span><span class="field-value">${report.test_type || 'N/A'}</span></div>
                     <div class="detail-field"><span class="field-icon">📊</span><span class="field-label">Result</span><span class="field-value">${report.test_result || 'N/A'}</span></div>
-                    <div class="detail-field"><span class="field-icon">📅</span><span class="field-label">Turnaround</span><span class="field-value">${report.turnaround_days || 0} days</span></div>
-                    ${report.equipment_issues ? `<div class="notes-section"><div class="notes-label">⚠️ Equipment Issues</div><div class="notes-text">${report.equipment_issues}</div></div>` : ''}
                 `;
-            }
-            
-            // Packhouse
-            if (division === 'packhouse') {
-                return `
+            } else if (report._division === 'packhouse') {
+                detailsHtml = `
                     <div class="detail-field"><span class="field-icon">📦</span><span class="field-label">Volume Processed</span><span class="field-value">${(report.volume_processed_kg || 0).toLocaleString()} kg</span></div>
                     <div class="detail-field"><span class="field-icon">🗑️</span><span class="field-label">Waste</span><span class="field-value">${report.waste_percent || 0}%</span></div>
-                    <div class="detail-field"><span class="field-icon">📉</span><span class="field-label">Rejection Rate</span><span class="field-value">${report.rejection_rate_percent || 0}%</span></div>
-                    <div class="detail-field"><span class="field-icon">👥</span><span class="field-label">Staff on Duty</span><span class="field-value">${report.staff_on_duty || 0}</span></div>
                 `;
-            }
-            
-            // Standards
-            if (division === 'standards') {
-                return `
-                    <div class="detail-field"><span class="field-icon">📄</span><span class="field-label">Standard Name</span><span class="field-value">${report.standard_name || 'Not specified'}</span></div>
-                    <div class="detail-field"><span class="field-icon">📌</span><span class="field-label">Stage</span><span class="field-value">${report.standard_stage || 'Draft'}</span></div>
-                    <div class="detail-field"><span class="field-icon">🎓</span><span class="field-label">Certifications</span><span class="field-value">${report.certifications_issued || 0}</span></div>
-                `;
-            }
-            
-            // Administration Report
-            if (division === 'admin_report') {
-                return `
-                    <div class="detail-field"><span class="field-icon">💰</span><span class="field-label">Budget Utilization</span><span class="field-value">${report.budget_utilization_percent || 0}%</span></div>
-                    <div class="detail-field"><span class="field-icon">📦</span><span class="field-label">Revenue Collected</span><span class="field-value">VT ${(report.revenue_collected_vt || 0).toLocaleString()}</span></div>
-                    <div class="detail-field"><span class="field-icon">🚗</span><span class="field-label">Vehicle Destination</span><span class="field-value">${report.vehicle_destination || 'None'}</span></div>
-                    <div class="detail-field"><span class="field-icon">📦</span><span class="field-label">Supply Request</span><span class="field-value">${report.supply_item_name || 'None'} ${report.supply_quantity ? `(${report.supply_quantity} ${report.supply_unit})` : ''}</span></div>
-                    ${report.inspector_notes ? `<div class="notes-section"><div class="notes-label">📝 Notes</div><div class="notes-text">${report.inspector_notes}</div></div>` : ''}
-                `;
-            }
-            
-            // Conformity Assessment
-            if (division === 'conformity') {
-                return `
+            } else if (report._division === 'conformity') {
+                detailsHtml = `
                     <div class="detail-field"><span class="field-icon">🏢</span><span class="field-label">Entity</span><span class="field-value">${report.entity_name || 'Not specified'}</span></div>
                     <div class="detail-field"><span class="field-icon">📊</span><span class="field-label">Result</span><span class="field-value">${report.assessment_result || 'N/A'}</span></div>
-                    <div class="detail-field"><span class="field-icon">⚠️</span><span class="field-label">Non-Compliance</span><span class="field-value">${report.non_compliance_type || 'None'}</span></div>
-                    ${report.non_compliance_description ? `<div class="notes-section"><div class="notes-label">📝 Details</div><div class="notes-text">${report.non_compliance_description}</div></div>` : ''}
+                `;
+            } else {
+                detailsHtml = `
+                    <div class="detail-field"><span class="field-icon">📝</span><span class="field-label">Report</span><span class="field-value">Submitted for review</span></div>
                 `;
             }
             
-            // General Activity
-            if (division === 'general') {
-                return `
-                    <div class="detail-field"><span class="field-icon">📌</span><span class="field-label">Activity Type</span><span class="field-value">${report.activity_type || 'N/A'}</span></div>
-                    <div class="detail-field"><span class="field-icon">🏷️</span><span class="field-label">Activity Name</span><span class="field-value">${report.activity_name || 'Not specified'}</span></div>
-                    ${report.stakeholder_name ? `<div class="detail-field"><span class="field-icon">🤝</span><span class="field-label">Stakeholder</span><span class="field-value">${report.stakeholder_name}</span></div>` : ''}
-                    ${report.activity_description ? `<div class="notes-section"><div class="notes-label">📝 Description</div><div class="notes-text">${report.activity_description.substring(0, 200)}</div></div>` : ''}
-                `;
-            }
-            
-            // Default
-            return `<div class="notes-section"><div class="notes-text">${report.inspector_notes || report.notes || 'Report submitted'}</div></div>`;
-        }
-        
-        async function loadReports() {
-            const division = document.getElementById('divisionSelect').value;
-            const table = tableMap[division];
-            const container = document.getElementById('reportsContainer');
-            
-            container.innerHTML = '<div class="loading">Loading...</div>';
-            
-            try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?status=eq.PENDING&order=created_at.desc`, {
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-                });
-                const data = await response.json();
-                
-                document.getElementById('pendingBadge').innerHTML = `${data.length} pending`;
-                document.getElementById('totalPending').innerText = data.length;
-                document.getElementById('totalApproved').innerText = '0'; // Would need separate query for today's approvals
-                
-                if (data.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <div class="icon">✅</div>
-                            <h3>All caught up!</h3>
-                            <p>No pending reports for this division</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                let html = '';
-                for (let report of data) {
-                    const reportDate = report.report_date || report.created_at?.split('T')[0] || 'N/A';
-                    let avatarIcon = '👤';
-                    if (division === 'laboratory') avatarIcon = '🔬';
-                    else if (division === 'packhouse') avatarIcon = '📦';
-                    else if (division === 'standards') avatarIcon = '📜';
-                    else if (division === 'leave_requests') avatarIcon = '📋';
-                    else if (division === 'conformity') avatarIcon = '✅';
-                    else if (division === 'timesheet') avatarIcon = '⏰';
-                    
-                    html += `
-                        <div class="report-card">
-                            <div class="card-header">
-                                <div class="officer-info">
-                                    <div class="officer-avatar">${avatarIcon}</div>
-                                    <div class="officer-name">${report.officer_name || 'Unknown'}</div>
-                                </div>
-                                <div class="report-date">📅 ${reportDate}</div>
-                            </div>
-                            <div class="card-body">
-                                <div class="detail-grid">
-                                    <div class="detail-row">
-                                        ${getDetailFields(report, division)}
-                                    </div>
+            return `
+                <div class="report-card">
+                    <div class="card-header">
+                        <div class="officer-info">
+                            <div class="officer-avatar">${icon}</div>
+                            <div>
+                                <div class="officer-name">${report.officer_name || 'Unknown'} 
+                                    <span class="manager-badge">${divisionName}</span>
                                 </div>
                             </div>
-                            <div class="card-footer">
-                                <button class="btn-approve" data-table="${table}" data-id="${report.id}" data-division="${division}">✓ Approve</button>
-                                <button class="btn-reject" data-table="${table}" data-id="${report.id}" data-division="${division}">✗ Reject</button>
-                            </div>
                         </div>
-                    `;
-                }
-                container.innerHTML = html;
-                
-                // Attach event listeners to buttons
-                document.querySelectorAll('.btn-approve').forEach(btn => {
-                    btn.addEventListener('click', () => approveReport(btn.dataset.table, parseInt(btn.dataset.id), btn.dataset.division));
-                });
-                document.querySelectorAll('.btn-reject').forEach(btn => {
-                    btn.addEventListener('click', () => rejectReport(btn.dataset.table, parseInt(btn.dataset.id), btn.dataset.division));
-                });
-                
-            } catch (error) {
-                container.innerHTML = `<div class="empty-state"><div class="icon">❌</div><h3>Error</h3><p>${error.message}</p></div>`;
-            }
+                        <div class="report-date">📅 ${report.report_date || report.created_at?.split('T')[0] || 'N/A'}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="detail-row">
+                            ${detailsHtml}
+                        </div>
+                        ${report.inspector_notes ? `<div class="notes-section"><div class="notes-label">📝 Notes</div><div class="notes-text">${report.inspector_notes}</div></div>` : ''}
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn-approve" data-type="report" data-table="${reportTables[report._division]?.table}" data-id="${report.id}">✓ Approve Report</button>
+                        <button class="btn-reject" data-type="report" data-table="${reportTables[report._division]?.table}" data-id="${report.id}">✗ Reject</button>
+                    </div>
+                </div>
+            `;
         }
         
-        async function approveReport(table, id, division) {
-            if (!confirm('Approve this report?')) return;
+        async function approveItem(type, table, id) {
+            if (!confirm(`Approve this ${type === 'leave' ? 'leave request' : 'report'}?\n\nIt will be sent to CEO for final approval.`)) return;
+            
             try {
                 let updateData;
-                
-                // Different tables have different column structures
-                if (table === 'leave_requests') {
+                if (type === 'leave') {
                     updateData = { 
-                        status: 'APPROVED', 
+                        status: 'MANAGER_APPROVED',
                         supervisor_approved: true,
-                        supervisor_approved_at: new Date().toISOString()
+                        supervisor_approved_at: new Date().toISOString(),
+                        supervisor_name: 'Manager'
                     };
                 } else {
                     updateData = { 
-                        status: 'APPROVED', 
-                        approved_by: 'Manager', 
-                        approved_at: new Date().toISOString() 
+                        status: 'MANAGER_APPROVED',
+                        approved_by: 'Manager',
+                        approved_at: new Date().toISOString()
                     };
                 }
                 
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
                     method: 'PATCH',
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                    headers: { 
+                        'apikey': SUPABASE_KEY, 
+                        'Authorization': `Bearer ${SUPABASE_KEY}`, 
+                        'Content-Type': 'application/json' 
+                    },
                     body: JSON.stringify(updateData)
                 });
                 
                 if (response.ok) {
-                    alert('✓ Report approved');
-                    loadReports(); // Refresh the list
+                    alert(`✓ ${type === 'leave' ? 'Leave request' : 'Report'} approved and forwarded to CEO!`);
+                    loadAllPending();
                 } else {
                     const error = await response.text();
                     alert('Error: ' + error);
@@ -609,17 +711,17 @@
             }
         }
         
-        async function rejectReport(table, id, division) {
+        async function rejectItem(type, table, id) {
             const reason = prompt('Reason for rejection:');
             if (!reason) return;
+            
             try {
                 let updateData;
-                
-                if (table === 'leave_requests') {
+                if (type === 'leave') {
                     updateData = { 
                         status: 'REJECTED', 
                         supervisor_approved: false,
-                        supervisor_comment: reason
+                        manager_comment: reason
                     };
                 } else {
                     updateData = { 
@@ -630,13 +732,17 @@
                 
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
                     method: 'PATCH',
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                    headers: { 
+                        'apikey': SUPABASE_KEY, 
+                        'Authorization': `Bearer ${SUPABASE_KEY}`, 
+                        'Content-Type': 'application/json' 
+                    },
                     body: JSON.stringify(updateData)
                 });
                 
                 if (response.ok) {
-                    alert('✗ Report rejected');
-                    loadReports(); // Refresh the list
+                    alert(`✗ ${type === 'leave' ? 'Leave request' : 'Report'} rejected.`);
+                    loadAllPending();
                 } else {
                     const error = await response.text();
                     alert('Error: ' + error);
@@ -646,9 +752,16 @@
             }
         }
         
-        // Load on page load and when dropdown changes
-        document.getElementById('divisionSelect').addEventListener('change', loadReports);
-        loadReports();
+        // Event listeners
+        document.getElementById('typeFilter').addEventListener('change', () => {
+            filterAndDisplay(document.getElementById('typeFilter').value, document.getElementById('divisionSelect').value);
+        });
+        document.getElementById('divisionSelect').addEventListener('change', () => {
+            filterAndDisplay(document.getElementById('typeFilter').value, document.getElementById('divisionSelect').value);
+        });
+        
+        // Load on page load
+        loadAllPending();
     </script>
 </body>
 </html>
