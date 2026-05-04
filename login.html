@@ -3,6 +3,7 @@
 <head>
     <title>VBS Timesheet Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; background: linear-gradient(135deg, #1a5a3a, #0d3b24); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
         .container { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
@@ -12,22 +13,20 @@
         button:hover { background: #1e5a38; }
         .error { color: #dc3545; text-align: center; margin-top: 10px; font-size: 13px; }
         .info { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-        .register-link { text-align: center; margin-top: 15px; }
-        .register-link a { color: #2c7a4d; text-decoration: none; }
-        .spinner { display: none; text-align: center; margin-top: 10px; }
+        .spinner { display: none; text-align: center; margin-top: 10px; color: #2c7a4d; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔐 VBS Timesheet</h1>
         
-        <form id="loginForm" onsubmit="event.preventDefault(); login();">
-            <input type="email" id="email" placeholder="Email Address" required autocomplete="email">
-            <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
-            <button type="submit">Login</button>
+        <div id="loginForm">
+            <input type="email" id="email" placeholder="Email Address" autocomplete="email">
+            <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+            <button onclick="login()">Login</button>
             <div id="errorMsg" class="error"></div>
             <div class="spinner" id="spinner">⏳ Logging in...</div>
-        </form>
+        </div>
         
         <div class="info">
             🔒 Secure login using Supabase Auth<br>
@@ -36,22 +35,39 @@
     </div>
     
     <script>
+        // Initialize Supabase FIRST
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Wait for Supabase to load
+        let supabase = null;
+        
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            if (window.supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('Supabase initialized');
+            } else {
+                console.error('Supabase not loaded');
+            }
+        });
         
         async function login() {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('errorMsg');
             const spinner = document.getElementById('spinner');
-            const loginBtn = document.querySelector('button[type="submit"]');
+            const loginBtn = document.querySelector('button');
             
             errorDiv.innerHTML = '';
             
             if (!email || !password) {
                 errorDiv.innerHTML = '❌ Please enter email and password';
+                return;
+            }
+            
+            if (!supabase) {
+                errorDiv.innerHTML = '❌ Loading... Please wait and try again';
                 return;
             }
             
@@ -70,14 +86,18 @@
                     localStorage.setItem('vbs_token', data.session.access_token);
                     localStorage.setItem('vbs_user', email);
                     
-                    // Get user role from profiles
-                    const { data: profile } = await supabase
-                        .from('user_profiles')
-                        .select('role')
-                        .eq('id', data.user.id)
-                        .single();
+                    // Try to get role, default to staff
+                    try {
+                        const { data: profile } = await supabase
+                            .from('user_profiles')
+                            .select('role')
+                            .eq('id', data.user.id)
+                            .single();
+                        localStorage.setItem('vbs_role', profile?.role || 'staff');
+                    } catch(e) {
+                        localStorage.setItem('vbs_role', 'staff');
+                    }
                     
-                    localStorage.setItem('vbs_role', profile?.role || 'staff');
                     window.location.href = 'timesheet.html';
                 }
             } catch (error) {
@@ -86,6 +106,14 @@
                 loginBtn.disabled = false;
             }
         }
+        
+        // Allow Enter key
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
+        document.getElementById('email').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
     </script>
 </body>
 </html>
