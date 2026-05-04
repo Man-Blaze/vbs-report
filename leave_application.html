@@ -143,7 +143,7 @@
             box-shadow: 0 0 0 3px rgba(44, 122, 77, 0.1);
         }
         
-        .checkbox-group {
+        .radio-group {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
@@ -153,27 +153,15 @@
             border: 1px solid #e2e8f0;
         }
         
-        .checkbox-group label {
+        .radio-group label {
             font-weight: normal;
             gap: 8px;
             cursor: pointer;
         }
         
-        .checkbox-group input {
+        .radio-group input {
             width: auto;
             margin-right: 4px;
-        }
-        
-        .date-range {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 12px;
-            align-items: center;
-        }
-        
-        .date-range span {
-            color: #6c7a8a;
-            font-weight: 500;
         }
         
         .info-note {
@@ -184,10 +172,6 @@
             font-size: 13px;
             color: #92400e;
             margin: 20px 0;
-        }
-        
-        .info-note i {
-            margin-right: 8px;
         }
         
         .signature-area {
@@ -212,13 +196,6 @@
         .signature-field label {
             font-size: 12px;
             color: #6c7a8a;
-        }
-        
-        .signature-field input {
-            border: none;
-            border-bottom: 1px solid #cbd5e1;
-            border-radius: 0;
-            padding: 8px 0;
         }
         
         .btn-submit {
@@ -279,12 +256,6 @@
             .full-width {
                 grid-column: span 1;
             }
-            .date-range {
-                grid-template-columns: 1fr;
-            }
-            .date-range span {
-                display: none;
-            }
             .form-body {
                 padding: 24px;
             }
@@ -321,8 +292,8 @@
                         <input type="text" name="position" placeholder="e.g., Manager, Officer, Inspector">
                     </div>
                     <div class="field-group">
-                        <label><i class="fas fa-building"></i> Department/Division</label>
-                        <select name="department">
+                        <label><i class="fas fa-building"></i> Division/Department</label>
+                        <select name="division">
                             <option value="S&C">Standards & Certification (S&C)</option>
                             <option value="Provincial">Provincial Division</option>
                             <option value="Laboratory">Laboratory</option>
@@ -332,13 +303,17 @@
                             <option value="CEO Office">CEO Office</option>
                         </select>
                     </div>
+                    <div class="field-group">
+                        <label><i class="fas fa-user-tie"></i> Supervisor Name</label>
+                        <input type="text" name="supervisor_name" placeholder="Your direct supervisor's name">
+                    </div>
                 </div>
                 
                 <!-- Section 2: Type of Leave -->
                 <div class="section-title">
                     <i class="fas fa-tag"></i> Type of Leave Requested
                 </div>
-                <div class="checkbox-group" id="leaveTypeGroup">
+                <div class="radio-group" id="leaveTypeGroup">
                     <label><input type="radio" name="leave_type" value="Annual" required> 📆 Annual Leave</label>
                     <label><input type="radio" name="leave_type" value="Sick"> 🤒 Sick Leave</label>
                     <label><input type="radio" name="leave_type" value="Maternity"> 👶 Maternity Leave</label>
@@ -348,7 +323,7 @@
                 </div>
                 
                 <div id="otherLeaveField" style="display: none; margin-top: 12px;">
-                    <input type="text" name="other_leave_specify" placeholder="Please specify other leave type" style="width: 100%;">
+                    <input type="text" name="other_leave_type" placeholder="Please specify other leave type" style="width: 100%;">
                 </div>
                 
                 <div id="compassionateField" style="display: none; margin-top: 12px;">
@@ -367,7 +342,7 @@
                 <div class="section-title">
                     <i class="fas fa-coins"></i> Advance Salary (apply at least 3 weeks in advance)
                 </div>
-                <div class="checkbox-group">
+                <div class="radio-group">
                     <label><input type="radio" name="advance_salary" value="yes"> Yes, I request advance salary</label>
                     <label><input type="radio" name="advance_salary" value="no" checked> No</label>
                 </div>
@@ -392,16 +367,12 @@
                     </div>
                 </div>
                 
-                <div class="info-note" id="publicHolidayNote" style="display: none;">
-                    <i class="fas fa-calendar-day"></i> <strong>Note:</strong> <span id="holidayMessage"></span>
-                </div>
-                
                 <!-- Section 5: Reason & Comments -->
                 <div class="section-title">
                     <i class="fas fa-comment"></i> Reason & Comments
                 </div>
                 <div class="field-group full-width">
-                    <label>Reason for Leave (if applicable)</label>
+                    <label>Reason for Leave</label>
                     <textarea name="reason" rows="3" placeholder="Please provide reason for leave request..."></textarea>
                 </div>
                 <div class="field-group full-width">
@@ -417,22 +388,14 @@
                     <p style="font-size: 13px; color: #6c7a8a; margin-bottom: 12px;">By submitting this form, I confirm that the information provided is accurate and complete.</p>
                     <div class="signature-line">
                         <div class="signature-field">
-                            <label>Employee Signature</label>
-                            <input type="text" name="employee_signature" placeholder="Type your full name as signature">
+                            <label>Employee Signature (Type full name)</label>
+                            <input type="text" name="signature" placeholder="Type your full name as signature" required>
                         </div>
                         <div class="signature-field">
                             <label>Date</label>
-                            <input type="date" name="signature_date" id="signatureDate">
+                            <input type="date" name="signature_date" id="signatureDate" required>
                         </div>
                     </div>
-                </div>
-                
-                <!-- HR Use Section -->
-                <div class="section-title">
-                    <i class="fas fa-building"></i> HR Department Use (Leave Balance)
-                </div>
-                <div class="info-note" style="background: #e0f2fe; border-left-color: #0284c7;">
-                    <i class="fas fa-info-circle"></i> Leave balance and recording will be processed by HR after manager and CEO approval.
                 </div>
                 
                 <button type="submit" class="btn-submit">
@@ -446,13 +409,16 @@
 </div>
 
 <script>
+(function() {
+    // Supabase configuration - using IIFE to avoid global conflicts
     const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     
     // Set default dates
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('signatureDate').value = today;
+    const signatureDateInput = document.getElementById('signatureDate');
+    if (signatureDateInput) signatureDateInput.value = today;
     
     // Show/hide conditional fields based on leave type
     const leaveTypeRadios = document.querySelectorAll('input[name="leave_type"]');
@@ -461,21 +427,21 @@
     const maternityField = document.getElementById('maternityField');
     const medicalField = document.getElementById('medicalField');
     
-    leaveTypeRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
-            otherField.style.display = 'none';
-            compassionateField.style.display = 'none';
-            maternityField.style.display = 'none';
-            medicalField.style.display = 'none';
+    leaveTypeRadios.forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            if (otherField) otherField.style.display = 'none';
+            if (compassionateField) compassionateField.style.display = 'none';
+            if (maternityField) maternityField.style.display = 'none';
+            if (medicalField) medicalField.style.display = 'none';
             
             if (radio.value === 'Other') {
-                otherField.style.display = 'block';
+                if (otherField) otherField.style.display = 'block';
             } else if (radio.value === 'Compassionate') {
-                compassionateField.style.display = 'block';
+                if (compassionateField) compassionateField.style.display = 'block';
             } else if (radio.value === 'Maternity') {
-                maternityField.style.display = 'block';
+                if (maternityField) maternityField.style.display = 'block';
             } else if (radio.value === 'Sick') {
-                medicalField.style.display = 'block';
+                if (medicalField) medicalField.style.display = 'block';
             }
         });
     });
@@ -484,78 +450,52 @@
     const advanceSalaryRadios = document.querySelectorAll('input[name="advance_salary"]');
     const advanceDateField = document.getElementById('advanceSalaryDateField');
     
-    advanceSalaryRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
-            advanceDateField.style.display = radio.value === 'yes' ? 'block' : 'none';
+    advanceSalaryRadios.forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            if (advanceDateField) {
+                advanceDateField.style.display = radio.value === 'yes' ? 'block' : 'none';
+            }
         });
     });
     
     // Calculate total days between dates
     function calculateTotalDays(startDate, endDate) {
         if (!startDate || !endDate) return 0;
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        const diffTime = Math.abs(end - start);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        var start = new Date(startDate);
+        var end = new Date(endDate);
+        var diffTime = Math.abs(end - start);
+        var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
         return diffDays;
     }
     
-    // Check for public holidays (simplified - add more as needed)
-    const publicHolidays = [
-        { date: '2026-05-14', name: 'Ascension Day' },
-        { date: '2026-07-24', name: 'Children\'s Day' },
-        { date: '2026-08-15', name: 'Assumption Day' },
-        { date: '2026-10-05', name: 'Constitution Day' },
-        { date: '2026-11-29', name: 'Unity Day' },
-        { date: '2026-12-25', name: 'Christmas Day' },
-        { date: '2026-12-26', name: 'Family Day' }
-    ];
-    
-    function checkPublicHolidays(startDate, endDate) {
-        if (!startDate || !endDate) return [];
-        const holidays = [];
-        for (const holiday of publicHolidays) {
-            if (holiday.date >= startDate && holiday.date <= endDate) {
-                holidays.push(holiday);
-            }
-        }
-        return holidays;
-    }
-    
     // Form submission
-    document.getElementById('leaveForm').addEventListener('submit', async (e) => {
+    var leaveForm = document.getElementById('leaveForm');
+    
+    leaveForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        const formData = new FormData(e.target);
-        const data = {};
-        formData.forEach((value, key) => { data[key] = value; });
+        var formData = new FormData(e.target);
+        var data = {};
+        formData.forEach(function(value, key) {
+            data[key] = value;
+        });
         
         // Calculate total days
-        const totalDays = calculateTotalDays(data.start_date, data.end_date);
+        var totalDays = calculateTotalDays(data.start_date, data.end_date);
         data.total_days = totalDays;
         
-        // Check for public holidays
-        const holidays = checkPublicHolidays(data.start_date, data.end_date);
-        if (holidays.length > 0) {
-            const holidayNames = holidays.map(h => h.name).join(', ');
-            if (!confirm(`Note: Your leave period includes public holiday(s): ${holidayNames}\n\nThese days are not counted as leave days. Continue?`)) {
-                return;
-            }
-        }
-        
         // Set status based on position
-        const isManager = data.position?.toLowerCase().includes('manager') || 
-                          data.department === 'CEO Office' ||
-                          data.officer_name?.toLowerCase().includes('manager');
+        var isManager = data.position && (data.position.toLowerCase().includes('manager') || 
+                          data.division === 'CEO Office');
         
-        // If employee is a manager, status goes directly to CEO, otherwise PENDING (manager approval first)
+        // If employee is a manager, status goes directly to CEO, otherwise PENDING
         data.status = isManager ? 'PENDING_CEO' : 'PENDING';
         data.supervisor_approved = false;
         data.ceo_approved = false;
         data.advance_salary_requested = data.advance_salary === 'yes';
         data.created_at = new Date().toISOString();
         
-        // Clean up checkbox/radio artifacts
+        // Clean up
         delete data.advance_salary;
         
         // Handle medical attachment
@@ -565,50 +505,60 @@
             delete data.medical_attached;
         }
         
-        try {
-            const { error } = await supabase.from('leave_requests').insert([data]);
-            
-            if (error) throw error;
-            
-            const messageDiv = document.getElementById('formMessage');
-            if (isManager) {
-                messageDiv.innerHTML = '✅ Leave application submitted! As a manager, your request has been sent directly to the CEO for approval.';
-            } else {
-                messageDiv.innerHTML = '✅ Leave application submitted! Your request has been sent to your manager for review.';
+        // Remove empty fields
+        Object.keys(data).forEach(function(key) {
+            if (data[key] === '' || data[key] === null || data[key] === undefined) {
+                delete data[key];
             }
+        });
+        
+        var messageDiv = document.getElementById('formMessage');
+        
+        try {
+            var result = await supabaseClient.from('leave_requests').insert([data]);
+            
+            if (result.error) throw result.error;
+            
+            messageDiv.innerHTML = isManager ? 
+                '✅ Leave application submitted! As a manager, your request has been sent directly to the CEO for approval.' :
+                '✅ Leave application submitted! Your request has been sent to your manager for review.';
             messageDiv.className = 'message success';
             messageDiv.style.display = 'block';
             
             // Reset form
-            e.target.reset();
-            document.getElementById('signatureDate').value = today;
+            leaveForm.reset();
+            if (signatureDateInput) signatureDateInput.value = today;
             
-            setTimeout(() => {
+            setTimeout(function() {
                 window.location.href = 'https://Man-Blaze.github.io/vbs-report/';
             }, 3000);
             
         } catch (err) {
             console.error('Error:', err);
-            const messageDiv = document.getElementById('formMessage');
-            messageDiv.innerHTML = `❌ Error submitting application: ${err.message}`;
+            messageDiv.innerHTML = '❌ Error submitting application: ' + err.message;
             messageDiv.className = 'message error';
             messageDiv.style.display = 'block';
         }
     });
     
     // Set minimum date to today
-    const startDateInput = document.querySelector('input[name="start_date"]');
-    const endDateInput = document.querySelector('input[name="end_date"]');
+    var startDateInput = document.querySelector('input[name="start_date"]');
+    var endDateInput = document.querySelector('input[name="end_date"]');
     
-    startDateInput.min = today;
-    endDateInput.min = today;
+    if (startDateInput) startDateInput.min = today;
+    if (endDateInput) endDateInput.min = today;
     
-    startDateInput.addEventListener('change', () => {
-        endDateInput.min = startDateInput.value;
-        if (endDateInput.value && endDateInput.value < startDateInput.value) {
-            endDateInput.value = startDateInput.value;
-        }
-    });
+    if (startDateInput) {
+        startDateInput.addEventListener('change', function() {
+            if (endDateInput) {
+                endDateInput.min = startDateInput.value;
+                if (endDateInput.value && endDateInput.value < startDateInput.value) {
+                    endDateInput.value = startDateInput.value;
+                }
+            }
+        });
+    }
+})();
 </script>
 </body>
 </html>
