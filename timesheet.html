@@ -25,9 +25,6 @@
         .btn-self { background: #17a2b8; }
         select, input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-top: 5px; font-size: 14px; }
         label { font-weight: 600; font-size: 13px; display: block; margin-top: 12px; color: #333; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-        th { background: #f8f9fa; font-weight: 600; color: #1a5a3a; }
         .status-present { background: #d4edda; color: #155724; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
         .status-absent { background: #f8d7da; color: #721c24; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
         .status-pending { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
@@ -40,6 +37,51 @@
         .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #888; }
         .focal-badge { background: #ffc107; color: #333; padding: 2px 10px; border-radius: 20px; font-size: 11px; margin-left: 8px; }
         .alert { background: #cce5ff; padding: 12px; border-radius: 12px; margin: 15px 0; font-size: 13px; color: #004085; }
+        
+        /* NEW: Staff Status Card */
+        .staff-status-card {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #2c7a4d;
+        }
+        .staff-status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .staff-name-large {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a5a3a;
+        }
+        .staff-status-badge {
+            font-size: 14px;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-weight: bold;
+        }
+        .staff-time-info {
+            font-size: 14px;
+            color: #333;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #a5d6a7;
+        }
+        .btn-staff-clock-out {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -59,12 +101,13 @@
     <div class="stat-card"><div class="stat-number" id="pendingCount">0</div><div class="stat-label">Pending Approval</div></div>
 </div>
 
-<div class="mode-switch">
+<div class="mode-switch" id="modeSwitch">
     <button class="mode-btn active" onclick="setMode('focal')">👔 Focal Point Mode</button>
-    <button class="mode-btn" onclick="setMode('self')">🔓 Self Clock Mode</button>
+    <button class="mode-btn" onclick="setMode('self')">🔓 Staff Self Clock Mode</button>
 </div>
 
 <div class="main-content">
+    <!-- FOCAL POINT PANEL - UNCHANGED -->
     <div class="clock-panel" id="focalPanel">
         <div class="current-time" id="currentTime">--:--:--</div>
         <label>📅 Date</label>
@@ -76,24 +119,51 @@
         <div id="pendingPanel"></div>
     </div>
     
+    <!-- STAFF SELF PANEL - FIXED: Shows staff their own status prominently -->
     <div class="clock-panel" id="selfPanel" style="display:none;">
         <div class="current-time" id="selfTime">--:--:--</div>
-        <div class="alert">⚠️ Self-clock requests need focal point approval.</div>
+        
+        <!-- STAFF STATUS CARD - Shows their own presence -->
+        <div id="staffStatusCard" class="staff-status-card">
+            <div class="staff-status-header">
+                <span class="staff-name-large">👤 <span id="selfStaffName">Loading...</span></span>
+                <span id="selfStatusBadge"></span>
+            </div>
+            <div id="selfTimeDetails" class="staff-time-info">
+                Loading your attendance...
+            </div>
+            <div style="margin-top: 15px; text-align: right;">
+                <button id="selfClockOutBtn" class="btn-staff-clock-out" onclick="staffClockOut()" style="display: none;">❌ Clock Out</button>
+            </div>
+        </div>
+        
+        <div class="alert" style="background: #fff3cd; color: #856404;">
+            ⚠️ Use "Request Self Clock In" only if focal point is not available. Your request will need approval.
+        </div>
+        
         <label>📅 Date</label>
         <input type="date" id="selfDate">
-        <label>📝 Reason</label>
-        <textarea id="selfReason" rows="2" placeholder="e.g., First to arrive, focal point not here, remote work..."></textarea>
+        
+        <label>📝 Reason for self-clock</label>
+        <textarea id="selfReason" rows="2" placeholder="e.g., First to arrive, focal point not here yet, remote work..."></textarea>
+        
         <button class="btn-clock-in btn-self" onclick="requestSelfClock()">📤 REQUEST SELF CLOCK IN</button>
+        
+        <div id="selfMessage" style="margin-top: 15px; display: none;" class="alert"></div>
     </div>
     
+    <!-- STAFF LIST TABLE - For focal point view -->
     <div class="staff-panel">
         <h3>📋 Today's Attendance - <span id="todayDate"></span> 
             <button class="refresh-btn" onclick="refreshData()">↻ Refresh</button>
         </h3>
         <div style="overflow-x: auto; max-height: 500px;">
             <table id="attendanceTable">
-                <thead><tr><th>Staff</th><th>Division</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th><th>Action</th></tr></thead>
-                <tbody id="attendanceBody"><tr><td colspan="7">Loading data from Supabase...</td></tr></tbody>
+                <thead>
+                    <tr><th>Staff</th><th>Division</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody id="attendanceBody"><tr><td colspan="7">Loading data from Supabase...</td></tr>
+                </tbody>
             </table>
         </div>
     </div>
@@ -105,13 +175,9 @@
 </div>
 
 <script>
-    // ============================================
-    // SUPABASE CONFIGURATION - DECLARED ONCE
-    // ============================================
     const VBS_SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
     const VBS_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
     
-    // Global variables
     let vbsClient = null;
     let currentUser = null;
     let currentUserEmail = null;
@@ -125,7 +191,6 @@
     document.getElementById('reportDate').value = today;
     document.getElementById('selfDate').value = today;
     
-    // Live clock
     function updateTime() {
         const now = new Date().toLocaleTimeString();
         document.getElementById('currentTime').innerHTML = now;
@@ -134,13 +199,11 @@
     setInterval(updateTime, 1000);
     updateTime();
     
-    // Initialize on page load
     window.addEventListener('DOMContentLoaded', function() {
         if (typeof window.supabase !== 'undefined') {
             vbsClient = window.supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
             checkAuth();
         } else {
-            console.error('Supabase not loaded');
             document.getElementById('userName').innerHTML = 'Error: Refresh page';
         }
     });
@@ -157,18 +220,14 @@
         currentUserEmail = user.email;
         currentUserName = user.email.split('@')[0];
         
-        // Check if focal point
-        const { data: focalData } = await vbsClient
-            .from('focal_points')
-            .select('*')
-            .eq('email', currentUserEmail)
-            .single();
+        const { data: focalData } = await vbsClient.from('focal_points').select('*').eq('email', currentUserEmail).single();
         
         if (focalData) {
             isFocalPoint = true;
             currentUserDivision = focalData.division;
             currentUserLocation = focalData.location;
             document.getElementById('userName').innerHTML = `${focalData.name} <span class="focal-badge">Focal Point - ${focalData.division}</span>`;
+            document.getElementById('modeSwitch').style.display = 'flex';
             document.getElementById('focalPanel').style.display = 'block';
             document.getElementById('selfPanel').style.display = 'none';
             await loadStaffList();
@@ -177,9 +236,11 @@
         } else {
             isFocalPoint = false;
             document.getElementById('userName').innerHTML = `${currentUserName} (Staff)`;
+            document.getElementById('modeSwitch').style.display = 'none';
             document.getElementById('focalPanel').style.display = 'none';
             document.getElementById('selfPanel').style.display = 'block';
-            await loadMyAttendance();
+            document.getElementById('selfStaffName').innerHTML = currentUserName;
+            await loadStaffSelfStatus();
         }
     }
     
@@ -195,22 +256,20 @@
             document.getElementById('selfPanel').style.display = 'none';
             loadTodayAttendance();
             loadPendingSelfClocks();
-        } else if (mode === 'self') {
+        } else if (mode === 'self' && isFocalPoint) {
             document.getElementById('focalPanel').style.display = 'none';
             document.getElementById('selfPanel').style.display = 'block';
-            loadMyAttendance();
+            loadStaffSelfStatus();
         }
     }
     
     async function loadStaffList() {
         let query = vbsClient.from('staff_list').select('*').eq('is_active', true).order('staff_name');
-        
         if (currentUserDivision === 'Provincial' && currentUserLocation) {
             query = query.eq('division', 'Provincial').eq('location', currentUserLocation);
         } else if (currentUserDivision) {
             query = query.eq('division', currentUserDivision);
         }
-        
         const { data: staff } = await query;
         const select = document.getElementById('staffSelect');
         select.innerHTML = '<option value="">-- Select Staff --</option>';
@@ -279,32 +338,68 @@
         document.getElementById('pendingCount').innerText = pending;
     }
     
-    async function loadMyAttendance() {
+    // NEW FUNCTION: Staff sees ONLY their own status in a clean card
+    async function loadStaffSelfStatus() {
         const date = document.getElementById('selfDate').value;
-        const { data: records } = await vbsClient.from('timesheet').select('*').eq('officer_name', currentUserName).eq('report_date', date);
+        const { data: records } = await vbsClient.from('timesheet')
+            .select('*')
+            .eq('officer_name', currentUserName)
+            .eq('report_date', date);
         
-        if (records?.length > 0) {
+        const timeDetails = document.getElementById('selfTimeDetails');
+        const statusBadge = document.getElementById('selfStatusBadge');
+        const clockOutBtn = document.getElementById('selfClockOutBtn');
+        const messageDiv = document.getElementById('selfMessage');
+        
+        if (records && records.length > 0) {
             const r = records[0];
-            let status = r.status === 'PENDING_APPROVAL' ? 'PENDING' : (r.time_out ? 'CLOCKED OUT' : 'PRESENT');
-            let statusClass = r.status === 'PENDING_APPROVAL' ? 'status-pending' : 'status-present';
-            let canClockOut = (r.time_in && !r.time_out && r.status !== 'PENDING_APPROVAL');
             
-            document.getElementById('attendanceBody').innerHTML = `<tr>
-                <td><strong>${currentUserName}</strong></td>
-                <td>-</td>
-                <td>${r.time_in || '-'}</td>
-                <td>${r.time_out || '-'}</td>
-                <td>${r.hours_worked || 0}</td>
-                <td><span class="${statusClass}">${status}</span></td>
-                <td>${canClockOut ? `<button class="btn-clock-out" style="padding:5px 10px; font-size:11px;" onclick="quickClockOut('${currentUserName}')">Clock Out</button>` : '-'}</td>
-            </tr>`;
-            document.getElementById('presentCount').innerText = (r.time_in && r.status !== 'PENDING_APPROVAL') ? 1 : 0;
-            document.getElementById('absentCount').innerText = 0;
+            if (r.status === 'PENDING_APPROVAL') {
+                statusBadge.innerHTML = '<span class="staff-status-badge" style="background:#fef3c7; color:#92400e;">⏳ PENDING APPROVAL</span>';
+                timeDetails.innerHTML = `
+                    <strong>⏰ Requested clock in:</strong> ${r.time_in}<br>
+                    <strong>📝 Reason:</strong> ${r.late_reason || 'Not specified'}<br>
+                    <strong>Status:</strong> Waiting for focal point approval
+                `;
+                clockOutBtn.style.display = 'none';
+                messageDiv.innerHTML = `⏳ Your self-clock request at ${r.time_in} is waiting for focal point approval.`;
+                messageDiv.style.display = 'block';
+                document.getElementById('presentCount').innerText = 0;
+                document.getElementById('absentCount').innerText = 1;
+            } 
+            else if (r.time_in && !r.time_out) {
+                statusBadge.innerHTML = '<span class="staff-status-badge" style="background:#d4edda; color:#155724;">✅ PRESENT</span>';
+                timeDetails.innerHTML = `
+                    <strong>✅ Clocked IN at:</strong> ${r.time_in}<br>
+                    <strong>🕐 Current time:</strong> ${new Date().toLocaleTimeString()}<br>
+                    <strong>Click "Clock Out" when you finish work.</strong>
+                `;
+                clockOutBtn.style.display = 'block';
+                messageDiv.style.display = 'none';
+                document.getElementById('presentCount').innerText = 1;
+                document.getElementById('absentCount').innerText = 0;
+            } 
+            else if (r.time_out) {
+                statusBadge.innerHTML = '<span class="staff-status-badge" style="background:#cce5ff; color:#004085;">⏳ CLOCKED OUT</span>';
+                timeDetails.innerHTML = `
+                    <strong>✅ Clocked IN at:</strong> ${r.time_in}<br>
+                    <strong>❌ Clocked OUT at:</strong> ${r.time_out}<br>
+                    <strong>📊 Hours worked:</strong> ${r.hours_worked || 0}
+                `;
+                clockOutBtn.style.display = 'none';
+                messageDiv.style.display = 'none';
+                document.getElementById('presentCount').innerText = 1;
+                document.getElementById('absentCount').innerText = 0;
+            }
         } else {
-            document.getElementById('attendanceBody').innerHTML = '<tr><td colspan="7">No record for today. Use Self Clock Mode above.</td></tr>';
+            statusBadge.innerHTML = '<span class="staff-status-badge" style="background:#f8d7da; color:#721c24;">❌ NOT CLOCKED IN</span>';
+            timeDetails.innerHTML = 'You have not clocked in today. Use the "REQUEST SELF CLOCK IN" button below.';
+            clockOutBtn.style.display = 'none';
+            messageDiv.style.display = 'none';
             document.getElementById('presentCount').innerText = 0;
             document.getElementById('absentCount').innerText = 1;
         }
+        
         document.getElementById('totalStaff').innerText = 1;
     }
     
@@ -389,7 +484,7 @@
         const { error } = await vbsClient.from('timesheet').update({ time_out: timeOut, hours_worked: totalHours.toFixed(2) }).eq('id', record.id);
         if (!error) {
             alert(`❌ ${staffName} clocked OUT at ${timeOut} | Hours: ${totalHours.toFixed(2)}`);
-            if (isFocalPoint) await loadTodayAttendance(); else await loadMyAttendance();
+            if (isFocalPoint) await loadTodayAttendance(); else await loadStaffSelfStatus();
         } else { alert('Error: ' + error.message); }
     }
     
@@ -398,6 +493,41 @@
         if (!staffName) { alert('Select staff'); return; }
         await quickClockOut(staffName);
         document.getElementById('staffSelect').value = '';
+    }
+    
+    async function staffClockOut() {
+        const date = document.getElementById('selfDate').value;
+        const { data: records } = await vbsClient.from('timesheet')
+            .select('*')
+            .eq('officer_name', currentUserName)
+            .eq('report_date', date)
+            .is('time_out', null);
+        
+        if (!records || records.length === 0) {
+            alert('No clock-in record found');
+            return;
+        }
+        
+        const record = records[0];
+        const timeOut = new Date().toLocaleTimeString();
+        
+        const inParts = record.time_in.split(':');
+        const outParts = timeOut.split(':');
+        let hours = parseInt(outParts[0]) - parseInt(inParts[0]);
+        let minutes = parseInt(outParts[1]) - parseInt(inParts[1]);
+        if (minutes < 0) { hours--; minutes += 60; }
+        const totalHours = hours + minutes / 60;
+        
+        const { error } = await vbsClient.from('timesheet')
+            .update({ time_out: timeOut, hours_worked: totalHours.toFixed(2) })
+            .eq('id', record.id);
+        
+        if (!error) {
+            alert(`❌ You clocked OUT at ${timeOut} | Hours worked: ${totalHours.toFixed(2)}`);
+            await loadStaffSelfStatus();
+        } else {
+            alert('Error: ' + error.message);
+        }
     }
     
     async function requestSelfClock() {
@@ -417,26 +547,25 @@
         
         if (!error) {
             alert(`📤 Self-clock request sent at ${timeIn}. Waiting for focal point approval.`);
-            await loadMyAttendance();
+            await loadStaffSelfStatus();
             document.getElementById('selfReason').value = '';
         } else { alert('Error: ' + error.message); }
     }
     
-    // REFRESH DATA FUNCTION - FIXED
     function refreshData() {
         if (isFocalPoint && document.getElementById('focalPanel').style.display !== 'none') {
             loadTodayAttendance();
             loadPendingSelfClocks();
         } else {
-            loadMyAttendance();
+            loadStaffSelfStatus();
         }
     }
     
-    // Make functions available globally for onclick
     window.refreshData = refreshData;
     window.clockIn = clockIn;
     window.clockOut = clockOut;
     window.quickClockOut = quickClockOut;
+    window.staffClockOut = staffClockOut;
     window.requestSelfClock = requestSelfClock;
     window.approveSelfClock = approveSelfClock;
     window.rejectSelfClock = rejectSelfClock;
