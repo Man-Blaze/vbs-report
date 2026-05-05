@@ -91,9 +91,9 @@
             <button class="refresh-btn" onclick="refreshData()">↻ Refresh</button>
         </h3>
         <div style="overflow-x: auto; max-height: 500px;">
-            <table>
+            <table id="attendanceTable">
                 <thead><tr><th>Staff</th><th>Division</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th><th>Action</th></tr></thead>
-                <tbody id="attendanceBody"></tbody>
+                <tbody id="attendanceBody"><tr><td colspan="7">Loading data from Supabase...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -101,14 +101,18 @@
 
 <div class="footer">
     ✅ Data from YOUR timesheet table • Refresh shows current status • Time is ALWAYS captured<br>
-    📝 Self-clock goes to vw_pending_self_clocks for focal approval
+    📝 Self-clock requests need focal point approval
 </div>
 
 <script>
-    const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+    // ============================================
+    // SUPABASE CONFIGURATION - DECLARED ONCE
+    // ============================================
+    const VBS_SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+    const VBS_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
     
-    let supabase = null;
+    // Global variables
+    let vbsClient = null;
     let currentUser = null;
     let currentUserEmail = null;
     let currentUserName = null;
@@ -117,11 +121,23 @@
     let isFocalPoint = false;
     
     const today = new Date().toISOString().split('T')[0];
+    document.getElementById('todayDate').innerText = today;
+    document.getElementById('reportDate').value = today;
+    document.getElementById('selfDate').value = today;
     
-    // Wait for DOM and Supabase to load
+    // Live clock
+    function updateTime() {
+        const now = new Date().toLocaleTimeString();
+        document.getElementById('currentTime').innerHTML = now;
+        document.getElementById('selfTime').innerHTML = now;
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+    
+    // Initialize on page load
     window.addEventListener('DOMContentLoaded', function() {
-        if (window.supabase) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        if (typeof window.supabase !== 'undefined') {
+            vbsClient = window.supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
             checkAuth();
         } else {
             console.error('Supabase not loaded');
@@ -133,16 +149,16 @@
         const token = localStorage.getItem('vbs_token');
         if (!token) { window.location.href = 'login.html'; return; }
         
-        await supabase.auth.setSession({ access_token: token, refresh_token: '' });
-        const { data: { user } } = await supabase.auth.getUser();
+        await vbsClient.auth.setSession({ access_token: token, refresh_token: '' });
+        const { data: { user } } = await vbsClient.auth.getUser();
         if (!user) { window.location.href = 'login.html'; return; }
         
         currentUser = user;
         currentUserEmail = user.email;
         currentUserName = user.email.split('@')[0];
         
-        // Check if user is focal point from focal_points table
-        const { data: focalData } = await supabase
+        // Check if focal point
+        const { data: focalData } = await vbsClient
             .from('focal_points')
             .select('*')
             .eq('email', currentUserEmail)
@@ -168,7 +184,7 @@
     }
     
     async function logout() {
-        await supabase.auth.signOut();
+        await vbsClient.auth.signOut();
         localStorage.clear();
         window.location.href = 'login.html';
     }
@@ -187,7 +203,7 @@
     }
     
     async function loadStaffList() {
-        let query = supabase.from('staff_list').select('*').eq('is_active', true).order('staff_name');
+        let query = vbsClient.from('staff_list').select('*').eq('is_active', true).order('staff_name');
         
         if (currentUserDivision === 'Provincial' && currentUserLocation) {
             query = query.eq('division', 'Provincial').eq('location', currentUserLocation);
@@ -207,7 +223,7 @@
     async function loadTodayAttendance() {
         const date = document.getElementById('reportDate').value;
         
-        let staffQuery = supabase.from('staff_list').select('*').eq('is_active', true).order('staff_name');
+        let staffQuery = vbsClient.from('staff_list').select('*').eq('is_active', true).order('staff_name');
         if (currentUserDivision === 'Provincial' && currentUserLocation) {
             staffQuery = staffQuery.eq('division', 'Provincial').eq('location', currentUserLocation);
         } else if (currentUserDivision) {
@@ -215,7 +231,7 @@
         }
         
         const { data: staff } = await staffQuery;
-        const { data: records } = await supabase.from('timesheet').select('*').eq('report_date', date);
+        const { data: records } = await vbsClient.from('timesheet').select('*').eq('report_date', date);
         
         let present = 0, absent = 0, pending = 0;
         let html = '';
@@ -261,12 +277,11 @@
         document.getElementById('presentCount').innerText = present;
         document.getElementById('absentCount').innerText = absent;
         document.getElementById('pendingCount').innerText = pending;
-        document.getElementById('totalStaff').innerText = staff?.length || 0;
     }
     
     async function loadMyAttendance() {
         const date = document.getElementById('selfDate').value;
-        const { data: records } = await supabase.from('timesheet').select('*').eq('officer_name', currentUserName).eq('report_date', date);
+        const { data: records } = await vbsClient.from('timesheet').select('*').eq('officer_name', currentUserName).eq('report_date', date);
         
         if (records?.length > 0) {
             const r = records[0];
@@ -295,7 +310,7 @@
     
     async function loadPendingSelfClocks() {
         const date = document.getElementById('reportDate').value;
-        const { data: pending } = await supabase.from('timesheet').select('*').eq('clock_method', 'self').eq('status', 'PENDING_APPROVAL').eq('report_date', date);
+        const { data: pending } = await vbsClient.from('timesheet').select('*').eq('clock_method', 'self').eq('status', 'PENDING_APPROVAL').eq('report_date', date);
         
         if (pending?.length > 0) {
             let html = `<div class="pending-requests"><h4>⏳ Pending Self-Clock Requests (${pending.length})</h4>`;
@@ -314,7 +329,7 @@
     }
     
     async function approveSelfClock(id, timeIn) {
-        const { error } = await supabase.from('timesheet').update({ status: 'APPROVED', approved_by: currentUserEmail, approved_at: new Date().toISOString() }).eq('id', id);
+        const { error } = await vbsClient.from('timesheet').update({ status: 'APPROVED', approved_by: currentUserEmail, approved_at: new Date().toISOString() }).eq('id', id);
         if (!error) {
             alert(`✅ Self-clock approved! Time in: ${timeIn} preserved.`);
             await loadTodayAttendance();
@@ -325,7 +340,7 @@
     async function rejectSelfClock(id) {
         const reason = prompt('Reason for rejection:');
         if (!reason) return;
-        const { error } = await supabase.from('timesheet').update({ status: 'REJECTED', rejection_reason: reason, approved_by: currentUserEmail }).eq('id', id);
+        const { error } = await vbsClient.from('timesheet').update({ status: 'REJECTED', rejection_reason: reason, approved_by: currentUserEmail }).eq('id', id);
         if (!error) {
             alert('❌ Self-clock rejected.');
             await loadTodayAttendance();
@@ -338,14 +353,14 @@
         const date = document.getElementById('reportDate').value;
         if (!staffName) { alert('Select staff'); return; }
         
-        const { data: existing } = await supabase.from('timesheet').select('*').eq('officer_name', staffName).eq('report_date', date);
+        const { data: existing } = await vbsClient.from('timesheet').select('*').eq('officer_name', staffName).eq('report_date', date);
         if (existing?.length > 0 && existing[0].time_in && !existing[0].time_out) {
             alert(`⚠️ ${staffName} already clocked IN at ${existing[0].time_in}`);
             return;
         }
         
         const timeIn = new Date().toLocaleTimeString();
-        const { error } = await supabase.from('timesheet').insert({
+        const { error } = await vbsClient.from('timesheet').insert({
             officer_name: staffName, division: currentUserDivision, report_date: date,
             time_in: timeIn, clock_method: 'focal_point', clocked_by: currentUserEmail, status: 'APPROVED'
         });
@@ -359,7 +374,7 @@
     
     async function quickClockOut(staffName) {
         const date = document.getElementById('reportDate')?.value || today;
-        const { data: records } = await supabase.from('timesheet').select('*').eq('officer_name', staffName).eq('report_date', date).is('time_out', null);
+        const { data: records } = await vbsClient.from('timesheet').select('*').eq('officer_name', staffName).eq('report_date', date).is('time_out', null);
         if (!records?.length) { alert('No clock-in record'); return; }
         
         const record = records[0];
@@ -371,7 +386,7 @@
         if (minutes < 0) { hours--; minutes += 60; }
         const totalHours = hours + minutes / 60;
         
-        const { error } = await supabase.from('timesheet').update({ time_out: timeOut, hours_worked: totalHours.toFixed(2) }).eq('id', record.id);
+        const { error } = await vbsClient.from('timesheet').update({ time_out: timeOut, hours_worked: totalHours.toFixed(2) }).eq('id', record.id);
         if (!error) {
             alert(`❌ ${staffName} clocked OUT at ${timeOut} | Hours: ${totalHours.toFixed(2)}`);
             if (isFocalPoint) await loadTodayAttendance(); else await loadMyAttendance();
@@ -390,11 +405,11 @@
         const reason = document.getElementById('selfReason').value;
         if (!reason) { alert('Please provide a reason'); return; }
         
-        const { data: existing } = await supabase.from('timesheet').select('*').eq('officer_name', currentUserName).eq('report_date', date);
+        const { data: existing } = await vbsClient.from('timesheet').select('*').eq('officer_name', currentUserName).eq('report_date', date);
         if (existing?.length > 0) { alert('You already have a record for today.'); return; }
         
         const timeIn = new Date().toLocaleTimeString();
-        const { error } = await supabase.from('timesheet').insert({
+        const { error } = await vbsClient.from('timesheet').insert({
             officer_name: currentUserName, division: 'Staff', report_date: date,
             time_in: timeIn, late_reason: reason, clock_method: 'self',
             clocked_by: currentUserEmail, status: 'PENDING_APPROVAL'
@@ -407,6 +422,7 @@
         } else { alert('Error: ' + error.message); }
     }
     
+    // REFRESH DATA FUNCTION - FIXED
     function refreshData() {
         if (isFocalPoint && document.getElementById('focalPanel').style.display !== 'none') {
             loadTodayAttendance();
@@ -415,6 +431,17 @@
             loadMyAttendance();
         }
     }
+    
+    // Make functions available globally for onclick
+    window.refreshData = refreshData;
+    window.clockIn = clockIn;
+    window.clockOut = clockOut;
+    window.quickClockOut = quickClockOut;
+    window.requestSelfClock = requestSelfClock;
+    window.approveSelfClock = approveSelfClock;
+    window.rejectSelfClock = rejectSelfClock;
+    window.setMode = setMode;
+    window.logout = logout;
 </script>
 </body>
 </html>
