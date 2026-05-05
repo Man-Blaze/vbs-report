@@ -38,7 +38,6 @@
         .focal-badge { background: #ffc107; color: #333; padding: 2px 10px; border-radius: 20px; font-size: 11px; margin-left: 8px; }
         .alert { background: #cce5ff; padding: 12px; border-radius: 12px; margin: 15px 0; font-size: 13px; color: #004085; }
         
-        /* NEW: Staff Status Card */
         .staff-status-card {
             background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
             border-radius: 20px;
@@ -107,7 +106,6 @@
 </div>
 
 <div class="main-content">
-    <!-- FOCAL POINT PANEL - UNCHANGED -->
     <div class="clock-panel" id="focalPanel">
         <div class="current-time" id="currentTime">--:--:--</div>
         <label>📅 Date</label>
@@ -119,11 +117,9 @@
         <div id="pendingPanel"></div>
     </div>
     
-    <!-- STAFF SELF PANEL - FIXED: Shows staff their own status prominently -->
     <div class="clock-panel" id="selfPanel" style="display:none;">
         <div class="current-time" id="selfTime">--:--:--</div>
         
-        <!-- STAFF STATUS CARD - Shows their own presence -->
         <div id="staffStatusCard" class="staff-status-card">
             <div class="staff-status-header">
                 <span class="staff-name-large">👤 <span id="selfStaffName">Loading...</span></span>
@@ -152,18 +148,14 @@
         <div id="selfMessage" style="margin-top: 15px; display: none;" class="alert"></div>
     </div>
     
-    <!-- STAFF LIST TABLE - For focal point view -->
     <div class="staff-panel">
         <h3>📋 Today's Attendance - <span id="todayDate"></span> 
             <button class="refresh-btn" onclick="refreshData()">↻ Refresh</button>
         </h3>
         <div style="overflow-x: auto; max-height: 500px;">
             <table id="attendanceTable">
-                <thead>
-                    <tr><th>Staff</th><th>Division</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th><th>Action</th></tr>
-                </thead>
-                <tbody id="attendanceBody"><tr><td colspan="7">Loading data from Supabase...</td></tr>
-                </tbody>
+                <thead><tr><th>Staff</th><th>Division</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="attendanceBody"><tr><td colspan="7">Loading data from Supabase......</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -338,12 +330,28 @@
         document.getElementById('pendingCount').innerText = pending;
     }
     
-    // NEW FUNCTION: Staff sees ONLY their own status in a clean card
+    // FIXED: Staff sees their own status using full name from staff_list
     async function loadStaffSelfStatus() {
         const date = document.getElementById('selfDate').value;
-        const { data: records } = await vbsClient.from('timesheet')
+        
+        // Get staff's full name from staff_list using email
+        const { data: staffData } = await vbsClient
+            .from('staff_list')
+            .select('staff_name')
+            .eq('email', currentUserEmail)
+            .single();
+        
+        let staffFullName = currentUserName;
+        if (staffData && staffData.staff_name) {
+            staffFullName = staffData.staff_name;
+        }
+        
+        console.log('Looking for record with officer_name:', staffFullName);
+        
+        const { data: records } = await vbsClient
+            .from('timesheet')
             .select('*')
-            .eq('officer_name', currentUserName)
+            .eq('officer_name', staffFullName)
             .eq('report_date', date);
         
         const timeDetails = document.getElementById('selfTimeDetails');
@@ -369,9 +377,10 @@
             } 
             else if (r.time_in && !r.time_out) {
                 statusBadge.innerHTML = '<span class="staff-status-badge" style="background:#d4edda; color:#155724;">✅ PRESENT</span>';
+                const currentTime = new Date().toLocaleTimeString();
                 timeDetails.innerHTML = `
                     <strong>✅ Clocked IN at:</strong> ${r.time_in}<br>
-                    <strong>🕐 Current time:</strong> ${new Date().toLocaleTimeString()}<br>
+                    <strong>🕐 Current time:</strong> ${currentTime}<br>
                     <strong>Click "Clock Out" when you finish work.</strong>
                 `;
                 clockOutBtn.style.display = 'block';
@@ -401,6 +410,7 @@
         }
         
         document.getElementById('totalStaff').innerText = 1;
+        document.getElementById('selfStaffName').innerHTML = staffFullName;
     }
     
     async function loadPendingSelfClocks() {
@@ -495,11 +505,25 @@
         document.getElementById('staffSelect').value = '';
     }
     
+    // FIXED: Staff clock out using full name
     async function staffClockOut() {
         const date = document.getElementById('selfDate').value;
-        const { data: records } = await vbsClient.from('timesheet')
+        
+        const { data: staffData } = await vbsClient
+            .from('staff_list')
+            .select('staff_name')
+            .eq('email', currentUserEmail)
+            .single();
+        
+        let staffFullName = currentUserName;
+        if (staffData && staffData.staff_name) {
+            staffFullName = staffData.staff_name;
+        }
+        
+        const { data: records } = await vbsClient
+            .from('timesheet')
             .select('*')
-            .eq('officer_name', currentUserName)
+            .eq('officer_name', staffFullName)
             .eq('report_date', date)
             .is('time_out', null);
         
@@ -518,7 +542,8 @@
         if (minutes < 0) { hours--; minutes += 60; }
         const totalHours = hours + minutes / 60;
         
-        const { error } = await vbsClient.from('timesheet')
+        const { error } = await vbsClient
+            .from('timesheet')
             .update({ time_out: timeOut, hours_worked: totalHours.toFixed(2) })
             .eq('id', record.id);
         
@@ -530,19 +555,44 @@
         }
     }
     
+    // FIXED: Request self clock using full name
     async function requestSelfClock() {
         const date = document.getElementById('selfDate').value;
         const reason = document.getElementById('selfReason').value;
         if (!reason) { alert('Please provide a reason'); return; }
         
-        const { data: existing } = await vbsClient.from('timesheet').select('*').eq('officer_name', currentUserName).eq('report_date', date);
-        if (existing?.length > 0) { alert('You already have a record for today.'); return; }
+        const { data: staffData } = await vbsClient
+            .from('staff_list')
+            .select('staff_name')
+            .eq('email', currentUserEmail)
+            .single();
+        
+        let staffFullName = currentUserName;
+        if (staffData && staffData.staff_name) {
+            staffFullName = staffData.staff_name;
+        }
+        
+        const { data: existing } = await vbsClient
+            .from('timesheet')
+            .select('*')
+            .eq('officer_name', staffFullName)
+            .eq('report_date', date);
+        
+        if (existing?.length > 0) {
+            alert('You already have a record for today.');
+            return;
+        }
         
         const timeIn = new Date().toLocaleTimeString();
         const { error } = await vbsClient.from('timesheet').insert({
-            officer_name: currentUserName, division: 'Staff', report_date: date,
-            time_in: timeIn, late_reason: reason, clock_method: 'self',
-            clocked_by: currentUserEmail, status: 'PENDING_APPROVAL'
+            officer_name: staffFullName,
+            division: 'Staff',
+            report_date: date,
+            time_in: timeIn,
+            late_reason: reason,
+            clock_method: 'self',
+            clocked_by: currentUserEmail,
+            status: 'PENDING_APPROVAL'
         });
         
         if (!error) {
