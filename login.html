@@ -32,14 +32,25 @@
     </div>
     
     <script>
-        // Supabase configuration - only declared once
-        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        // Use a different variable name to avoid conflict
+        const VBS_SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const VBS_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        // Initialize Supabase globally
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Create supabase client with unique variable name
+        let vbsClient = null;
         
-        // Login function - defined globally
+        // Wait for page to fully load
+        window.addEventListener('load', function() {
+            if (typeof window.supabase !== 'undefined') {
+                vbsClient = window.supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
+                console.log('Supabase client initialized');
+            } else {
+                console.error('Supabase not loaded');
+                document.getElementById('errorMsg').innerHTML = '❌ Loading error. Please refresh page.';
+            }
+        });
+        
+        // Login function
         window.login = async function() {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
@@ -54,12 +65,17 @@
                 return;
             }
             
+            if (!vbsClient) {
+                errorDiv.innerHTML = '❌ System loading. Please wait and try again.';
+                return;
+            }
+            
             // Show loading state
             loginBtn.disabled = true;
             loadingDiv.style.display = 'block';
             
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await vbsClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
@@ -84,15 +100,19 @@
             const passwordField = document.getElementById('password');
             const emailField = document.getElementById('email');
             
-            loginBtn.onclick = window.login;
+            if (loginBtn) loginBtn.onclick = window.login;
             
-            passwordField.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') window.login();
-            });
+            if (passwordField) {
+                passwordField.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') window.login();
+                });
+            }
             
-            emailField.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') window.login();
-            });
+            if (emailField) {
+                emailField.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') window.login();
+                });
+            }
         });
     </script>
 </body>
