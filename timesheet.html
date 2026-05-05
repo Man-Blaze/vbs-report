@@ -1,64 +1,429 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>VBS Timesheet Login</title>
+    <title>VBS Timesheet - Daily Attendance</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; background: linear-gradient(135deg, #1a5a3a, #0d3b24); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .container { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        h1 { color: #2c7a4d; text-align: center; margin-bottom: 24px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
-        button { width: 100%; padding: 12px; background: #2c7a4d; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        .error { color: #dc3545; text-align: center; margin-top: 10px; font-size: 13px; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 1400px; margin: 0 auto; padding: 20px; background: #f0f2f5; }
+        .header { background: linear-gradient(135deg, #1a5a3a, #0d3b24); color: white; padding: 20px; border-radius: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logout { background: #dc3545; color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; border-radius: 16px; padding: 15px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .stat-number { font-size: 32px; font-weight: bold; color: #1a5a3a; }
+        .stat-label { font-size: 12px; color: #666; margin-top: 5px; }
+        .mode-switch { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .mode-btn { padding: 10px 24px; border: none; border-radius: 40px; cursor: pointer; font-weight: bold; background: #e2e8f0; transition: all 0.2s; }
+        .mode-btn.active { background: #1a5a3a; color: white; }
+        .main-content { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
+        @media (max-width: 900px) { .main-content { grid-template-columns: 1fr; } }
+        .clock-panel { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .staff-panel { background: white; border-radius: 20px; padding: 20px; overflow-x: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .btn-clock-in { background: #2c7a4d; color: white; border: none; padding: 14px; border-radius: 40px; cursor: pointer; width: 100%; margin-top: 15px; font-size: 16px; font-weight: bold; }
+        .btn-clock-out { background: #dc3545; color: white; border: none; padding: 14px; border-radius: 40px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 16px; font-weight: bold; }
+        .btn-self { background: #17a2b8; }
+        select, input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-top: 5px; font-size: 14px; }
+        label { font-weight: 600; font-size: 13px; display: block; margin-top: 12px; color: #333; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+        th { background: #f8f9fa; font-weight: 600; color: #1a5a3a; }
+        .status-present { background: #d4edda; color: #155724; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
+        .status-absent { background: #f8d7da; color: #721c24; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
+        .status-pending { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
+        .refresh-btn { background: #6c757d; color: white; border: none; padding: 6px 15px; border-radius: 20px; cursor: pointer; margin-left: 10px; font-size: 12px; }
+        .current-time { font-size: 36px; text-align: center; color: #1a5a3a; margin: 10px 0; font-family: monospace; font-weight: bold; }
+        .pending-requests { background: #fff9e6; border: 1px solid #fef3c7; border-radius: 16px; padding: 15px; margin-top: 20px; max-height: 300px; overflow-y: auto; }
+        .pending-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #fef3c7; flex-wrap: wrap; gap: 10px; }
+        .btn-approve { background: #28a745; color: white; border: none; padding: 5px 15px; border-radius: 20px; cursor: pointer; margin-right: 5px; }
+        .btn-reject { background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 20px; cursor: pointer; }
+        .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #888; }
+        .focal-badge { background: #ffc107; color: #333; padding: 2px 10px; border-radius: 20px; font-size: 11px; margin-left: 8px; }
+        .alert { background: #cce5ff; padding: 12px; border-radius: 12px; margin: 15px 0; font-size: 13px; color: #004085; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔐 VBS Timesheet</h1>
-        <input type="email" id="email" placeholder="Email" autocomplete="email">
-        <input type="password" id="password" placeholder="Password" autocomplete="current-password">
-        <button onclick="login()">Login</button>
-        <div id="errorMsg" class="error"></div>
+
+<div class="header">
+    <h1>⏰ VBS Timesheet Tracker</h1>
+    <div>
+        <span id="userName" style="margin-right: 15px;">Loading...</span>
+        <button class="logout" onclick="logout()">Logout</button>
     </div>
-    <script>
-        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-number" id="totalStaff">0</div><div class="stat-label">Total Staff</div></div>
+    <div class="stat-card"><div class="stat-number" id="presentCount">0</div><div class="stat-label">Present Today</div></div>
+    <div class="stat-card"><div class="stat-number" id="absentCount">0</div><div class="stat-label">Absent Today</div></div>
+    <div class="stat-card"><div class="stat-number" id="pendingCount">0</div><div class="stat-label">Pending Approval</div></div>
+</div>
+
+<div class="mode-switch">
+    <button class="mode-btn active" onclick="setMode('focal')">👔 Focal Point Mode</button>
+    <button class="mode-btn" onclick="setMode('self')">🔓 Self Clock Mode</button>
+</div>
+
+<div class="main-content">
+    <div class="clock-panel" id="focalPanel">
+        <div class="current-time" id="currentTime">--:--:--</div>
+        <label>📅 Date</label>
+        <input type="date" id="reportDate">
+        <label>👤 Select Staff</label>
+        <select id="staffSelect"><option>-- Select Staff --</option></select>
+        <button class="btn-clock-in" onclick="clockIn()">✅ KAM IN - Clock In</button>
+        <button class="btn-clock-out" onclick="clockOut()">❌ KAM OUT - Clock Out</button>
+        <div id="pendingPanel"></div>
+    </div>
+    
+    <div class="clock-panel" id="selfPanel" style="display:none;">
+        <div class="current-time" id="selfTime">--:--:--</div>
+        <div class="alert">⚠️ Self-clock requests need focal point approval.</div>
+        <label>📅 Date</label>
+        <input type="date" id="selfDate">
+        <label>📝 Reason</label>
+        <textarea id="selfReason" rows="2" placeholder="e.g., First to arrive, focal point not here, remote work..."></textarea>
+        <button class="btn-clock-in btn-self" onclick="requestSelfClock()">📤 REQUEST SELF CLOCK IN</button>
+    </div>
+    
+    <div class="staff-panel">
+        <h3>📋 Today's Attendance - <span id="todayDate"></span> 
+            <button class="refresh-btn" onclick="refreshData()">↻ Refresh</button>
+        </h3>
+        <div style="overflow-x: auto; max-height: 500px;">
+            <table>
+                <thead><tr><th>Staff</th><th>Division</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="attendanceBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    ✅ Data from YOUR timesheet table • Refresh shows current status • Time is ALWAYS captured<br>
+    📝 Self-clock goes to vw_pending_self_clocks for focal approval
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+    
+    let supabase = null;
+    let currentUser = null;
+    let currentUserEmail = null;
+    let currentUserName = null;
+    let currentUserDivision = null;
+    let currentUserLocation = null;
+    let isFocalPoint = false;
+    
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('todayDate').innerText = today;
+    document.getElementById('reportDate').value = today;
+    document.getElementById('selfDate').value = today;
+    
+    function updateTime() {
+        const now = new Date().toLocaleTimeString();
+        document.getElementById('currentTime').innerHTML = now;
+        document.getElementById('selfTime').innerHTML = now;
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+    
+    window.addEventListener('DOMContentLoaded', function() {
+        if (window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            checkAuth();
+        } else {
+            alert('Supabase failed to load. Please refresh.');
+        }
+    });
+    
+    async function checkAuth() {
+        const token = localStorage.getItem('vbs_token');
+        if (!token) { window.location.href = 'login.html'; return; }
         
-        let supabase = null;
+        await supabase.auth.setSession({ access_token: token, refresh_token: '' });
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { window.location.href = 'login.html'; return; }
         
-        window.addEventListener('DOMContentLoaded', function() {
-            if (window.supabase) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            }
-        });
+        currentUser = user;
+        currentUserEmail = user.email;
+        currentUserName = user.email.split('@')[0];
         
-        async function login() {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('errorMsg');
-            
-            if (!email || !password) {
-                errorDiv.innerHTML = '❌ Please enter email and password';
-                return;
-            }
-            
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                
-                if (data.session) {
-                    localStorage.setItem('vbs_token', data.session.access_token);
-                    window.location.href = 'timesheet.html';
-                }
-            } catch (error) {
-                errorDiv.innerHTML = `❌ ${error.message}`;
-            }
+        // Check if user is focal point from focal_points table
+        const { data: focalData } = await supabase
+            .from('focal_points')
+            .select('*')
+            .eq('email', currentUserEmail)
+            .single();
+        
+        if (focalData) {
+            isFocalPoint = true;
+            currentUserDivision = focalData.division;
+            currentUserLocation = focalData.location;
+            document.getElementById('userName').innerHTML = `${focalData.name} <span class="focal-badge">Focal Point - ${focalData.division}</span>`;
+            document.getElementById('focalPanel').style.display = 'block';
+            document.getElementById('selfPanel').style.display = 'none';
+            await loadStaffList();
+            await loadTodayAttendance();
+            await loadPendingSelfClocks();
+        } else {
+            isFocalPoint = false;
+            document.getElementById('userName').innerHTML = `${currentUserName} (Staff)`;
+            document.getElementById('focalPanel').style.display = 'none';
+            document.getElementById('selfPanel').style.display = 'block';
+            await loadMyAttendance();
+        }
+    }
+    
+    async function logout() {
+        await supabase.auth.signOut();
+        localStorage.clear();
+        window.location.href = 'login.html';
+    }
+    
+    function setMode(mode) {
+        if (mode === 'focal' && isFocalPoint) {
+            document.getElementById('focalPanel').style.display = 'block';
+            document.getElementById('selfPanel').style.display = 'none';
+            loadTodayAttendance();
+            loadPendingSelfClocks();
+        } else if (mode === 'self') {
+            document.getElementById('focalPanel').style.display = 'none';
+            document.getElementById('selfPanel').style.display = 'block';
+            loadMyAttendance();
+        }
+    }
+    
+    async function loadStaffList() {
+        let query = supabase.from('staff_list').select('*').eq('is_active', true).order('staff_name');
+        
+        if (currentUserDivision === 'Provincial' && currentUserLocation) {
+            query = query.eq('division', 'Provincial').eq('location', currentUserLocation);
+        } else if (currentUserDivision) {
+            query = query.eq('division', currentUserDivision);
         }
         
-        document.getElementById('password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') login();
+        const { data: staff } = await query;
+        const select = document.getElementById('staffSelect');
+        select.innerHTML = '<option value="">-- Select Staff --</option>';
+        for (let s of staff || []) {
+            select.innerHTML += `<option value="${s.staff_name}">${s.staff_name}</option>`;
+        }
+        document.getElementById('totalStaff').innerText = staff?.length || 0;
+    }
+    
+    async function loadTodayAttendance() {
+        const date = document.getElementById('reportDate').value;
+        
+        let staffQuery = supabase.from('staff_list').select('*').eq('is_active', true).order('staff_name');
+        if (currentUserDivision === 'Provincial' && currentUserLocation) {
+            staffQuery = staffQuery.eq('division', 'Provincial').eq('location', currentUserLocation);
+        } else if (currentUserDivision) {
+            staffQuery = staffQuery.eq('division', currentUserDivision);
+        }
+        
+        const { data: staff } = await staffQuery;
+        const { data: records } = await supabase.from('timesheet').select('*').eq('report_date', date);
+        
+        let present = 0, absent = 0, pending = 0;
+        let html = '';
+        
+        for (let s of staff || []) {
+            const record = records?.find(r => r.officer_name === s.staff_name);
+            let timeIn = '-', timeOut = '-', hours = '-', status = 'ABSENT', statusClass = 'status-absent', canClockOut = false;
+            
+            if (record && record.time_in) {
+                timeIn = record.time_in;
+                if (record.status === 'PENDING_APPROVAL') {
+                    status = 'PENDING';
+                    statusClass = 'status-pending';
+                    pending++;
+                } else if (record.time_out) {
+                    timeOut = record.time_out;
+                    hours = record.hours_worked || 0;
+                    status = 'CLOCKED OUT';
+                    statusClass = 'status-present';
+                    present++;
+                } else {
+                    status = 'PRESENT';
+                    statusClass = 'status-present';
+                    present++;
+                    canClockOut = true;
+                }
+            } else {
+                absent++;
+            }
+            
+            html += `<tr>
+                <td><strong>${s.staff_name}</strong></td>
+                <td>${s.division || '-'}</td>
+                <td>${timeIn}</td>
+                <td>${timeOut}</td>
+                <td>${hours}</td>
+                <td><span class="${statusClass}">${status}</span></td>
+                <td>${canClockOut ? `<button class="btn-clock-out" style="padding:5px 10px; font-size:11px; margin:0;" onclick="quickClockOut('${s.staff_name}')">Clock Out</button>` : '-'}</td>
+            </tr>`;
+        }
+        
+        document.getElementById('attendanceBody').innerHTML = html;
+        document.getElementById('presentCount').innerText = present;
+        document.getElementById('absentCount').innerText = absent;
+        document.getElementById('pendingCount').innerText = pending;
+        document.getElementById('totalStaff').innerText = staff?.length || 0;
+    }
+    
+    async function loadMyAttendance() {
+        const date = document.getElementById('selfDate').value;
+        const { data: records } = await supabase.from('timesheet').select('*').eq('officer_name', currentUserName).eq('report_date', date);
+        
+        if (records?.length > 0) {
+            const r = records[0];
+            let status = r.status === 'PENDING_APPROVAL' ? 'PENDING' : (r.time_out ? 'CLOCKED OUT' : 'PRESENT');
+            let statusClass = r.status === 'PENDING_APPROVAL' ? 'status-pending' : 'status-present';
+            let canClockOut = (r.time_in && !r.time_out && r.status !== 'PENDING_APPROVAL');
+            
+            document.getElementById('attendanceBody').innerHTML = `<tr>
+                <td><strong>${currentUserName}</strong></td>
+                <td>-</td>
+                <td>${r.time_in || '-'}</td>
+                <td>${r.time_out || '-'}</td>
+                <td>${r.hours_worked || 0}</td>
+                <td><span class="${statusClass}">${status}</span></td>
+                <td>${canClockOut ? `<button class="btn-clock-out" style="padding:5px 10px; font-size:11px;" onclick="quickClockOut('${currentUserName}')">Clock Out</button>` : '-'}</td>
+            </tr>`;
+            document.getElementById('presentCount').innerText = (r.time_in && r.status !== 'PENDING_APPROVAL') ? 1 : 0;
+            document.getElementById('absentCount').innerText = 0;
+        } else {
+            document.getElementById('attendanceBody').innerHTML = '<tr><td colspan="7">No record for today. Use Self Clock Mode above.</td></tr>';
+            document.getElementById('presentCount').innerText = 0;
+            document.getElementById('absentCount').innerText = 1;
+        }
+        document.getElementById('totalStaff').innerText = 1;
+    }
+    
+    async function loadPendingSelfClocks() {
+        const date = document.getElementById('reportDate').value;
+        const { data: pending } = await supabase.from('timesheet').select('*').eq('clock_method', 'self').eq('status', 'PENDING_APPROVAL').eq('report_date', date);
+        
+        if (pending?.length > 0) {
+            let html = `<div class="pending-requests"><h4>⏳ Pending Self-Clock Requests (${pending.length})</h4>`;
+            for (let p of pending) {
+                html += `<div class="pending-item">
+                    <div><strong>${p.officer_name}</strong><br><small>⏰ ${p.time_in} | 📝 ${p.late_reason || 'No reason'}</small></div>
+                    <div><button class="btn-approve" onclick="approveSelfClock(${p.id}, '${p.time_in}')">✓ Approve</button>
+                    <button class="btn-reject" onclick="rejectSelfClock(${p.id})">✗ Reject</button></div>
+                </div>`;
+            }
+            html += `</div>`;
+            document.getElementById('pendingPanel').innerHTML = html;
+        } else {
+            document.getElementById('pendingPanel').innerHTML = '';
+        }
+    }
+    
+    async function approveSelfClock(id, timeIn) {
+        const { error } = await supabase.from('timesheet').update({ status: 'APPROVED', approved_by: currentUserEmail, approved_at: new Date().toISOString() }).eq('id', id);
+        if (!error) {
+            alert(`✅ Self-clock approved! Time in: ${timeIn} preserved.`);
+            await loadTodayAttendance();
+            await loadPendingSelfClocks();
+        } else { alert('Error: ' + error.message); }
+    }
+    
+    async function rejectSelfClock(id) {
+        const reason = prompt('Reason for rejection:');
+        if (!reason) return;
+        const { error } = await supabase.from('timesheet').update({ status: 'REJECTED', rejection_reason: reason, approved_by: currentUserEmail }).eq('id', id);
+        if (!error) {
+            alert('❌ Self-clock rejected.');
+            await loadTodayAttendance();
+            await loadPendingSelfClocks();
+        } else { alert('Error: ' + error.message); }
+    }
+    
+    async function clockIn() {
+        const staffName = document.getElementById('staffSelect').value;
+        const date = document.getElementById('reportDate').value;
+        if (!staffName) { alert('Select staff'); return; }
+        
+        const { data: existing } = await supabase.from('timesheet').select('*').eq('officer_name', staffName).eq('report_date', date);
+        if (existing?.length > 0 && existing[0].time_in && !existing[0].time_out) {
+            alert(`⚠️ ${staffName} already clocked IN at ${existing[0].time_in}`);
+            return;
+        }
+        
+        const timeIn = new Date().toLocaleTimeString();
+        const { error } = await supabase.from('timesheet').insert({
+            officer_name: staffName, division: currentUserDivision, report_date: date,
+            time_in: timeIn, clock_method: 'focal_point', clocked_by: currentUserEmail, status: 'APPROVED'
         });
-    </script>
+        
+        if (!error) {
+            alert(`✅ ${staffName} clocked IN at ${timeIn}`);
+            await loadTodayAttendance();
+            document.getElementById('staffSelect').value = '';
+        } else { alert('Error: ' + error.message); }
+    }
+    
+    async function quickClockOut(staffName) {
+        const date = document.getElementById('reportDate')?.value || today;
+        const { data: records } = await supabase.from('timesheet').select('*').eq('officer_name', staffName).eq('report_date', date).is('time_out', null);
+        if (!records?.length) { alert('No clock-in record'); return; }
+        
+        const record = records[0];
+        const timeOut = new Date().toLocaleTimeString();
+        const inParts = record.time_in.split(':');
+        const outParts = timeOut.split(':');
+        let hours = parseInt(outParts[0]) - parseInt(inParts[0]);
+        let minutes = parseInt(outParts[1]) - parseInt(inParts[1]);
+        if (minutes < 0) { hours--; minutes += 60; }
+        const totalHours = hours + minutes / 60;
+        
+        const { error } = await supabase.from('timesheet').update({ time_out: timeOut, hours_worked: totalHours.toFixed(2) }).eq('id', record.id);
+        if (!error) {
+            alert(`❌ ${staffName} clocked OUT at ${timeOut} | Hours: ${totalHours.toFixed(2)}`);
+            if (isFocalPoint) await loadTodayAttendance(); else await loadMyAttendance();
+        } else { alert('Error: ' + error.message); }
+    }
+    
+    async function clockOut() {
+        const staffName = document.getElementById('staffSelect').value;
+        if (!staffName) { alert('Select staff'); return; }
+        await quickClockOut(staffName);
+        document.getElementById('staffSelect').value = '';
+    }
+    
+    async function requestSelfClock() {
+        const date = document.getElementById('selfDate').value;
+        const reason = document.getElementById('selfReason').value;
+        if (!reason) { alert('Please provide a reason'); return; }
+        
+        const { data: existing } = await supabase.from('timesheet').select('*').eq('officer_name', currentUserName).eq('report_date', date);
+        if (existing?.length > 0) { alert('You already have a record for today.'); return; }
+        
+        const timeIn = new Date().toLocaleTimeString();
+        const { error } = await supabase.from('timesheet').insert({
+            officer_name: currentUserName, division: 'Staff', report_date: date,
+            time_in: timeIn, late_reason: reason, clock_method: 'self',
+            clocked_by: currentUserEmail, status: 'PENDING_APPROVAL'
+        });
+        
+        if (!error) {
+            alert(`📤 Self-clock request sent at ${timeIn}. Waiting for focal point approval.`);
+            await loadMyAttendance();
+            document.getElementById('selfReason').value = '';
+        } else { alert('Error: ' + error.message); }
+    }
+    
+    function refreshData() {
+        if (isFocalPoint && document.getElementById('focalPanel').style.display !== 'none') {
+            loadTodayAttendance();
+            loadPendingSelfClocks();
+        } else {
+            loadMyAttendance();
+        }
+    }
+</script>
 </body>
 </html>
