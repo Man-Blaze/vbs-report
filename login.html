@@ -7,44 +7,82 @@
     <style>
         body { font-family: 'Segoe UI', Arial; max-width: 400px; margin: 50px auto; padding: 20px; background: linear-gradient(135deg, #1a5a3a, #0d3b24); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
         .container { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        h1 { color: #2c7a4d; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
-        button { width: 100%; padding: 12px; background: #2c7a4d; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
-        .error { color: red; text-align: center; margin-top: 10px; }
+        h1 { color: #2c7a4d; text-align: center; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 12px; background: #2c7a4d; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        button:hover { background: #1e5a38; }
+        .error { color: #dc3545; text-align: center; margin-top: 10px; font-size: 13px; }
+        .info { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔐 VBS Timesheet</h1>
-        <input type="email" id="email" placeholder="Email">
-        <input type="password" id="password" placeholder="Password">
-        <button onclick="login()">Login</button>
+        <input type="email" id="email" placeholder="Email Address" autocomplete="email">
+        <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+        <button id="loginBtn">Login</button>
         <div id="errorMsg" class="error"></div>
+        <div class="info">
+            🔒 Secure login using Supabase Auth<br>
+            📧 Use your registered email and password
+        </div>
     </div>
+    
     <script>
+        // Supabase configuration - only declared once
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        let supabase = null;
-        window.addEventListener('DOMContentLoaded', () => {
-            if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        });
+        // Initialize Supabase globally
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
-        async function login() {
+        // Login function - defined globally
+        window.login = async function() {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
-            if (!email || !password) { document.getElementById('errorMsg').innerHTML = '❌ Enter email and password'; return; }
+            const errorDiv = document.getElementById('errorMsg');
+            
+            errorDiv.innerHTML = '';
+            
+            if (!email || !password) {
+                errorDiv.innerHTML = '❌ Please enter email and password';
+                return;
+            }
             
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
                 if (error) throw error;
-                localStorage.setItem('vbs_token', data.session.access_token);
-                window.location.href = 'timesheet.html';
+                
+                if (data.session) {
+                    localStorage.setItem('vbs_token', data.session.access_token);
+                    localStorage.setItem('vbs_user', email);
+                    window.location.href = 'timesheet.html';
+                }
             } catch (error) {
-                document.getElementById('errorMsg').innerHTML = `❌ ${error.message}`;
+                errorDiv.innerHTML = `❌ ${error.message}`;
             }
-        }
-        document.getElementById('password').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+        };
+        
+        // Attach event listeners after DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginBtn = document.getElementById('loginBtn');
+            const passwordField = document.getElementById('password');
+            const emailField = document.getElementById('email');
+            
+            loginBtn.onclick = window.login;
+            
+            passwordField.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') window.login();
+            });
+            
+            emailField.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') window.login();
+            });
+        });
     </script>
 </body>
 </html>
