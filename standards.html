@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>VBS - Standards & Certification Portal | 4 Forms</title>
+    <title>VBS - Standards & Certification Portal | 4 Forms with File Upload</title>
     <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Google Fonts & Icons -->
@@ -24,7 +24,7 @@
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -220,6 +220,63 @@
             gap: 16px;
         }
 
+        /* File Upload Styles */
+        .file-upload-section {
+            margin-top: 10px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 20px;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .file-upload-section h4 {
+            font-size: 0.9rem;
+            color: #1a5a3a;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .file-input-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .file-input-wrapper input[type="file"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            background: white;
+        }
+        .file-list {
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        .file-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #e2e8f0;
+            padding: 5px 12px;
+            border-radius: 20px;
+            margin: 5px 8px 5px 0;
+            font-size: 11px;
+        }
+        .file-item i {
+            color: #2c7a4d;
+            cursor: pointer;
+        }
+        .file-item i:hover {
+            color: #dc3545;
+        }
+        .upload-progress {
+            font-size: 12px;
+            color: #2c7a4d;
+            margin-top: 8px;
+        }
+
         button.submit-btn {
             background: #2c7a4d;
             color: white;
@@ -305,7 +362,7 @@
         <button class="tab-btn" data-tab="tab4"><i class="fas fa-code-branch"></i> Standards Development</button>
     </div>
 
-    <!-- FORM 1: NSC UPDATES -->
+    <!-- FORM 1: NSC UPDATES with File Upload -->
     <div id="tab1" class="form-card active-form">
         <div class="form-title"><i class="fas fa-clipboard-list"></i> NSCs Updates</div>
         <div class="form-sub">National Standards Catalogue – monthly activity tracker</div>
@@ -340,12 +397,25 @@
             <div class="field-row"><label><i class="fas fa-exclamation-triangle"></i> Challenges/Issues encountered</label><textarea name="challenges" rows="2"></textarea></div>
             <div class="field-row"><label><i class="fas fa-step-forward"></i> Next Step</label><textarea name="next_step" rows="2"></textarea></div>
             <div class="field-row"><label><i class="fas fa-comment"></i> Remarks</label><textarea name="remarks" rows="2"></textarea></div>
+            
+            <!-- FILE UPLOAD SECTION -->
+            <div class="file-upload-section">
+                <h4><i class="fas fa-paperclip"></i> Attach Files / Photos / Reports</h4>
+                <div class="file-input-wrapper">
+                    <input type="file" id="files1" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
+                    <button type="button" class="upload-files-btn" data-form="1" style="background:#6c757d; padding:10px 20px; border-radius:30px; border:none; color:white; cursor:pointer;">📎 Upload Selected</button>
+                </div>
+                <div id="fileList1" class="file-list"></div>
+                <div id="uploadProgress1" class="upload-progress"></div>
+                <input type="hidden" name="evidence_urls" id="evidenceUrls1">
+            </div>
+            
             <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Submit NSC Report</button>
             <div id="msg1" class="message"></div>
         </form>
     </div>
 
-    <!-- FORM 2: SALES & DISTRIBUTION -->
+    <!-- FORM 2: SALES & DISTRIBUTION with File Upload -->
     <div id="tab2" class="form-card">
         <div class="form-title"><i class="fas fa-hand-holding-usd"></i> Standards Sales & Distribution</div>
         <div class="form-sub">Revenue tracking & customer insights</div>
@@ -389,12 +459,25 @@
             <div class="field-row"><label>Challenges/Issues encountered</label><textarea name="challenges" rows="2"></textarea></div>
             <div class="field-row"><label>Next Step</label><textarea name="next_step" rows="2"></textarea></div>
             <div class="field-row"><label>Remarks</label><textarea name="remarks" rows="2"></textarea></div>
+            
+            <!-- FILE UPLOAD SECTION -->
+            <div class="file-upload-section">
+                <h4><i class="fas fa-paperclip"></i> Attach Files / Photos / Reports</h4>
+                <div class="file-input-wrapper">
+                    <input type="file" id="files2" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
+                    <button type="button" class="upload-files-btn" data-form="2" style="background:#6c757d; padding:10px 20px; border-radius:30px; border:none; color:white; cursor:pointer;">📎 Upload Selected</button>
+                </div>
+                <div id="fileList2" class="file-list"></div>
+                <div id="uploadProgress2" class="upload-progress"></div>
+                <input type="hidden" name="evidence_urls" id="evidenceUrls2">
+            </div>
+            
             <button type="submit" class="submit-btn"><i class="fas fa-chart-simple"></i> Submit Sales Report</button>
             <div id="msg2" class="message"></div>
         </form>
     </div>
 
-    <!-- FORM 3: INTERNATIONAL ENGAGEMENT -->
+    <!-- FORM 3: INTERNATIONAL ENGAGEMENT with File Upload -->
     <div id="tab3" class="form-card">
         <div class="form-title"><i class="fas fa-handshake"></i> International Engagement</div>
         <div class="form-sub">ISO, Codex, regional collaboration & technical committees</div>
@@ -430,12 +513,25 @@
             <div class="field-row"><label>Challenges/Issues encountered</label><textarea name="challenges" rows="2"></textarea></div>
             <div class="field-row"><label>Mitigation Measures</label><textarea name="mitigation_measures" rows="2"></textarea></div>
             <div class="field-row"><label>Remarks</label><textarea name="remarks" rows="2"></textarea></div>
+            
+            <!-- FILE UPLOAD SECTION -->
+            <div class="file-upload-section">
+                <h4><i class="fas fa-paperclip"></i> Attach Files / Photos / Reports</h4>
+                <div class="file-input-wrapper">
+                    <input type="file" id="files3" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
+                    <button type="button" class="upload-files-btn" data-form="3" style="background:#6c757d; padding:10px 20px; border-radius:30px; border:none; color:white; cursor:pointer;">📎 Upload Selected</button>
+                </div>
+                <div id="fileList3" class="file-list"></div>
+                <div id="uploadProgress3" class="upload-progress"></div>
+                <input type="hidden" name="evidence_urls" id="evidenceUrls3">
+            </div>
+            
             <button type="submit" class="submit-btn"><i class="fas fa-globe-asia"></i> Submit International Report</button>
             <div id="msg3" class="message"></div>
         </form>
     </div>
 
-    <!-- FORM 4: STANDARDS DEVELOPMENT -->
+    <!-- FORM 4: STANDARDS DEVELOPMENT with File Upload -->
     <div id="tab4" class="form-card">
         <div class="form-title"><i class="fas fa-code-merge"></i> Standards Development</div>
         <div class="form-sub">New national/regional standards lifecycle</div>
@@ -473,6 +569,19 @@
             <div class="field-row"><label>Challenges/Issues encountered</label><textarea name="challenges" rows="2"></textarea></div>
             <div class="field-row"><label>Mitigation Measures</label><textarea name="mitigation_measures" rows="2"></textarea></div>
             <div class="field-row"><label>Remarks</label><textarea name="remarks" rows="2"></textarea></div>
+            
+            <!-- FILE UPLOAD SECTION -->
+            <div class="file-upload-section">
+                <h4><i class="fas fa-paperclip"></i> Attach Files / Photos / Reports</h4>
+                <div class="file-input-wrapper">
+                    <input type="file" id="files4" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
+                    <button type="button" class="upload-files-btn" data-form="4" style="background:#6c757d; padding:10px 20px; border-radius:30px; border:none; color:white; cursor:pointer;">📎 Upload Selected</button>
+                </div>
+                <div id="fileList4" class="file-list"></div>
+                <div id="uploadProgress4" class="upload-progress"></div>
+                <input type="hidden" name="evidence_urls" id="evidenceUrls4">
+            </div>
+            
             <button type="submit" class="submit-btn"><i class="fas fa-microchip"></i> Submit Development Report</button>
             <div id="msg4" class="message"></div>
         </form>
@@ -481,169 +590,263 @@
 </div>
 
 <script>
-    // Wait for DOM to be fully loaded
-    document.addEventListener('DOMContentLoaded', function() {
-        // Supabase configuration
-        var SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-        var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-        var supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        function showMessage(elementId, text, isError) {
-            var msgDiv = document.getElementById(elementId);
-            if (msgDiv) {
-                msgDiv.textContent = text;
-                msgDiv.className = 'message ' + (isError ? 'error' : 'success');
-                msgDiv.style.display = 'block';
-                setTimeout(function() { msgDiv.style.display = 'none'; }, 5000);
-            }
-        }
-
-        function submitForm(formElement, tableName, successMsg, msgDivId) {
-            var formData = new FormData(formElement);
-            var rawData = {};
-            formData.forEach(function(value, key) { rawData[key] = value; });
-            
-            // Process checkbox groups for NSC Updates
-            if (tableName === 'nsc_updates') {
-                var nscValues = [];
-                if (formElement.querySelector('[name="nsc_new_added"]:checked')) nscValues.push('New standards added');
-                if (formElement.querySelector('[name="nsc_under_review"]:checked')) nscValues.push('Standards under review');
-                if (formElement.querySelector('[name="nsc_withdrawn"]:checked')) nscValues.push('Standards withdrawn');
-                if (formElement.querySelector('[name="nsc_no_updates"]:checked')) nscValues.push('No updates made');
-                rawData.nsc_updates_selected = nscValues.join(', ');
+    // Supabase configuration
+    var SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+    var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+    var supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // File upload state for each form
+    var uploadedFiles = {1: [], 2: [], 3: [], 4: []};
+    
+    // Initialize file upload handlers
+    function initFileUpload(formNum) {
+        var fileInput = document.getElementById('files' + formNum);
+        var fileListDiv = document.getElementById('fileList' + formNum);
+        var progressDiv = document.getElementById('uploadProgress' + formNum);
+        var evidenceUrlsInput = document.getElementById('evidenceUrls' + formNum);
+        var uploadBtn = document.querySelector('.upload-files-btn[data-form="' + formNum + '"]');
+        
+        if (!fileInput || !uploadBtn) return;
+        
+        uploadBtn.addEventListener('click', async function() {
+            var files = fileInput.files;
+            if (files.length === 0) {
+                alert('Please select files to upload');
+                return;
             }
             
-            // Process checkbox groups for Sales
-            if (tableName === 'sales_distribution') {
-                var paymentValues = [];
-                if (formElement.querySelector('[name="payment_cash"]:checked')) paymentValues.push('Cash Payment');
-                if (formElement.querySelector('[name="payment_cheque"]:checked')) paymentValues.push('Cheque Payment');
-                if (formElement.querySelector('[name="payment_gjt"]:checked')) paymentValues.push('Government Journal Transfer');
-                rawData.payment_methods = paymentValues.join(', ');
+            progressDiv.innerHTML = 'Uploading ' + files.length + ' file(s)...';
+            var uploadedUrls = [];
+            
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+                var fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+                var filePath = 'standards_reports/' + formNum + '/' + fileName;
                 
-                var customerValues = [];
-                if (formElement.querySelector('[name="customer_gov"]:checked')) customerValues.push('Government/SOE');
-                if (formElement.querySelector('[name="customer_private"]:checked')) customerValues.push('Private sector');
-                if (formElement.querySelector('[name="customer_individuals"]:checked')) customerValues.push('Individuals');
-                rawData.customer_types = customerValues.join(', ');
-            }
-            
-            // Process checkbox groups for International
-            if (tableName === 'international_engagement') {
-                var actValues = [];
-                if (formElement.querySelector('[name="act_adoption"]:checked')) actValues.push('Standards adoption');
-                if (formElement.querySelector('[name="act_review"]:checked')) actValues.push('Standard review');
-                if (formElement.querySelector('[name="act_votes"]:checked')) actValues.push('Submission of Votes/comments');
-                if (formElement.querySelector('[name="act_meetings"]:checked')) actValues.push('Attend Meetings');
-                rawData.activities_undertaken = actValues.join(', ');
-            }
-            
-            // Process checkbox groups for Development
-            if (tableName === 'standards_development') {
-                var typeValues = [];
-                if (formElement.querySelector('[name="type_national"]:checked')) typeValues.push('National');
-                if (formElement.querySelector('[name="type_regional"]:checked')) typeValues.push('Regional');
-                rawData.standard_type = typeValues.join(', ');
-                
-                var stageValues = [];
-                if (formElement.querySelector('[name="stage_proposal"]:checked')) stageValues.push('Proposal');
-                if (formElement.querySelector('[name="stage_tc"]:checked')) stageValues.push('TC formation');
-                if (formElement.querySelector('[name="stage_draft"]:checked')) stageValues.push('Draft');
-                if (formElement.querySelector('[name="stage_consult"]:checked')) stageValues.push('Consultation');
-                if (formElement.querySelector('[name="stage_approval"]:checked')) stageValues.push('Approval');
-                if (formElement.querySelector('[name="stage_publishing"]:checked')) stageValues.push('Publishing');
-                rawData.standard_stage = stageValues.join(', ');
-            }
-            
-            // Clean up temporary fields
-            var tempFields = ['nsc_new_added', 'nsc_under_review', 'nsc_withdrawn', 'nsc_no_updates', 'payment_cash', 'payment_cheque', 'payment_gjt', 'customer_gov', 'customer_private', 'customer_individuals', 'act_adoption', 'act_review', 'act_votes', 'act_meetings', 'type_national', 'type_regional', 'stage_proposal', 'stage_tc', 'stage_draft', 'stage_consult', 'stage_approval', 'stage_publishing'];
-            for (var i = 0; i < tempFields.length; i++) {
-                delete rawData[tempFields[i]];
-            }
-            
-            rawData.created_at = new Date().toISOString();
-            
-            supabaseClient.from(tableName).insert([rawData]).then(function(result) {
-                if (result.error) throw result.error;
-                showMessage(msgDivId, successMsg, false);
-                formElement.reset();
-                var dateInputs = formElement.querySelectorAll('input[type="date"]');
-                for (var j = 0; j < dateInputs.length; j++) {
-                    if (dateInputs[j] && !dateInputs[j].value) {
-                        dateInputs[j].value = new Date().toISOString().split('T')[0];
-                    }
+                try {
+                    var { data, error } = await supabaseClient.storage
+                        .from('evidence')
+                        .upload(filePath, file);
+                    
+                    if (error) throw error;
+                    
+                    var { data: urlData } = supabaseClient.storage
+                        .from('evidence')
+                        .getPublicUrl(filePath);
+                    
+                    uploadedUrls.push(urlData.publicUrl);
+                    uploadedFiles[formNum].push(urlData.publicUrl);
+                    
+                    // Update display
+                    fileListDiv.innerHTML = '';
+                    uploadedFiles[formNum].forEach(function(url, idx) {
+                        var fileNameShort = url.split('/').pop().substring(15);
+                        fileListDiv.innerHTML += '<span class="file-item"><i class="fas fa-file"></i> ' + fileNameShort.substring(0, 30) + '... <i class="fas fa-trash" onclick="removeFile(' + formNum + ', ' + idx + ')"></i></span>';
+                    });
+                    
+                    progressDiv.innerHTML = 'Uploaded ' + (i+1) + '/' + files.length;
+                } catch (err) {
+                    console.error('Upload error:', err);
+                    progressDiv.innerHTML = 'Error uploading ' + file.name;
                 }
-            }).catch(function(err) {
-                console.error(err);
-                showMessage(msgDivId, 'Error: ' + err.message, true);
-            });
-        }
-
-        // Set today's date on all date fields
-        var allDateInputs = document.querySelectorAll('input[type="date"]');
-        for (var d = 0; d < allDateInputs.length; d++) {
-            if (!allDateInputs[d].value) {
-                allDateInputs[d].value = new Date().toISOString().split('T')[0];
             }
+            
+            evidenceUrlsInput.value = JSON.stringify(uploadedFiles[formNum]);
+            progressDiv.innerHTML = '✅ ' + uploadedFiles[formNum].length + ' file(s) uploaded';
+            fileInput.value = '';
+        });
+    }
+    
+    function removeFile(formNum, index) {
+        uploadedFiles[formNum].splice(index, 1);
+        var fileListDiv = document.getElementById('fileList' + formNum);
+        var evidenceUrlsInput = document.getElementById('evidenceUrls' + formNum);
+        
+        fileListDiv.innerHTML = '';
+        uploadedFiles[formNum].forEach(function(url, idx) {
+            var fileNameShort = url.split('/').pop().substring(15);
+            fileListDiv.innerHTML += '<span class="file-item"><i class="fas fa-file"></i> ' + fileNameShort.substring(0, 30) + '... <i class="fas fa-trash" onclick="removeFile(' + formNum + ', ' + idx + ')"></i></span>';
+        });
+        evidenceUrlsInput.value = JSON.stringify(uploadedFiles[formNum]);
+    }
+    
+    // Initialize all file uploads
+    for (var f = 1; f <= 4; f++) {
+        initFileUpload(f);
+    }
+    
+    function showMessage(elementId, text, isError) {
+        var msgDiv = document.getElementById(elementId);
+        if (msgDiv) {
+            msgDiv.textContent = text;
+            msgDiv.className = 'message ' + (isError ? 'error' : 'success');
+            msgDiv.style.display = 'block';
+            setTimeout(function() { msgDiv.style.display = 'none'; }, 5000);
         }
-
-        // Form submissions
-        var formNSC = document.getElementById('formNSC');
-        var formSales = document.getElementById('formSales');
-        var formInternational = document.getElementById('formInternational');
-        var formDevelopment = document.getElementById('formDevelopment');
-
-        if (formNSC) {
-            formNSC.addEventListener('submit', function(e) {
-                e.preventDefault();
-                submitForm(e.target, 'nsc_updates', '✅ NSC update recorded!', 'msg1');
-            });
+    }
+    
+    function submitForm(formElement, tableName, successMsg, msgDivId, formNum) {
+        var formData = new FormData(formElement);
+        var rawData = {};
+        formData.forEach(function(value, key) { rawData[key] = value; });
+        
+        // Add file URLs to form data
+        if (uploadedFiles[formNum] && uploadedFiles[formNum].length > 0) {
+            rawData.evidence_urls = JSON.stringify(uploadedFiles[formNum]);
         }
         
-        if (formSales) {
-            formSales.addEventListener('submit', function(e) {
-                e.preventDefault();
-                submitForm(e.target, 'sales_distribution', '✅ Sales report saved!', 'msg2');
-            });
+        // Process checkbox groups for NSC Updates
+        if (tableName === 'nsc_updates') {
+            var nscValues = [];
+            if (formElement.querySelector('[name="nsc_new_added"]:checked')) nscValues.push('New standards added');
+            if (formElement.querySelector('[name="nsc_under_review"]:checked')) nscValues.push('Standards under review');
+            if (formElement.querySelector('[name="nsc_withdrawn"]:checked')) nscValues.push('Standards withdrawn');
+            if (formElement.querySelector('[name="nsc_no_updates"]:checked')) nscValues.push('No updates made');
+            rawData.nsc_updates_selected = nscValues.join(', ');
         }
         
-        if (formInternational) {
-            formInternational.addEventListener('submit', function(e) {
-                e.preventDefault();
-                submitForm(e.target, 'international_engagement', '✅ International engagement submitted!', 'msg3');
-            });
+        // Process checkbox groups for Sales
+        if (tableName === 'sales_distribution') {
+            var paymentValues = [];
+            if (formElement.querySelector('[name="payment_cash"]:checked')) paymentValues.push('Cash Payment');
+            if (formElement.querySelector('[name="payment_cheque"]:checked')) paymentValues.push('Cheque Payment');
+            if (formElement.querySelector('[name="payment_gjt"]:checked')) paymentValues.push('Government Journal Transfer');
+            rawData.payment_methods = paymentValues.join(', ');
+            
+            var customerValues = [];
+            if (formElement.querySelector('[name="customer_gov"]:checked')) customerValues.push('Government/SOE');
+            if (formElement.querySelector('[name="customer_private"]:checked')) customerValues.push('Private sector');
+            if (formElement.querySelector('[name="customer_individuals"]:checked')) customerValues.push('Individuals');
+            rawData.customer_types = customerValues.join(', ');
         }
         
-        if (formDevelopment) {
-            formDevelopment.addEventListener('submit', function(e) {
-                e.preventDefault();
-                submitForm(e.target, 'standards_development', '✅ Standards development recorded!', 'msg4');
-            });
+        // Process checkbox groups for International
+        if (tableName === 'international_engagement') {
+            var actValues = [];
+            if (formElement.querySelector('[name="act_adoption"]:checked')) actValues.push('Standards adoption');
+            if (formElement.querySelector('[name="act_review"]:checked')) actValues.push('Standard review');
+            if (formElement.querySelector('[name="act_votes"]:checked')) actValues.push('Submission of Votes/comments');
+            if (formElement.querySelector('[name="act_meetings"]:checked')) actValues.push('Attend Meetings');
+            rawData.activities_undertaken = actValues.join(', ');
         }
-
-        // TAB SWITCHING
-        var tabButtons = document.querySelectorAll('.tab-btn');
-        var formCards = document.querySelectorAll('.form-card');
-
-        for (var t = 0; t < tabButtons.length; t++) {
-            tabButtons[t].addEventListener('click', function(button) {
-                return function() {
-                    var tabId = button.getAttribute('data-tab');
-                    for (var c = 0; c < formCards.length; c++) {
-                        formCards[c].classList.remove('active-form');
-                    }
-                    var selectedCard = document.getElementById(tabId);
-                    if (selectedCard) {
-                        selectedCard.classList.add('active-form');
-                    }
-                    for (var b = 0; b < tabButtons.length; b++) {
-                        tabButtons[b].classList.remove('active');
-                    }
-                    button.classList.add('active');
-                };
-            }(tabButtons[t]));
+        
+        // Process checkbox groups for Development
+        if (tableName === 'standards_development') {
+            var typeValues = [];
+            if (formElement.querySelector('[name="type_national"]:checked')) typeValues.push('National');
+            if (formElement.querySelector('[name="type_regional"]:checked')) typeValues.push('Regional');
+            rawData.standard_type = typeValues.join(', ');
+            
+            var stageValues = [];
+            if (formElement.querySelector('[name="stage_proposal"]:checked')) stageValues.push('Proposal');
+            if (formElement.querySelector('[name="stage_tc"]:checked')) stageValues.push('TC formation');
+            if (formElement.querySelector('[name="stage_draft"]:checked')) stageValues.push('Draft');
+            if (formElement.querySelector('[name="stage_consult"]:checked')) stageValues.push('Consultation');
+            if (formElement.querySelector('[name="stage_approval"]:checked')) stageValues.push('Approval');
+            if (formElement.querySelector('[name="stage_publishing"]:checked')) stageValues.push('Publishing');
+            rawData.standard_stage = stageValues.join(', ');
         }
-    });
+        
+        // Clean up temporary fields
+        var tempFields = ['nsc_new_added', 'nsc_under_review', 'nsc_withdrawn', 'nsc_no_updates', 'payment_cash', 'payment_cheque', 'payment_gjt', 'customer_gov', 'customer_private', 'customer_individuals', 'act_adoption', 'act_review', 'act_votes', 'act_meetings', 'type_national', 'type_regional', 'stage_proposal', 'stage_tc', 'stage_draft', 'stage_consult', 'stage_approval', 'stage_publishing'];
+        for (var i = 0; i < tempFields.length; i++) {
+            delete rawData[tempFields[i]];
+        }
+        
+        rawData.created_at = new Date().toISOString();
+        
+        supabaseClient.from(tableName).insert([rawData]).then(function(result) {
+            if (result.error) throw result.error;
+            showMessage(msgDivId, successMsg + ' with ' + (uploadedFiles[formNum]?.length || 0) + ' attachment(s)', false);
+            formElement.reset();
+            // Reset file uploads for this form
+            uploadedFiles[formNum] = [];
+            var fileListDiv = document.getElementById('fileList' + formNum);
+            if (fileListDiv) fileListDiv.innerHTML = '';
+            var evidenceUrlsInput = document.getElementById('evidenceUrls' + formNum);
+            if (evidenceUrlsInput) evidenceUrlsInput.value = '';
+            var progressDiv = document.getElementById('uploadProgress' + formNum);
+            if (progressDiv) progressDiv.innerHTML = '';
+            
+            var dateInputs = formElement.querySelectorAll('input[type="date"]');
+            for (var j = 0; j < dateInputs.length; j++) {
+                if (dateInputs[j] && !dateInputs[j].value) {
+                    dateInputs[j].value = new Date().toISOString().split('T')[0];
+                }
+            }
+        }).catch(function(err) {
+            console.error(err);
+            showMessage(msgDivId, 'Error: ' + err.message, true);
+        });
+    }
+    
+    // Set today's date on all date fields
+    var allDateInputs = document.querySelectorAll('input[type="date"]');
+    for (var d = 0; d < allDateInputs.length; d++) {
+        if (!allDateInputs[d].value) {
+            allDateInputs[d].value = new Date().toISOString().split('T')[0];
+        }
+    }
+    
+    // Form submissions
+    var formNSC = document.getElementById('formNSC');
+    var formSales = document.getElementById('formSales');
+    var formInternational = document.getElementById('formInternational');
+    var formDevelopment = document.getElementById('formDevelopment');
+    
+    if (formNSC) {
+        formNSC.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitForm(e.target, 'nsc_updates', '✅ NSC update recorded!', 'msg1', 1);
+        });
+    }
+    
+    if (formSales) {
+        formSales.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitForm(e.target, 'sales_distribution', '✅ Sales report saved!', 'msg2', 2);
+        });
+    }
+    
+    if (formInternational) {
+        formInternational.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitForm(e.target, 'international_engagement', '✅ International engagement submitted!', 'msg3', 3);
+        });
+    }
+    
+    if (formDevelopment) {
+        formDevelopment.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitForm(e.target, 'standards_development', '✅ Standards development recorded!', 'msg4', 4);
+        });
+    }
+    
+    // TAB SWITCHING
+    var tabButtons = document.querySelectorAll('.tab-btn');
+    var formCards = document.querySelectorAll('.form-card');
+    
+    for (var t = 0; t < tabButtons.length; t++) {
+        tabButtons[t].addEventListener('click', function(button) {
+            return function() {
+                var tabId = button.getAttribute('data-tab');
+                for (var c = 0; c < formCards.length; c++) {
+                    formCards[c].classList.remove('active-form');
+                }
+                var selectedCard = document.getElementById(tabId);
+                if (selectedCard) {
+                    selectedCard.classList.add('active-form');
+                }
+                for (var b = 0; b < tabButtons.length; b++) {
+                    tabButtons[b].classList.remove('active');
+                }
+                button.classList.add('active');
+            };
+        }(tabButtons[t]));
+    }
+    
+    // Make removeFile available globally
+    window.removeFile = removeFile;
 </script>
 </body>
 </html>
