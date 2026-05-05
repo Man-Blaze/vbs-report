@@ -117,24 +117,15 @@
     let isFocalPoint = false;
     
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('todayDate').innerText = today;
-    document.getElementById('reportDate').value = today;
-    document.getElementById('selfDate').value = today;
     
-    function updateTime() {
-        const now = new Date().toLocaleTimeString();
-        document.getElementById('currentTime').innerHTML = now;
-        document.getElementById('selfTime').innerHTML = now;
-    }
-    setInterval(updateTime, 1000);
-    updateTime();
-    
+    // Wait for DOM and Supabase to load
     window.addEventListener('DOMContentLoaded', function() {
         if (window.supabase) {
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             checkAuth();
         } else {
-            alert('Supabase failed to load. Please refresh.');
+            console.error('Supabase not loaded');
+            document.getElementById('userName').innerHTML = 'Error: Refresh page';
         }
     });
     
