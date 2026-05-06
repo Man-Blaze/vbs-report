@@ -27,13 +27,8 @@
         label { font-weight: 600; font-size: 13px; display: block; margin-top: 12px; color: #333; }
         .status-present { background: #d4edda; color: #155724; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
         .status-absent { background: #f8d7da; color: #721c24; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
-        .status-pending { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
         .refresh-btn { background: #6c757d; color: white; border: none; padding: 6px 15px; border-radius: 20px; cursor: pointer; margin-left: 10px; font-size: 12px; }
         .current-time { font-size: 36px; text-align: center; color: #1a5a3a; margin: 10px 0; font-family: monospace; font-weight: bold; }
-        .pending-requests { background: #fff9e6; border: 1px solid #fef3c7; border-radius: 16px; padding: 15px; margin-top: 20px; max-height: 300px; overflow-y: auto; }
-        .pending-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #fef3c7; flex-wrap: wrap; gap: 10px; }
-        .btn-approve { background: #28a745; color: white; border: none; padding: 5px 15px; border-radius: 20px; cursor: pointer; margin-right: 5px; }
-        .btn-reject { background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 20px; cursor: pointer; }
         .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #888; }
         .focal-badge { background: #ffc107; color: #333; padding: 2px 10px; border-radius: 20px; font-size: 11px; margin-left: 8px; }
         .alert { background: #cce5ff; padding: 12px; border-radius: 12px; margin: 15px 0; font-size: 13px; color: #004085; }
@@ -97,7 +92,6 @@
     <div class="stat-card"><div class="stat-number" id="totalStaff">0</div><div class="stat-label">Total Staff</div></div>
     <div class="stat-card"><div class="stat-number" id="presentCount">0</div><div class="stat-label">Present Today</div></div>
     <div class="stat-card"><div class="stat-number" id="absentCount">0</div><div class="stat-label">Absent Today</div></div>
-    <div class="stat-card"><div class="stat-number" id="pendingCount">0</div><div class="stat-label">Pending Approval</div></div>
 </div>
 
 <div class="mode-switch" id="modeSwitch">
@@ -114,7 +108,6 @@
         <select id="staffSelect"><option>-- Select Staff --</option></select>
         <button class="btn-clock-in" onclick="clockIn()">✅ KAM IN - Clock In</button>
         <button class="btn-clock-out" onclick="clockOut()">❌ KAM OUT - Clock Out</button>
-        <div id="pendingPanel"></div>
     </div>
     
     <div class="clock-panel" id="selfPanel" style="display:none;">
@@ -133,17 +126,10 @@
             </div>
         </div>
         
-        <div class="alert" style="background: #fff3cd; color: #856404;">
-            ⚠️ Use "Request Self Clock In" only if focal point is not available. Your request will need approval.
-        </div>
-        
         <label>📅 Date</label>
         <input type="date" id="selfDate">
         
-        <label>📝 Reason for self-clock</label>
-        <textarea id="selfReason" rows="2" placeholder="e.g., First to arrive, focal point not here yet, remote work..."></textarea>
-        
-        <button class="btn-clock-in btn-self" onclick="requestSelfClock()">📤 REQUEST SELF CLOCK IN</button>
+        <button class="btn-clock-in btn-self" onclick="selfClockIn()">✅ SELF CLOCK IN</button>
         
         <div id="selfMessage" style="margin-top: 15px; display: none;" class="alert"></div>
     </div>
@@ -155,15 +141,15 @@
         <div style="overflow-x: auto; max-height: 500px;">
             <table id="attendanceTable">
                 <thead><tr><th>Staff</th><th>Division</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th><th>Action</th></tr></thead>
-                <tbody id="attendanceBody"><tr><td colspan="7">Loading data from Supabase......</td></tr></tbody>
-            </table>
+                <tbody id="attendanceBody"><td><td colspan="7">Loading data from Supabase...</td></tr></tbody>
+            </td>
         </div>
     </div>
 </div>
 
 <div class="footer">
-    ✅ Data from YOUR timesheet table • Refresh shows current status • Time is ALWAYS captured<br>
-    📝 Self-clock requests need focal point approval
+    ✅ Data from timesheet table • Refresh shows current status • Time is ALWAYS captured<br>
+    🔓 Self clock is immediate - no approval needed
 </div>
 
 <script>
@@ -224,7 +210,6 @@
             document.getElementById('selfPanel').style.display = 'none';
             await loadStaffList();
             await loadTodayAttendance();
-            await loadPendingSelfClocks();
         } else {
             isFocalPoint = false;
             document.getElementById('userName').innerHTML = `${currentUserName} (Staff)`;
@@ -247,7 +232,6 @@
             document.getElementById('focalPanel').style.display = 'block';
             document.getElementById('selfPanel').style.display = 'none';
             loadTodayAttendance();
-            loadPendingSelfClocks();
         } else if (mode === 'self' && isFocalPoint) {
             document.getElementById('focalPanel').style.display = 'none';
             document.getElementById('selfPanel').style.display = 'block';
@@ -284,7 +268,7 @@
         const { data: staff } = await staffQuery;
         const { data: records } = await vbsClient.from('timesheet').select('*').eq('report_date', date);
         
-        let present = 0, absent = 0, pending = 0;
+        let present = 0, absent = 0;
         let html = '';
         
         for (let s of staff || []) {
@@ -293,11 +277,7 @@
             
             if (record && record.time_in) {
                 timeIn = record.time_in;
-                if (record.status === 'PENDING_APPROVAL') {
-                    status = 'PENDING';
-                    statusClass = 'status-pending';
-                    pending++;
-                } else if (record.time_out) {
+                if (record.time_out) {
                     timeOut = record.time_out;
                     hours = record.hours_worked || 0;
                     status = 'CLOCKED OUT';
@@ -327,14 +307,11 @@
         document.getElementById('attendanceBody').innerHTML = html;
         document.getElementById('presentCount').innerText = present;
         document.getElementById('absentCount').innerText = absent;
-        document.getElementById('pendingCount').innerText = pending;
     }
     
-    // FIXED: Staff sees their own status using full name from staff_list
     async function loadStaffSelfStatus() {
         const date = document.getElementById('selfDate').value;
         
-        // Get staff's full name from staff_list using email
         const { data: staffData } = await vbsClient
             .from('staff_list')
             .select('staff_name')
@@ -345,8 +322,6 @@
         if (staffData && staffData.staff_name) {
             staffFullName = staffData.staff_name;
         }
-        
-        console.log('Looking for record with officer_name:', staffFullName);
         
         const { data: records } = await vbsClient
             .from('timesheet')
@@ -362,20 +337,7 @@
         if (records && records.length > 0) {
             const r = records[0];
             
-            if (r.status === 'PENDING_APPROVAL') {
-                statusBadge.innerHTML = '<span class="staff-status-badge" style="background:#fef3c7; color:#92400e;">⏳ PENDING APPROVAL</span>';
-                timeDetails.innerHTML = `
-                    <strong>⏰ Requested clock in:</strong> ${r.time_in}<br>
-                    <strong>📝 Reason:</strong> ${r.late_reason || 'Not specified'}<br>
-                    <strong>Status:</strong> Waiting for focal point approval
-                `;
-                clockOutBtn.style.display = 'none';
-                messageDiv.innerHTML = `⏳ Your self-clock request at ${r.time_in} is waiting for focal point approval.`;
-                messageDiv.style.display = 'block';
-                document.getElementById('presentCount').innerText = 0;
-                document.getElementById('absentCount').innerText = 1;
-            } 
-            else if (r.time_in && !r.time_out) {
+            if (r.time_in && !r.time_out) {
                 statusBadge.innerHTML = '<span class="staff-status-badge" style="background:#d4edda; color:#155724;">✅ PRESENT</span>';
                 const currentTime = new Date().toLocaleTimeString();
                 timeDetails.innerHTML = `
@@ -402,7 +364,7 @@
             }
         } else {
             statusBadge.innerHTML = '<span class="staff-status-badge" style="background:#f8d7da; color:#721c24;">❌ NOT CLOCKED IN</span>';
-            timeDetails.innerHTML = 'You have not clocked in today. Use the "REQUEST SELF CLOCK IN" button below.';
+            timeDetails.innerHTML = 'You have not clocked in today. Click "SELF CLOCK IN" button below.';
             clockOutBtn.style.display = 'none';
             messageDiv.style.display = 'none';
             document.getElementById('presentCount').innerText = 0;
@@ -411,46 +373,6 @@
         
         document.getElementById('totalStaff').innerText = 1;
         document.getElementById('selfStaffName').innerHTML = staffFullName;
-    }
-    
-    async function loadPendingSelfClocks() {
-        const date = document.getElementById('reportDate').value;
-        const { data: pending } = await vbsClient.from('timesheet').select('*').eq('clock_method', 'self').eq('status', 'PENDING_APPROVAL').eq('report_date', date);
-        
-        if (pending?.length > 0) {
-            let html = `<div class="pending-requests"><h4>⏳ Pending Self-Clock Requests (${pending.length})</h4>`;
-            for (let p of pending) {
-                html += `<div class="pending-item">
-                    <div><strong>${p.officer_name}</strong><br><small>⏰ ${p.time_in} | 📝 ${p.late_reason || 'No reason'}</small></div>
-                    <div><button class="btn-approve" onclick="approveSelfClock(${p.id}, '${p.time_in}')">✓ Approve</button>
-                    <button class="btn-reject" onclick="rejectSelfClock(${p.id})">✗ Reject</button></div>
-                </div>`;
-            }
-            html += `</div>`;
-            document.getElementById('pendingPanel').innerHTML = html;
-        } else {
-            document.getElementById('pendingPanel').innerHTML = '';
-        }
-    }
-    
-    async function approveSelfClock(id, timeIn) {
-        const { error } = await vbsClient.from('timesheet').update({ status: 'APPROVED', approved_by: currentUserEmail, approved_at: new Date().toISOString() }).eq('id', id);
-        if (!error) {
-            alert(`✅ Self-clock approved! Time in: ${timeIn} preserved.`);
-            await loadTodayAttendance();
-            await loadPendingSelfClocks();
-        } else { alert('Error: ' + error.message); }
-    }
-    
-    async function rejectSelfClock(id) {
-        const reason = prompt('Reason for rejection:');
-        if (!reason) return;
-        const { error } = await vbsClient.from('timesheet').update({ status: 'REJECTED', rejection_reason: reason, approved_by: currentUserEmail }).eq('id', id);
-        if (!error) {
-            alert('❌ Self-clock rejected.');
-            await loadTodayAttendance();
-            await loadPendingSelfClocks();
-        } else { alert('Error: ' + error.message); }
     }
     
     async function clockIn() {
@@ -505,7 +427,6 @@
         document.getElementById('staffSelect').value = '';
     }
     
-    // FIXED: Staff clock out using full name
     async function staffClockOut() {
         const date = document.getElementById('selfDate').value;
         
@@ -555,11 +476,9 @@
         }
     }
     
-    // FIXED: Request self clock using full name
-    async function requestSelfClock() {
+    // FIXED: Self clock is IMMEDIATE - no approval needed
+    async function selfClockIn() {
         const date = document.getElementById('selfDate').value;
-        const reason = document.getElementById('selfReason').value;
-        if (!reason) { alert('Please provide a reason'); return; }
         
         const { data: staffData } = await vbsClient
             .from('staff_list')
@@ -578,8 +497,13 @@
             .eq('officer_name', staffFullName)
             .eq('report_date', date);
         
-        if (existing?.length > 0) {
-            alert('You already have a record for today.');
+        if (existing?.length > 0 && existing[0].time_in && !existing[0].time_out) {
+            alert(`⚠️ You already clocked IN at ${existing[0].time_in}`);
+            return;
+        }
+        
+        if (existing?.length > 0 && existing[0].time_out) {
+            alert('⚠️ You already clocked out today');
             return;
         }
         
@@ -589,23 +513,20 @@
             division: 'Staff',
             report_date: date,
             time_in: timeIn,
-            late_reason: reason,
             clock_method: 'self',
             clocked_by: currentUserEmail,
-            status: 'PENDING_APPROVAL'
+            status: 'APPROVED'  // Immediately approved
         });
         
         if (!error) {
-            alert(`📤 Self-clock request sent at ${timeIn}. Waiting for focal point approval.`);
+            alert(`✅ You clocked IN at ${timeIn}`);
             await loadStaffSelfStatus();
-            document.getElementById('selfReason').value = '';
         } else { alert('Error: ' + error.message); }
     }
     
     function refreshData() {
         if (isFocalPoint && document.getElementById('focalPanel').style.display !== 'none') {
             loadTodayAttendance();
-            loadPendingSelfClocks();
         } else {
             loadStaffSelfStatus();
         }
@@ -616,9 +537,7 @@
     window.clockOut = clockOut;
     window.quickClockOut = quickClockOut;
     window.staffClockOut = staffClockOut;
-    window.requestSelfClock = requestSelfClock;
-    window.approveSelfClock = approveSelfClock;
-    window.rejectSelfClock = rejectSelfClock;
+    window.selfClockIn = selfClockIn;
     window.setMode = setMode;
     window.logout = logout;
 </script>
