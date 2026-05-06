@@ -243,7 +243,6 @@
         let allLeaveRequests = [];
         let currentTab = 'attendance';
         let lastCheckTime = new Date();
-        let notificationSound = null;
         
         function formatDate(date) {
             return date.toISOString().split('T')[0];
@@ -303,7 +302,6 @@
                     if (approvalTime > lastCheckTime) {
                         showToast('📝 New leave request from ' + pending[i].officer_name + ' - waiting for CEO approval', 'warning');
                         showBrowserNotification('New Leave Request', pending[i].officer_name + ' needs your approval');
-                        if (notificationSound) notificationSound.play();
                     }
                 }
                 lastCheckTime = new Date();
@@ -349,12 +347,23 @@
         }
         
         async function loadStaff() {
-            var response = await fetch(SUPABASE_URL + '/rest/v1/staff_list?is_active=eq.true&select=staff_name,division,location,phone', {
-                headers: { 'apikey': SUPABASE_KEY }
-            });
-            allStaff = await response.json();
-            var totalStaffEl = document.getElementById('totalStaff');
-            if (totalStaffEl) totalStaffEl.innerText = allStaff.length;
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/staff_list?is_active=eq.true&select=staff_name,division,location', {
+                    headers: { 'apikey': SUPABASE_KEY }
+                });
+                allStaff = await response.json();
+                var totalStaffEl = document.getElementById('totalStaff');
+                if (totalStaffEl) totalStaffEl.innerText = allStaff.length;
+            } catch(e) {
+                console.error('Error loading staff:', e);
+                // Fallback: try without select parameter
+                var response = await fetch(SUPABASE_URL + '/rest/v1/staff_list?is_active=eq.true', {
+                    headers: { 'apikey': SUPABASE_KEY }
+                });
+                allStaff = await response.json();
+                var totalStaffEl = document.getElementById('totalStaff');
+                if (totalStaffEl) totalStaffEl.innerText = allStaff.length;
+            }
         }
         
         async function loadTimesheets() {
@@ -376,15 +385,6 @@
             if (badge) badge.innerText = pendingCount;
         }
         
-        function getStaffPhone(staffName) {
-            for (var i = 0; i < allStaff.length; i++) {
-                if (allStaff[i].staff_name === staffName) {
-                    return allStaff[i].phone || '';
-                }
-            }
-            return '';
-        }
-        
         function displayLeaveRequests() {
             var statusFilter = document.getElementById('leaveStatusFilter') ? document.getElementById('leaveStatusFilter').value : '';
             var typeFilter = document.getElementById('leaveTypeFilter') ? document.getElementById('leaveTypeFilter').value : '';
@@ -404,13 +404,8 @@
                 else if (leave.status === 'REJECTED') statusBadge = '<span class="status-absent">✗ REJECTED</span>';
                 else statusBadge = '<span class="status-absent">' + leave.status + '</span>';
                 
-                var staffPhone = getStaffPhone(leave.officer_name);
-                var callButton = '';
-                if (staffPhone) {
-                    callButton = '<button onclick="window.location.href=\'tel:' + staffPhone + '\'" style="background:#17a2b8; margin-right:5px; padding:6px 12px; border-radius:20px;">📞 Call</button>';
-                } else {
-                    callButton = '<span style="color:#666; font-size:11px;">No phone</span>';
-                }
+                // Simple call button (without phone number - just shows number or opens dialer with prompt)
+                var callButton = '<button onclick="promptCallStaff(\'' + leave.officer_name + '\')" style="background:#17a2b8; margin-right:5px; padding:6px 12px; border-radius:20px;">📞 Call Staff</button>';
                 
                 var ceoActions = '';
                 if (leave.status === 'MANAGER_APPROVED') {
@@ -438,6 +433,15 @@
             }
             var tableBody = document.getElementById('leaveTableBody');
             if (tableBody) { tableBody.innerHTML = html || '<tr><td colspan="10">No leave requests found<\/td><\/tr>'; }
+        }
+        
+        function promptCallStaff(staffName) {
+            var phoneNumber = prompt('Enter phone number for ' + staffName + ':', '678');
+            if (phoneNumber && phoneNumber !== '678') {
+                window.location.href = 'tel:' + phoneNumber;
+            } else {
+                alert('Please call ' + staffName + ' to discuss their leave request before approving.');
+            }
         }
         
         async function approveLeave(id) {
@@ -583,7 +587,7 @@
                 else if (ts.time_in) statusBadge = '<span class="status-present">✅ PRESENT</span>';
                 else statusBadge = '<span class="status-absent">❌ ABSENT</span>';
                 var reason = (ts.late_reason || ts.early_reason) || '-';
-                historyHtml += '<tr><td>' + (ts.report_date || '-') + '<\/td><td>' + (ts.officer_name || '-') + '<\/td><td>' + (ts.division || '-') + '<\/td><td>' + (ts.location || '-') + '<\/td><td>' + (ts.time_in || '-') + '<\/td><td>' + (ts.time_out || '-') + '<\/td><td>' + safeHours(ts.hours_worked) + '<\/td><td>' + statusBadge + '<\/td><td class="reason-cell">' + reason + '<\/td><\/tr>';
+                historyHtml += '<td>' + (ts.report_date || '-') + '<\/td><td>' + (ts.officer_name || '-') + '<\/td><td>' + (ts.division || '-') + '<\/td><td>' + (ts.location || '-') + '<\/td><td>' + (ts.time_in || '-') + '<\/td><td>' + (ts.time_out || '-') + '<\/td><td>' + safeHours(ts.hours_worked) + '<\/td><td>' + statusBadge + '<\/td><td class="reason-cell">' + reason + '<\/td><\/tr>';
             }
             var historyBody = document.getElementById('historyBody');
             if (historyBody) { historyBody.innerHTML = historyHtml || '<tr><td colspan="9">No history records<\/td><\/tr>'; }
@@ -654,6 +658,7 @@
         window.loadAttendance = loadAttendance;
         window.loadLeaveRequests = loadLeaveRequests;
         window.showNotificationPanel = showNotificationPanel;
+        window.promptCallStaff = promptCallStaff;
         
         // Initialize
         if (Notification.permission !== 'granted' && Notification.permission !== 'denied') { Notification.requestPermission(); }
