@@ -8,23 +8,19 @@
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background: #f0f2f5; }
         .container { max-width: 1400px; margin: 0 auto; }
         
-        /* Header */
         .header { background: linear-gradient(135deg, #1a5a3a 0%, #0d3b24 100%); color: white; padding: 25px 30px; border-radius: 15px; margin-bottom: 20px; }
         .header h1 { margin: 0 0 5px; font-size: 28px; }
         .header p { margin: 0; opacity: 0.9; }
         
-        /* Stats Cards */
         .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 20px; }
         .stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .stat-number { font-size: 32px; font-weight: bold; color: #1a5a3a; }
         .stat-label { font-size: 13px; color: #666; margin-top: 5px; }
         
-        /* Tabs */
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .tab-btn { padding: 12px 24px; border: none; border-radius: 40px; cursor: pointer; font-weight: bold; background: white; transition: all 0.2s; }
         .tab-btn.active { background: #1a5a3a; color: white; }
         
-        /* Filters */
         .filters { background: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between; }
         .filter-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .filter-group label { font-weight: 600; font-size: 14px; }
@@ -88,19 +84,19 @@
             </div>
         </div>
         
+        <!-- Stats Cards - ALL MUST BE PRESENT -->
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-number" id="totalStaff">0</div><div class="stat-label">Total Staff</div></div>
+            <div class="stat-card"><div class="stat-number" id="presentToday">0</div><div class="stat-label">Present Today</div></div>
+            <div class="stat-card"><div class="stat-number" id="absentToday">0</div><div class="stat-label">Absent</div></div>
+            <div class="stat-card"><div class="stat-number" id="lateToday">0</div><div class="stat-label">Late Arrivals</div></div>
+            <div class="stat-card"><div class="stat-number" id="earlyToday">0</div><div class="stat-label">Early Departures</div></div>
+        </div>
+        
         <!-- Tabs -->
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('attendance')">📋 Attendance</button>
             <button class="tab-btn" onclick="switchTab('leave')">📝 Leave Applications</button>
-        </div>
-        
-        <!-- Stats Cards -->
-        <div class="stats-grid" id="statsGrid">
-            <div class="stat-card"><div class="stat-number" id="totalStaff">0</div><div class="stat-label">Total Staff</div></div>
-            <div class="stat-card"><div class="stat-number" id="presentToday">0</div><div class="stat-label">Present Today</div></div>
-            <div class="stat-card"><div class="stat-number" id="absentToday">0</div><div class="stat-label">Absent</div></div>
-            <div class="stat-card"><div class="stat-number" id="pendingLeave">0</div><div class="stat-label">Pending Leave</div></div>
-            <div class="stat-card"><div class="stat-number" id="approvedLeave">0</div><div class="stat-label">Approved Leave</div></div>
         </div>
         
         <!-- Attendance View -->
@@ -184,12 +180,12 @@
                             <th>End Date</th>
                             <th>Days</th>
                             <th>Reason</th>
-                            <th>Manager Status</th>
+                            <th>Status</th>
                             <th>CEO Action</th>
                         </tr>
                     </thead>
                     <tbody id="leaveTableBody">
-                        <tr><td colspan="10" style="text-align:center">Loading...</td></tr>
+                        <td><td colspan="10" style="text-align:center">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -239,19 +235,46 @@
             return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
         
+        function safeHours(hours) {
+            if (hours === null || hours === undefined || isNaN(hours)) return '-';
+            return parseFloat(hours).toFixed(1);
+        }
+        
+        function isLate(timeIn) {
+            if (!timeIn) return false;
+            var parts = timeIn.split(':');
+            var hour = parseInt(parts[0]);
+            var minute = parseInt(parts[1]);
+            return hour > 8 || (hour === 8 && minute > 15);
+        }
+        
+        function isEarly(timeOut) {
+            if (!timeOut) return false;
+            var parts = timeOut.split(':');
+            return parseInt(parts[0]) < 17;
+        }
+        
         function switchTab(tab) {
             currentTab = tab;
+            var attendanceView = document.getElementById('attendanceView');
+            var leaveView = document.getElementById('leaveView');
+            var btns = document.querySelectorAll('.tab-btn');
+            
+            for (var i = 0; i < btns.length; i++) {
+                btns[i].classList.remove('active');
+            }
+            
             if (tab === 'attendance') {
-                document.getElementById('attendanceView').style.display = 'block';
-                document.getElementById('leaveView').style.display = 'none';
+                attendanceView.style.display = 'block';
+                leaveView.style.display = 'none';
+                btns[0].classList.add('active');
                 loadAttendance();
             } else {
-                document.getElementById('attendanceView').style.display = 'none';
-                document.getElementById('leaveView').style.display = 'block';
+                attendanceView.style.display = 'none';
+                leaveView.style.display = 'block';
+                btns[1].classList.add('active');
                 loadLeaveRequests();
             }
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
         }
         
         function changeDate(delta) {
@@ -264,101 +287,94 @@
             loadAttendance();
         }
         
-        function safeHours(hours) {
-            if (hours === null || hours === undefined) return '-';
-            return parseFloat(hours).toFixed(1);
-        }
-        
-        function isLate(timeIn) {
-            if (!timeIn) return false;
-            const parts = timeIn.split(':');
-            const hour = parseInt(parts[0]);
-            const minute = parseInt(parts[1]);
-            return hour > 8 || (hour === 8 && minute > 15);
-        }
-        
-        function isEarly(timeOut) {
-            if (!timeOut) return false;
-            const parts = timeOut.split(':');
-            return parseInt(parts[0]) < 17;
-        }
-        
         async function loadStaff() {
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/staff_list?is_active=eq.true`, {
+            var response = await fetch(SUPABASE_URL + '/rest/v1/staff_list?is_active=eq.true', {
                 headers: { 'apikey': SUPABASE_KEY }
             });
             allStaff = await response.json();
-            document.getElementById('totalStaff').innerText = allStaff.length;
+            var totalStaffEl = document.getElementById('totalStaff');
+            if (totalStaffEl) totalStaffEl.innerText = allStaff.length;
         }
         
         async function loadTimesheets() {
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/timesheet?order=report_date.desc&limit=2000`, {
+            var response = await fetch(SUPABASE_URL + '/rest/v1/timesheet?order=report_date.desc&limit=2000', {
                 headers: { 'apikey': SUPABASE_KEY }
             });
             allTimesheets = await response.json();
         }
         
         async function loadLeaveRequests() {
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/leave_requests?order=created_at.desc`, {
+            var response = await fetch(SUPABASE_URL + '/rest/v1/leave_requests?order=created_at.desc', {
                 headers: { 'apikey': SUPABASE_KEY }
             });
             allLeaveRequests = await response.json();
             displayLeaveRequests();
+            
+            // Update stats with leave counts
+            var pendingLeave = allLeaveRequests.filter(function(l) { return l.status === 'MANAGER_APPROVED' || l.status === 'PENDING'; }).length;
+            var approvedLeave = allLeaveRequests.filter(function(l) { return l.status === 'APPROVED'; }).length;
+            var lateTodayEl = document.getElementById('lateToday');
+            var earlyTodayEl = document.getElementById('earlyToday');
+            if (lateTodayEl) lateTodayEl.innerText = pendingLeave;
+            if (earlyTodayEl) earlyTodayEl.innerText = approvedLeave;
         }
         
         function displayLeaveRequests() {
-            const statusFilter = document.getElementById('leaveStatusFilter')?.value || '';
-            const typeFilter = document.getElementById('leaveTypeFilter')?.value || '';
+            var statusFilter = document.getElementById('leaveStatusFilter') ? document.getElementById('leaveStatusFilter').value : '';
+            var typeFilter = document.getElementById('leaveTypeFilter') ? document.getElementById('leaveTypeFilter').value : '';
             
-            let filtered = [...allLeaveRequests];
-            if (statusFilter) filtered = filtered.filter(l => l.status === statusFilter);
-            if (typeFilter) filtered = filtered.filter(l => l.leave_type === typeFilter);
+            var filtered = [];
+            for (var i = 0; i < allLeaveRequests.length; i++) {
+                filtered.push(allLeaveRequests[i]);
+            }
+            if (statusFilter) {
+                filtered = filtered.filter(function(l) { return l.status === statusFilter; });
+            }
+            if (typeFilter) {
+                filtered = filtered.filter(function(l) { return l.leave_type === typeFilter; });
+            }
             
-            const pendingCount = allLeaveRequests.filter(l => l.status === 'PENDING').length;
-            const approvedCount = allLeaveRequests.filter(l => l.status === 'APPROVED').length;
-            document.getElementById('pendingLeave').innerText = pendingCount;
-            document.getElementById('approvedLeave').innerText = approvedCount;
-            
-            let html = '';
-            for (let leave of filtered) {
-                let statusBadge = '';
+            var html = '';
+            for (var i = 0; i < filtered.length; i++) {
+                var leave = filtered[i];
+                var statusBadge = '';
                 if (leave.status === 'PENDING') statusBadge = '<span class="status-pending">⏳ PENDING</span>';
                 else if (leave.status === 'MANAGER_APPROVED') statusBadge = '<span class="status-present">✅ MANAGER OK</span>';
                 else if (leave.status === 'APPROVED') statusBadge = '<span class="status-approved">✓ APPROVED</span>';
                 else if (leave.status === 'REJECTED') statusBadge = '<span class="status-absent">✗ REJECTED</span>';
                 else statusBadge = '<span class="status-absent">' + leave.status + '</span>';
                 
-                let ceoActions = '';
+                var ceoActions = '';
                 if (leave.status === 'MANAGER_APPROVED') {
-                    ceoActions = `
-                        <button onclick="approveLeave(${leave.id})" style="background:#28a745; margin-right:5px;">✓ Approve</button>
-                        <button onclick="rejectLeave(${leave.id})" style="background:#dc3545;">✗ Reject</button>
-                    `;
+                    ceoActions = '<button onclick="approveLeave(' + leave.id + ')" style="background:#28a745; margin-right:5px; padding:4px 12px;">✓ Approve</button><button onclick="rejectLeave(' + leave.id + ')" style="background:#dc3545; padding:4px 12px;">✗ Reject</button>';
                 } else if (leave.status === 'PENDING') {
                     ceoActions = '<span style="color:#666;">Waiting for manager</span>';
                 } else {
                     ceoActions = '<span style="color:#666;">-</span>';
                 }
                 
-                html += `<tr>
-                    <td>${leave.created_at?.split('T')[0] || '-'}</td>
-                    <td><strong>${leave.officer_name || '-'}</strong></td>
-                    <td>${leave.division || '-'}</td>
-                    <td>${leave.leave_type || '-'}</td>
-                    <td>${leave.start_date || '-'}</td>
-                    <td>${leave.end_date || '-'}</td>
-                    <td>${leave.total_days || 0}</td>
-                    <td class="reason-cell">${leave.reason || '-'}</td>
-                    <td>${statusBadge}</td>
-                    <td>${ceoActions}</td>
-                </tr>`;
+                html += '<tr>' +
+                    '<td>' + (leave.created_at ? leave.created_at.split('T')[0] : '-') + '</td>' +
+                    '<td><strong>' + (leave.officer_name || '-') + '</strong></td>' +
+                    '<td>' + (leave.division || '-') + '</td>' +
+                    '<td>' + (leave.leave_type || '-') + '</td>' +
+                    '<td>' + (leave.start_date || '-') + '</td>' +
+                    '<td>' + (leave.end_date || '-') + '</td>' +
+                    '<td>' + (leave.total_days || 0) + '</td>' +
+                    '<td class="reason-cell">' + (leave.reason || '-') + '</td>' +
+                    '<td>' + statusBadge + '</td>' +
+                    '<td>' + ceoActions + '</td>' +
+                    '</tr>';
             }
-            document.getElementById('leaveTableBody').innerHTML = html || '<tr><td colspan="10">No leave requests found</td></tr>';
+            var tableBody = document.getElementById('leaveTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = html || '<tr><td colspan="10">No leave requests found</td></tr>';
+            }
         }
         
         async function approveLeave(id) {
             if (!confirm('Approve this leave request?')) return;
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/leave_requests?id=eq.${id}`, {
+            var response = await fetch(SUPABASE_URL + '/rest/v1/leave_requests?id=eq.' + id, {
                 method: 'PATCH',
                 headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'APPROVED', ceo_approved: true, ceo_approved_at: new Date().toISOString() })
@@ -372,9 +388,9 @@
         }
         
         async function rejectLeave(id) {
-            const reason = prompt('Reason for rejection:');
+            var reason = prompt('Reason for rejection:');
             if (!reason) return;
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/leave_requests?id=eq.${id}`, {
+            var response = await fetch(SUPABASE_URL + '/rest/v1/leave_requests?id=eq.' + id, {
                 method: 'PATCH',
                 headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'REJECTED', ceo_comment: reason, ceo_approved_at: new Date().toISOString() })
@@ -391,40 +407,63 @@
             await loadStaff();
             await loadTimesheets();
             
-            const selectedDate = formatDate(currentDate);
-            const locationFilter = document.getElementById('locationFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
+            var selectedDate = formatDate(currentDate);
+            var locationFilter = document.getElementById('locationFilter') ? document.getElementById('locationFilter').value : '';
+            var statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
             
-            document.getElementById('currentDateDisplay').innerHTML = formatDisplayDate(currentDate);
+            var currentDateDisplay = document.getElementById('currentDateDisplay');
+            if (currentDateDisplay) currentDateDisplay.innerHTML = formatDisplayDate(currentDate);
             
-            const divisions = [...new Set(allStaff.map(s => s.division))].sort();
+            // Get unique divisions
+            var divisions = [];
+            for (var i = 0; i < allStaff.length; i++) {
+                if (divisions.indexOf(allStaff[i].division) === -1 && allStaff[i].division) {
+                    divisions.push(allStaff[i].division);
+                }
+            }
+            divisions.sort();
             
-            let totalPresent = 0;
-            let totalAbsent = 0;
-            let totalLate = 0;
-            let totalEarly = 0;
+            var totalPresent = 0;
+            var totalAbsent = 0;
+            var totalLate = 0;
+            var totalEarly = 0;
             
-            const divisionsHtml = [];
+            var divisionsHtml = [];
             
-            for (const division of divisions) {
-                let divisionStaff = allStaff.filter(s => s.division === division);
-                if (locationFilter) divisionStaff = divisionStaff.filter(s => s.location === locationFilter);
-                
+            for (var d = 0; d < divisions.length; d++) {
+                var division = divisions[d];
+                var divisionStaff = [];
+                for (var s = 0; s < allStaff.length; s++) {
+                    if (allStaff[s].division === division) divisionStaff.push(allStaff[s]);
+                }
+                if (locationFilter) {
+                    divisionStaff = divisionStaff.filter(function(s) { return s.location === locationFilter; });
+                }
                 if (divisionStaff.length === 0) continue;
                 
-                const todayTimesheets = allTimesheets.filter(t => t.report_date === selectedDate);
+                var todayTimesheets = [];
+                for (var t = 0; t < allTimesheets.length; t++) {
+                    if (allTimesheets[t].report_date === selectedDate) todayTimesheets.push(allTimesheets[t]);
+                }
                 
-                let divisionPresent = 0;
-                let divisionHtml = '';
+                var divisionPresent = 0;
+                var divisionHtml = '';
                 
-                for (let staff of divisionStaff) {
-                    const record = todayTimesheets.find(t => t.officer_name === staff.staff_name);
-                    const hasClockIn = record && record.time_in;
-                    const hasClockOut = record && record.time_out;
-                    const isLateArrival = hasClockIn && isLate(record.time_in);
-                    const isEarlyDeparture = hasClockOut && isEarly(record.time_out);
+                for (var st = 0; st < divisionStaff.length; st++) {
+                    var staff = divisionStaff[st];
+                    var record = null;
+                    for (var rt = 0; rt < todayTimesheets.length; rt++) {
+                        if (todayTimesheets[rt].officer_name === staff.staff_name) {
+                            record = todayTimesheets[rt];
+                            break;
+                        }
+                    }
+                    var hasClockIn = record && record.time_in;
+                    var hasClockOut = record && record.time_out;
+                    var isLateArrival = hasClockIn && isLate(record.time_in);
+                    var isEarlyDeparture = hasClockOut && isEarly(record.time_out);
                     
-                    let statusBadge = '';
+                    var statusBadge = '';
                     
                     if (hasClockIn && !hasClockOut) {
                         statusBadge = '<span class="status-present">✅ PRESENT</span>';
@@ -448,151 +487,154 @@
                     if (statusFilter === 'late' && !isLateArrival) continue;
                     if (statusFilter === 'early' && !isEarlyDeparture) continue;
                     
-                    const reason = record?.late_reason || record?.early_reason || '-';
-                    const hours = safeHours(record?.hours_worked);
+                    var reason = (record && (record.late_reason || record.early_reason)) ? (record.late_reason || record.early_reason) : '-';
+                    var hours = safeHours(record ? record.hours_worked : null);
                     
-                    divisionHtml += `<tr>
-                        <td>${staff.staff_name}</td>
-                        <td>${staff.location || '-'}</td>
-                        <td>${record?.time_in || '-'}</td>
-                        <td>${record?.time_out || '-'}</td>
-                        <td>${hours}</td>
-                        <td>${statusBadge}</td>
-                        <td class="reason-cell">${reason}</td>
-                    </tr>`;
+                    divisionHtml += '<tr>' +
+                        '<td><strong>' + (staff.staff_name || '-') + '</strong></td>' +
+                        '<td>' + (staff.location || '-') + '</td>' +
+                        '<td>' + (record && record.time_in ? record.time_in : '-') + '</td>' +
+                        '<td>' + (record && record.time_out ? record.time_out : '-') + '</td>' +
+                        '<td>' + hours + '</td>' +
+                        '<td>' + statusBadge + '</td>' +
+                        '<td class="reason-cell">' + reason + '</td>' +
+                        '</tr>';
                 }
                 
                 if (divisionHtml) {
-                    divisionsHtml.push(`
-                        <div class="division-section">
-                            <div class="division-header">
-                                <span>📁 ${division}</span>
-                                <span>${divisionPresent} / ${divisionStaff.length} present</span>
-                            </div>
-                            <div style="overflow-x: auto;">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Staff Name</th>
-                                            <th>Location</th>
-                                            <th>Clock In</th>
-                                            <th>Clock Out</th>
-                                            <th>Hours</th>
-                                            <th>Status</th>
-                                            <th>Reason</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${divisionHtml}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    `);
+                    divisionsHtml.push('<div class="division-section">' +
+                        '<div class="division-header">' +
+                        '<span>📁 ' + division + '</span>' +
+                        '<span>' + divisionPresent + ' / ' + divisionStaff.length + ' present</span>' +
+                        '</div>' +
+                        '<div style="overflow-x: auto;">' +
+                        '<table><thead><tr><th>Staff Name</th><th>Location</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th><th>Reason</th></tr></thead>' +
+                        '<tbody>' + divisionHtml + '</tbody></table>' +
+                        '</div></div>');
                 }
             }
             
-            document.getElementById('divisionsContainer').innerHTML = divisionsHtml.join('') || '<div style="background:white; padding:40px; text-align:center; border-radius:12px;">No records for this day</div>';
-            
-            document.getElementById('presentToday').innerText = totalPresent;
-            document.getElementById('absentToday').innerText = totalAbsent;
-            document.getElementById('lateToday').innerText = totalLate;
-            document.getElementById('earlyToday').innerText = totalEarly;
-            
-            // Load leave counts for stats
-            if (allLeaveRequests.length === 0) {
-                const leaveResponse = await fetch(`${SUPABASE_URL}/rest/v1/leave_requests`, {
-                    headers: { 'apikey': SUPABASE_KEY }
-                });
-                allLeaveRequests = await leaveResponse.json();
+            var divisionsContainer = document.getElementById('divisionsContainer');
+            if (divisionsContainer) {
+                divisionsContainer.innerHTML = divisionsHtml.join('') || '<div style="background:white; padding:40px; text-align:center; border-radius:12px;">No records for this day</div>';
             }
-            const pendingLeave = allLeaveRequests.filter(l => l.status === 'MANAGER_APPROVED' || l.status === 'PENDING').length;
-            const approvedLeave = allLeaveRequests.filter(l => l.status === 'APPROVED').length;
-            document.getElementById('pendingLeave').innerText = pendingLeave;
-            document.getElementById('approvedLeave').innerText = approvedLeave;
             
-            document.getElementById('daySummary').innerHTML = `
-                <div class="summary-card"><div class="value">${allStaff.length}</div><div class="label">Total Staff</div></div>
-                <div class="summary-card"><div class="value">${totalPresent}</div><div class="label">Present</div></div>
-                <div class="summary-card"><div class="value">${totalAbsent}</div><div class="label">Absent</div></div>
-                <div class="summary-card"><div class="value">${totalLate}</div><div class="label">Late Arrivals</div></div>
-                <div class="summary-card"><div class="value">${totalEarly}</div><div class="label">Early Departures</div></div>
-                <div class="summary-card"><div class="value">${divisions.length}</div><div class="label">Divisions</div></div>
-            `;
+            var presentTodayEl = document.getElementById('presentToday');
+            var absentTodayEl = document.getElementById('absentToday');
+            var lateTodayEl = document.getElementById('lateToday');
+            var earlyTodayEl = document.getElementById('earlyToday');
             
-            // Load History
-            const today = new Date();
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(today.getDate() - 30);
-            const historyTimesheets = allTimesheets.filter(t => t.report_date >= formatDate(thirtyDaysAgo));
+            if (presentTodayEl) presentTodayEl.innerText = totalPresent;
+            if (absentTodayEl) absentTodayEl.innerText = totalAbsent;
+            if (lateTodayEl) lateTodayEl.innerText = totalLate;
+            if (earlyTodayEl) earlyTodayEl.innerText = totalEarly;
             
-            let historyHtml = '';
-            for (let ts of historyTimesheets.slice(0, 200)) {
-                const isLateArrival = ts.time_in && isLate(ts.time_in);
-                const isEarlyDeparture = ts.time_out && isEarly(ts.time_out);
-                let statusBadge = '';
+            // Day Summary
+            var daySummary = document.getElementById('daySummary');
+            if (daySummary) {
+                daySummary.innerHTML = '<div class="summary-card"><div class="value">' + allStaff.length + '</div><div class="label">Total Staff</div></div>' +
+                    '<div class="summary-card"><div class="value">' + totalPresent + '</div><div class="label">Present</div></div>' +
+                    '<div class="summary-card"><div class="value">' + totalAbsent + '</div><div class="label">Absent</div></div>' +
+                    '<div class="summary-card"><div class="value">' + totalLate + '</div><div class="label">Late Arrivals</div></div>' +
+                    '<div class="summary-card"><div class="value">' + totalEarly + '</div><div class="label">Early Departures</div></div>' +
+                    '<div class="summary-card"><div class="value">' + divisions.length + '</div><div class="label">Divisions</div></div>';
+            }
+            
+            // Load History (Last 30 days)
+            var todayDate = new Date();
+            var thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(todayDate.getDate() - 30);
+            var thirtyDaysAgoStr = formatDate(thirtyDaysAgo);
+            
+            var historyTimesheets = [];
+            for (var hi = 0; hi < allTimesheets.length; hi++) {
+                if (allTimesheets[hi].report_date >= thirtyDaysAgoStr) {
+                    historyTimesheets.push(allTimesheets[hi]);
+                }
+            }
+            
+            var historyHtml = '';
+            for (var hi2 = 0; hi2 < historyTimesheets.length && hi2 < 200; hi2++) {
+                var ts = historyTimesheets[hi2];
+                var isLateArrival = ts.time_in && isLate(ts.time_in);
+                var isEarlyDeparture = ts.time_out && isEarly(ts.time_out);
+                var statusBadge = '';
                 if (isLateArrival) statusBadge = '<span class="status-late">⚠️ LATE</span>';
                 else if (isEarlyDeparture) statusBadge = '<span class="status-early">⚠️ EARLY</span>';
                 else if (ts.time_in) statusBadge = '<span class="status-present">✅ PRESENT</span>';
                 else statusBadge = '<span class="status-absent">❌ ABSENT</span>';
                 
-                const reason = ts.late_reason || ts.early_reason || '-';
-                const hours = safeHours(ts.hours_worked);
+                var reason = (ts.late_reason || ts.early_reason) ? (ts.late_reason || ts.early_reason) : '-';
+                var hours = safeHours(ts.hours_worked);
                 
-                historyHtml += `<tr>
-                    <td>${ts.report_date}</td>
-                    <td>${ts.officer_name}</td>
-                    <td>${ts.division}</td>
-                    <td>${ts.location || '-'}</td>
-                    <td>${ts.time_in || '-'}</td>
-                    <td>${ts.time_out || '-'}</td>
-                    <td>${hours}</td>
-                    <td>${statusBadge}</td>
-                    <td class="reason-cell">${reason}</td>
-                </tr>`;
+                historyHtml += '<tr>' +
+                    '<td>' + (ts.report_date || '-') + '</td>' +
+                    '<td>' + (ts.officer_name || '-') + '</td>' +
+                    '<td>' + (ts.division || '-') + '</td>' +
+                    '<td>' + (ts.location || '-') + '</td>' +
+                    '<td>' + (ts.time_in || '-') + '</td>' +
+                    '<td>' + (ts.time_out || '-') + '</td>' +
+                    '<td>' + hours + '</td>' +
+                    '<td>' + statusBadge + '</td>' +
+                    '<td class="reason-cell">' + reason + '</td>' +
+                    '</tr>';
             }
-            document.getElementById('historyBody').innerHTML = historyHtml || '<tr><td colspan="9">No history records</td></tr>';
+            var historyBody = document.getElementById('historyBody');
+            if (historyBody) {
+                historyBody.innerHTML = historyHtml || '<tr><td colspan="9">No history records</td></tr>';
+            }
         }
         
         function exportAttendanceCSV() {
-            const selectedDate = formatDate(currentDate);
-            const rows = document.querySelectorAll('#divisionsContainer tbody tr');
-            let csv = `"Date","Division","Staff Name","Location","Clock In","Clock Out","Hours","Status","Reason"\n`;
-            for (let row of rows) {
-                const cells = row.querySelectorAll('td');
+            var selectedDate = formatDate(currentDate);
+            var rows = document.querySelectorAll('#divisionsContainer tbody tr');
+            var csv = '"Date","Division","Staff Name","Location","Clock In","Clock Out","Hours","Status","Reason"\n';
+            for (var i = 0; i < rows.length; i++) {
+                var cells = rows[i].querySelectorAll('td');
                 if (cells.length >= 7) {
-                    const division = row.closest('.division-section')?.querySelector('.division-header span:first-child')?.innerText.replace('📁 ', '') || '';
-                    csv += `"${selectedDate}","${division}",`;
-                    for (let i = 0; i < cells.length; i++) {
-                        let text = cells[i].innerText.replace(/"/g, '""');
-                        if (cells[i].innerHTML.includes('status')) {
-                            text = cells[i].innerText.split(' ')[1] || cells[i].innerText;
-                        }
-                        csv += `"${text}"`;
-                        if (i < cells.length - 1) csv += ',';
+                    var divisionDiv = rows[i].closest('.division-section');
+                    var division = '';
+                    if (divisionDiv) {
+                        var headerSpan = divisionDiv.querySelector('.division-header span:first-child');
+                        if (headerSpan) division = headerSpan.innerText.replace('📁 ', '');
+                    }
+                    csv += '"' + selectedDate + '","' + division + '",';
+                    for (var j = 0; j < cells.length; j++) {
+                        var text = cells[j].innerText.replace(/"/g, '""');
+                        csv += '"' + text + '"';
+                        if (j < cells.length - 1) csv += ',';
                     }
                     csv += '\n';
                 }
             }
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
+            var blob = new Blob([csv], { type: 'text/csv' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
             a.href = url;
-            a.download = `vbs_attendance_${selectedDate}.csv`;
+            a.download = 'vbs_attendance_' + selectedDate + '.csv';
             a.click();
             URL.revokeObjectURL(url);
         }
         
         function exportLeaveCSV() {
-            let csv = `"Date Submitted","Staff Name","Division","Leave Type","Start Date","End Date","Days","Reason","Status"\n`;
-            for (let leave of allLeaveRequests) {
-                csv += `"${leave.created_at?.split('T')[0] || ''}","${leave.officer_name || ''}","${leave.division || ''}","${leave.leave_type || ''}","${leave.start_date || ''}","${leave.end_date || ''}","${leave.total_days || 0}","${(leave.reason || '').replace(/"/g, '""')}","${leave.status || ''}"\n`;
+            var csv = '"Date Submitted","Staff Name","Division","Leave Type","Start Date","End Date","Days","Reason","Status"\n';
+            for (var i = 0; i < allLeaveRequests.length; i++) {
+                var leave = allLeaveRequests[i];
+                csv += '"' + (leave.created_at ? leave.created_at.split('T')[0] : '') + '",' +
+                    '"' + (leave.officer_name || '') + '",' +
+                    '"' + (leave.division || '') + '",' +
+                    '"' + (leave.leave_type || '') + '",' +
+                    '"' + (leave.start_date || '') + '",' +
+                    '"' + (leave.end_date || '') + '",' +
+                    '"' + (leave.total_days || 0) + '",' +
+                    '"' + ((leave.reason || '').replace(/"/g, '""')) + '",' +
+                    '"' + (leave.status || '') + '"\n';
             }
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
+            var blob = new Blob([csv], { type: 'text/csv' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
             a.href = url;
-            a.download = `vbs_leave_requests.csv`;
+            a.download = 'vbs_leave_requests.csv';
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -612,7 +654,10 @@
         loadAttendance();
         
         // Auto-refresh every 30 seconds
-        setInterval(() => { if (currentTab === 'attendance') loadAttendance(); else loadLeaveRequests(); }, 30000);
+        setInterval(function() { 
+            if (currentTab === 'attendance') loadAttendance(); 
+            else loadLeaveRequests(); 
+        }, 30000);
     </script>
 </body>
 </html>
