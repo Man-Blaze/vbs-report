@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>VBS CEO Attendance & Leave Dashboard</title>
+    <title>VBS CEO Dashboard - Attendance & Leave</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background: #f0f2f5; }
@@ -34,6 +35,15 @@
         .live-badge { background: #dc3545; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
         .live-badge .blink { width: 8px; height: 8px; background: white; border-radius: 50%; animation: blink 1s infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        
+        .notification-bell { position: relative; cursor: pointer; background: rgba(255,255,255,0.2); padding: 10px 18px; border-radius: 40px; display: inline-flex; align-items: center; gap: 10px; }
+        .notification-bell i { font-size: 18px; }
+        .notification-badge { position: absolute; top: -5px; right: -5px; background: #dc3545; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; font-weight: bold; min-width: 18px; text-align: center; }
+        
+        .toast-notification { position: fixed; bottom: 20px; right: 20px; background: #1a5a3a; color: white; padding: 15px 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; display: flex; align-items: center; gap: 12px; animation: slideIn 0.3s ease; max-width: 350px; }
+        .toast-notification.warning { background: #ffc107; color: #333; }
+        .toast-notification.error { background: #dc3545; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         
         .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px 20px; border-radius: 12px; }
         .calendar-nav button { background: #6c757d; padding: 8px 20px; }
@@ -80,11 +90,17 @@
                     <h1>📊 VBS CEO Dashboard</h1>
                     <p>Staff Attendance & Leave Management</p>
                 </div>
-                <div class="live-badge"><span class="blink"></span> LIVE</div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div class="notification-bell" onclick="showNotificationPanel()">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notificationBadge">0</span>
+                    </div>
+                    <div class="live-badge"><span class="blink"></span> LIVE</div>
+                </div>
             </div>
         </div>
         
-        <!-- Stats Cards - ALL MUST BE PRESENT -->
+        <!-- Stats Cards -->
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-number" id="totalStaff">0</div><div class="stat-label">Total Staff</div></div>
             <div class="stat-card"><div class="stat-number" id="presentToday">0</div><div class="stat-label">Present Today</div></div>
@@ -145,8 +161,8 @@
                     <label>📋 Status:</label>
                     <select id="leaveStatusFilter">
                         <option value="">All</option>
-                        <option value="PENDING">Pending</option>
-                        <option value="MANAGER_APPROVED">Manager Approved</option>
+                        <option value="PENDING">Pending Manager</option>
+                        <option value="MANAGER_APPROVED">Ready for CEO</option>
                         <option value="APPROVED">Approved</option>
                         <option value="REJECTED">Rejected</option>
                     </select>
@@ -185,7 +201,7 @@
                         </tr>
                     </thead>
                     <tbody id="leaveTableBody">
-                        <td><td colspan="10" style="text-align:center">Loading...</td></tr>
+                        <tr><td colspan="10" style="text-align:center">Loading...<\/td><\/tr>
                     </tbody>
                 </table>
             </div>
@@ -210,7 +226,7 @@
                         </tr>
                     </thead>
                     <tbody id="historyBody">
-                        <tr><td colspan="9" style="text-align:center">Loading...</td></tr>
+                        <tr><td colspan="9" style="text-align:center">Loading...<\/td><\/tr>
                     </tbody>
                 </table>
             </div>
@@ -226,6 +242,8 @@
         let allTimesheets = [];
         let allLeaveRequests = [];
         let currentTab = 'attendance';
+        let lastCheckTime = new Date();
+        let notificationSound = null;
         
         function formatDate(date) {
             return date.toISOString().split('T')[0];
@@ -254,15 +272,58 @@
             return parseInt(parts[0]) < 17;
         }
         
+        function showToast(message, type) {
+            var toast = document.createElement('div');
+            toast.className = 'toast-notification ' + (type || '');
+            toast.innerHTML = '<i class="fas fa-bell"></i> ' + message;
+            document.body.appendChild(toast);
+            setTimeout(function() { if(toast) toast.remove(); }, 5000);
+        }
+        
+        function showBrowserNotification(title, body) {
+            if (Notification.permission === 'granted') {
+                new Notification(title, { body: body });
+            } else if (Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+        }
+        
+        async function checkForNewApprovals() {
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/leave_requests?status=eq.MANAGER_APPROVED&order=created_at.desc&limit=20', {
+                    headers: { 'apikey': SUPABASE_KEY }
+                });
+                var pending = await response.json();
+                
+                var badge = document.getElementById('notificationBadge');
+                if (badge) badge.innerText = pending.length;
+                
+                for (var i = 0; i < pending.length; i++) {
+                    var approvalTime = new Date(pending[i].created_at);
+                    if (approvalTime > lastCheckTime) {
+                        showToast('📝 New leave request from ' + pending[i].officer_name + ' - waiting for CEO approval', 'warning');
+                        showBrowserNotification('New Leave Request', pending[i].officer_name + ' needs your approval');
+                        if (notificationSound) notificationSound.play();
+                    }
+                }
+                lastCheckTime = new Date();
+            } catch(e) { console.error('Check error:', e); }
+        }
+        
+        function showNotificationPanel() {
+            var badge = document.getElementById('notificationBadge');
+            if (badge) badge.innerText = '0';
+            loadLeaveRequests();
+            showToast('📋 Leave requests refreshed', '');
+        }
+        
         function switchTab(tab) {
             currentTab = tab;
             var attendanceView = document.getElementById('attendanceView');
             var leaveView = document.getElementById('leaveView');
             var btns = document.querySelectorAll('.tab-btn');
             
-            for (var i = 0; i < btns.length; i++) {
-                btns[i].classList.remove('active');
-            }
+            for (var i = 0; i < btns.length; i++) { btns[i].classList.remove('active'); }
             
             if (tab === 'attendance') {
                 attendanceView.style.display = 'block';
@@ -288,7 +349,7 @@
         }
         
         async function loadStaff() {
-            var response = await fetch(SUPABASE_URL + '/rest/v1/staff_list?is_active=eq.true', {
+            var response = await fetch(SUPABASE_URL + '/rest/v1/staff_list?is_active=eq.true&select=staff_name,division,location,phone', {
                 headers: { 'apikey': SUPABASE_KEY }
             });
             allStaff = await response.json();
@@ -310,13 +371,18 @@
             allLeaveRequests = await response.json();
             displayLeaveRequests();
             
-            // Update stats with leave counts
-            var pendingLeave = allLeaveRequests.filter(function(l) { return l.status === 'MANAGER_APPROVED' || l.status === 'PENDING'; }).length;
-            var approvedLeave = allLeaveRequests.filter(function(l) { return l.status === 'APPROVED'; }).length;
-            var lateTodayEl = document.getElementById('lateToday');
-            var earlyTodayEl = document.getElementById('earlyToday');
-            if (lateTodayEl) lateTodayEl.innerText = pendingLeave;
-            if (earlyTodayEl) earlyTodayEl.innerText = approvedLeave;
+            var pendingCount = allLeaveRequests.filter(function(l) { return l.status === 'MANAGER_APPROVED'; }).length;
+            var badge = document.getElementById('notificationBadge');
+            if (badge) badge.innerText = pendingCount;
+        }
+        
+        function getStaffPhone(staffName) {
+            for (var i = 0; i < allStaff.length; i++) {
+                if (allStaff[i].staff_name === staffName) {
+                    return allStaff[i].phone || '';
+                }
+            }
+            return '';
         }
         
         function displayLeaveRequests() {
@@ -324,29 +390,33 @@
             var typeFilter = document.getElementById('leaveTypeFilter') ? document.getElementById('leaveTypeFilter').value : '';
             
             var filtered = [];
-            for (var i = 0; i < allLeaveRequests.length; i++) {
-                filtered.push(allLeaveRequests[i]);
-            }
-            if (statusFilter) {
-                filtered = filtered.filter(function(l) { return l.status === statusFilter; });
-            }
-            if (typeFilter) {
-                filtered = filtered.filter(function(l) { return l.leave_type === typeFilter; });
-            }
+            for (var i = 0; i < allLeaveRequests.length; i++) { filtered.push(allLeaveRequests[i]); }
+            if (statusFilter) { filtered = filtered.filter(function(l) { return l.status === statusFilter; }); }
+            if (typeFilter) { filtered = filtered.filter(function(l) { return l.leave_type === typeFilter; }); }
             
             var html = '';
             for (var i = 0; i < filtered.length; i++) {
                 var leave = filtered[i];
                 var statusBadge = '';
                 if (leave.status === 'PENDING') statusBadge = '<span class="status-pending">⏳ PENDING</span>';
-                else if (leave.status === 'MANAGER_APPROVED') statusBadge = '<span class="status-present">✅ MANAGER OK</span>';
+                else if (leave.status === 'MANAGER_APPROVED') statusBadge = '<span class="status-present">✅ READY FOR CEO</span>';
                 else if (leave.status === 'APPROVED') statusBadge = '<span class="status-approved">✓ APPROVED</span>';
                 else if (leave.status === 'REJECTED') statusBadge = '<span class="status-absent">✗ REJECTED</span>';
                 else statusBadge = '<span class="status-absent">' + leave.status + '</span>';
                 
+                var staffPhone = getStaffPhone(leave.officer_name);
+                var callButton = '';
+                if (staffPhone) {
+                    callButton = '<button onclick="window.location.href=\'tel:' + staffPhone + '\'" style="background:#17a2b8; margin-right:5px; padding:6px 12px; border-radius:20px;">📞 Call</button>';
+                } else {
+                    callButton = '<span style="color:#666; font-size:11px;">No phone</span>';
+                }
+                
                 var ceoActions = '';
                 if (leave.status === 'MANAGER_APPROVED') {
-                    ceoActions = '<button onclick="approveLeave(' + leave.id + ')" style="background:#28a745; margin-right:5px; padding:4px 12px;">✓ Approve</button><button onclick="rejectLeave(' + leave.id + ')" style="background:#dc3545; padding:4px 12px;">✗ Reject</button>';
+                    ceoActions = callButton +
+                        '<button onclick="approveLeave(' + leave.id + ')" style="background:#28a745; margin-right:5px; padding:6px 12px; border-radius:20px;">✓ Approve</button>' +
+                        '<button onclick="rejectLeave(' + leave.id + ')" style="background:#dc3545; padding:6px 12px; border-radius:20px;">✗ Reject</button>';
                 } else if (leave.status === 'PENDING') {
                     ceoActions = '<span style="color:#666;">Waiting for manager</span>';
                 } else {
@@ -354,26 +424,24 @@
                 }
                 
                 html += '<tr>' +
-                    '<td>' + (leave.created_at ? leave.created_at.split('T')[0] : '-') + '</td>' +
-                    '<td><strong>' + (leave.officer_name || '-') + '</strong></td>' +
-                    '<td>' + (leave.division || '-') + '</td>' +
-                    '<td>' + (leave.leave_type || '-') + '</td>' +
-                    '<td>' + (leave.start_date || '-') + '</td>' +
-                    '<td>' + (leave.end_date || '-') + '</td>' +
-                    '<td>' + (leave.total_days || 0) + '</td>' +
-                    '<td class="reason-cell">' + (leave.reason || '-') + '</td>' +
-                    '<td>' + statusBadge + '</td>' +
-                    '<td>' + ceoActions + '</td>' +
-                    '</tr>';
+                    '<td>' + (leave.created_at ? leave.created_at.split('T')[0] : '-') + '<\/td>' +
+                    '<td><strong>' + (leave.officer_name || '-') + '<\/strong><\/td>' +
+                    '<td>' + (leave.division || '-') + '<\/td>' +
+                    '<td>' + (leave.leave_type || '-') + '<\/td>' +
+                    '<td>' + (leave.start_date || '-') + '<\/td>' +
+                    '<td>' + (leave.end_date || '-') + '<\/td>' +
+                    '<td>' + (leave.total_days || 0) + '<\/td>' +
+                    '<td class="reason-cell">' + (leave.reason || '-') + '<\/td>' +
+                    '<td>' + statusBadge + '<\/td>' +
+                    '<td>' + ceoActions + '<\/td>' +
+                    '<\/tr>';
             }
             var tableBody = document.getElementById('leaveTableBody');
-            if (tableBody) {
-                tableBody.innerHTML = html || '<tr><td colspan="10">No leave requests found</td></tr>';
-            }
+            if (tableBody) { tableBody.innerHTML = html || '<tr><td colspan="10">No leave requests found<\/td><\/tr>'; }
         }
         
         async function approveLeave(id) {
-            if (!confirm('Approve this leave request?')) return;
+            if (!confirm('Have you spoken to the staff member? Approve this leave?')) return;
             var response = await fetch(SUPABASE_URL + '/rest/v1/leave_requests?id=eq.' + id, {
                 method: 'PATCH',
                 headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
@@ -382,9 +450,7 @@
             if (response.ok) {
                 alert('✅ Leave approved');
                 loadLeaveRequests();
-            } else {
-                alert('Error approving leave');
-            }
+            } else { alert('Error approving leave'); }
         }
         
         async function rejectLeave(id) {
@@ -398,9 +464,7 @@
             if (response.ok) {
                 alert('❌ Leave rejected');
                 loadLeaveRequests();
-            } else {
-                alert('Error rejecting leave');
-            }
+            } else { alert('Error rejecting leave'); }
         }
         
         async function loadAttendance() {
@@ -414,65 +478,40 @@
             var currentDateDisplay = document.getElementById('currentDateDisplay');
             if (currentDateDisplay) currentDateDisplay.innerHTML = formatDisplayDate(currentDate);
             
-            // Get unique divisions
             var divisions = [];
             for (var i = 0; i < allStaff.length; i++) {
-                if (divisions.indexOf(allStaff[i].division) === -1 && allStaff[i].division) {
-                    divisions.push(allStaff[i].division);
-                }
+                if (divisions.indexOf(allStaff[i].division) === -1 && allStaff[i].division) { divisions.push(allStaff[i].division); }
             }
             divisions.sort();
             
-            var totalPresent = 0;
-            var totalAbsent = 0;
-            var totalLate = 0;
-            var totalEarly = 0;
-            
+            var totalPresent = 0, totalAbsent = 0, totalLate = 0, totalEarly = 0;
             var divisionsHtml = [];
             
             for (var d = 0; d < divisions.length; d++) {
                 var division = divisions[d];
-                var divisionStaff = [];
-                for (var s = 0; s < allStaff.length; s++) {
-                    if (allStaff[s].division === division) divisionStaff.push(allStaff[s]);
-                }
-                if (locationFilter) {
-                    divisionStaff = divisionStaff.filter(function(s) { return s.location === locationFilter; });
-                }
+                var divisionStaff = allStaff.filter(function(s) { return s.division === division; });
+                if (locationFilter) { divisionStaff = divisionStaff.filter(function(s) { return s.location === locationFilter; }); }
                 if (divisionStaff.length === 0) continue;
                 
-                var todayTimesheets = [];
-                for (var t = 0; t < allTimesheets.length; t++) {
-                    if (allTimesheets[t].report_date === selectedDate) todayTimesheets.push(allTimesheets[t]);
-                }
-                
+                var todayTimesheets = allTimesheets.filter(function(t) { return t.report_date === selectedDate; });
                 var divisionPresent = 0;
                 var divisionHtml = '';
                 
-                for (var st = 0; st < divisionStaff.length; st++) {
-                    var staff = divisionStaff[st];
-                    var record = null;
-                    for (var rt = 0; rt < todayTimesheets.length; rt++) {
-                        if (todayTimesheets[rt].officer_name === staff.staff_name) {
-                            record = todayTimesheets[rt];
-                            break;
-                        }
-                    }
+                for (var s = 0; s < divisionStaff.length; s++) {
+                    var staff = divisionStaff[s];
+                    var record = todayTimesheets.find(function(t) { return t.officer_name === staff.staff_name; });
                     var hasClockIn = record && record.time_in;
                     var hasClockOut = record && record.time_out;
                     var isLateArrival = hasClockIn && isLate(record.time_in);
                     var isEarlyDeparture = hasClockOut && isEarly(record.time_out);
                     
                     var statusBadge = '';
-                    
                     if (hasClockIn && !hasClockOut) {
                         statusBadge = '<span class="status-present">✅ PRESENT</span>';
-                        divisionPresent++;
-                        totalPresent++;
+                        divisionPresent++; totalPresent++;
                         if (isLateArrival) { totalLate++; statusBadge = '<span class="status-late">⚠️ LATE</span>'; }
                     } else if (hasClockOut) {
-                        totalPresent++;
-                        divisionPresent++;
+                        totalPresent++; divisionPresent++;
                         if (isLateArrival) { totalLate++; statusBadge = '<span class="status-late">⚠️ LATE</span>'; }
                         else if (isEarlyDeparture) { totalEarly++; statusBadge = '<span class="status-early">⚠️ EARLY</span>'; }
                         else { statusBadge = '<span class="status-present">✅ DONE</span>'; }
@@ -481,7 +520,6 @@
                         totalAbsent++;
                     }
                     
-                    // Apply status filter
                     if (statusFilter === 'present' && (!hasClockIn && !hasClockOut)) continue;
                     if (statusFilter === 'absent' && (hasClockIn || hasClockOut)) continue;
                     if (statusFilter === 'late' && !isLateArrival) continue;
@@ -491,45 +529,35 @@
                     var hours = safeHours(record ? record.hours_worked : null);
                     
                     divisionHtml += '<tr>' +
-                        '<td><strong>' + (staff.staff_name || '-') + '</strong></td>' +
-                        '<td>' + (staff.location || '-') + '</td>' +
-                        '<td>' + (record && record.time_in ? record.time_in : '-') + '</td>' +
-                        '<td>' + (record && record.time_out ? record.time_out : '-') + '</td>' +
-                        '<td>' + hours + '</td>' +
-                        '<td>' + statusBadge + '</td>' +
-                        '<td class="reason-cell">' + reason + '</td>' +
-                        '</tr>';
+                        '<td><strong>' + (staff.staff_name || '-') + '<\/strong><\/td>' +
+                        '<td>' + (staff.location || '-') + '<\/td>' +
+                        '<td>' + (record && record.time_in ? record.time_in : '-') + '<\/td>' +
+                        '<td>' + (record && record.time_out ? record.time_out : '-') + '<\/td>' +
+                        '<td>' + hours + '<\/td>' +
+                        '<td>' + statusBadge + '<\/td>' +
+                        '<td class="reason-cell">' + reason + '<\/td>' +
+                        '<\/tr>';
                 }
                 
                 if (divisionHtml) {
                     divisionsHtml.push('<div class="division-section">' +
-                        '<div class="division-header">' +
-                        '<span>📁 ' + division + '</span>' +
-                        '<span>' + divisionPresent + ' / ' + divisionStaff.length + ' present</span>' +
-                        '</div>' +
-                        '<div style="overflow-x: auto;">' +
-                        '<table><thead><tr><th>Staff Name</th><th>Location</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th><th>Reason</th></tr></thead>' +
-                        '<tbody>' + divisionHtml + '</tbody></table>' +
-                        '</div></div>');
+                        '<div class="division-header"><span>📁 ' + division + '</span><span>' + divisionPresent + ' / ' + divisionStaff.length + ' present</span></div>' +
+                        '<div style="overflow-x: auto;"><table><thead><tr><th>Staff Name</th><th>Location</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th><th>Reason</th></tr></thead><tbody>' + divisionHtml + '</tbody></table></div></div>');
                 }
             }
             
             var divisionsContainer = document.getElementById('divisionsContainer');
-            if (divisionsContainer) {
-                divisionsContainer.innerHTML = divisionsHtml.join('') || '<div style="background:white; padding:40px; text-align:center; border-radius:12px;">No records for this day</div>';
-            }
+            if (divisionsContainer) { divisionsContainer.innerHTML = divisionsHtml.join('') || '<div style="background:white; padding:40px; text-align:center; border-radius:12px;">No records for this day</div>'; }
             
             var presentTodayEl = document.getElementById('presentToday');
             var absentTodayEl = document.getElementById('absentToday');
             var lateTodayEl = document.getElementById('lateToday');
             var earlyTodayEl = document.getElementById('earlyToday');
-            
             if (presentTodayEl) presentTodayEl.innerText = totalPresent;
             if (absentTodayEl) absentTodayEl.innerText = totalAbsent;
             if (lateTodayEl) lateTodayEl.innerText = totalLate;
             if (earlyTodayEl) earlyTodayEl.innerText = totalEarly;
             
-            // Day Summary
             var daySummary = document.getElementById('daySummary');
             if (daySummary) {
                 daySummary.innerHTML = '<div class="summary-card"><div class="value">' + allStaff.length + '</div><div class="label">Total Staff</div></div>' +
@@ -540,22 +568,13 @@
                     '<div class="summary-card"><div class="value">' + divisions.length + '</div><div class="label">Divisions</div></div>';
             }
             
-            // Load History (Last 30 days)
-            var todayDate = new Date();
+            // History
             var thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(todayDate.getDate() - 30);
-            var thirtyDaysAgoStr = formatDate(thirtyDaysAgo);
-            
-            var historyTimesheets = [];
-            for (var hi = 0; hi < allTimesheets.length; hi++) {
-                if (allTimesheets[hi].report_date >= thirtyDaysAgoStr) {
-                    historyTimesheets.push(allTimesheets[hi]);
-                }
-            }
-            
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            var historyTimesheets = allTimesheets.filter(function(t) { return t.report_date >= formatDate(thirtyDaysAgo); });
             var historyHtml = '';
-            for (var hi2 = 0; hi2 < historyTimesheets.length && hi2 < 200; hi2++) {
-                var ts = historyTimesheets[hi2];
+            for (var i = 0; i < historyTimesheets.length && i < 200; i++) {
+                var ts = historyTimesheets[i];
                 var isLateArrival = ts.time_in && isLate(ts.time_in);
                 var isEarlyDeparture = ts.time_out && isEarly(ts.time_out);
                 var statusBadge = '';
@@ -563,26 +582,11 @@
                 else if (isEarlyDeparture) statusBadge = '<span class="status-early">⚠️ EARLY</span>';
                 else if (ts.time_in) statusBadge = '<span class="status-present">✅ PRESENT</span>';
                 else statusBadge = '<span class="status-absent">❌ ABSENT</span>';
-                
-                var reason = (ts.late_reason || ts.early_reason) ? (ts.late_reason || ts.early_reason) : '-';
-                var hours = safeHours(ts.hours_worked);
-                
-                historyHtml += '<tr>' +
-                    '<td>' + (ts.report_date || '-') + '</td>' +
-                    '<td>' + (ts.officer_name || '-') + '</td>' +
-                    '<td>' + (ts.division || '-') + '</td>' +
-                    '<td>' + (ts.location || '-') + '</td>' +
-                    '<td>' + (ts.time_in || '-') + '</td>' +
-                    '<td>' + (ts.time_out || '-') + '</td>' +
-                    '<td>' + hours + '</td>' +
-                    '<td>' + statusBadge + '</td>' +
-                    '<td class="reason-cell">' + reason + '</td>' +
-                    '</tr>';
+                var reason = (ts.late_reason || ts.early_reason) || '-';
+                historyHtml += '<tr><td>' + (ts.report_date || '-') + '<\/td><td>' + (ts.officer_name || '-') + '<\/td><td>' + (ts.division || '-') + '<\/td><td>' + (ts.location || '-') + '<\/td><td>' + (ts.time_in || '-') + '<\/td><td>' + (ts.time_out || '-') + '<\/td><td>' + safeHours(ts.hours_worked) + '<\/td><td>' + statusBadge + '<\/td><td class="reason-cell">' + reason + '<\/td><\/tr>';
             }
             var historyBody = document.getElementById('historyBody');
-            if (historyBody) {
-                historyBody.innerHTML = historyHtml || '<tr><td colspan="9">No history records</td></tr>';
-            }
+            if (historyBody) { historyBody.innerHTML = historyHtml || '<tr><td colspan="9">No history records<\/td><\/tr>'; }
         }
         
         function exportAttendanceCSV() {
@@ -619,16 +623,16 @@
         function exportLeaveCSV() {
             var csv = '"Date Submitted","Staff Name","Division","Leave Type","Start Date","End Date","Days","Reason","Status"\n';
             for (var i = 0; i < allLeaveRequests.length; i++) {
-                var leave = allLeaveRequests[i];
-                csv += '"' + (leave.created_at ? leave.created_at.split('T')[0] : '') + '",' +
-                    '"' + (leave.officer_name || '') + '",' +
-                    '"' + (leave.division || '') + '",' +
-                    '"' + (leave.leave_type || '') + '",' +
-                    '"' + (leave.start_date || '') + '",' +
-                    '"' + (leave.end_date || '') + '",' +
-                    '"' + (leave.total_days || 0) + '",' +
-                    '"' + ((leave.reason || '').replace(/"/g, '""')) + '",' +
-                    '"' + (leave.status || '') + '"\n';
+                var l = allLeaveRequests[i];
+                csv += '"' + (l.created_at ? l.created_at.split('T')[0] : '') + '",' +
+                    '"' + (l.officer_name || '') + '",' +
+                    '"' + (l.division || '') + '",' +
+                    '"' + (l.leave_type || '') + '",' +
+                    '"' + (l.start_date || '') + '",' +
+                    '"' + (l.end_date || '') + '",' +
+                    '"' + (l.total_days || 0) + '",' +
+                    '"' + ((l.reason || '').replace(/"/g, '""')) + '",' +
+                    '"' + (l.status || '') + '"\n';
             }
             var blob = new Blob([csv], { type: 'text/csv' });
             var url = URL.createObjectURL(blob);
@@ -649,15 +653,12 @@
         window.exportLeaveCSV = exportLeaveCSV;
         window.loadAttendance = loadAttendance;
         window.loadLeaveRequests = loadLeaveRequests;
+        window.showNotificationPanel = showNotificationPanel;
         
-        // Initial load
+        // Initialize
+        if (Notification.permission !== 'granted' && Notification.permission !== 'denied') { Notification.requestPermission(); }
         loadAttendance();
-        
-        // Auto-refresh every 30 seconds
-        setInterval(function() { 
-            if (currentTab === 'attendance') loadAttendance(); 
-            else loadLeaveRequests(); 
-        }, 30000);
+        setInterval(function() { if (currentTab === 'attendance') loadAttendance(); else checkForNewApprovals(); }, 30000);
     </script>
 </body>
 </html>
