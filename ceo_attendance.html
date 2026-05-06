@@ -471,127 +471,179 @@
             } else { alert('Error rejecting leave'); }
         }
         
-        async function loadAttendance() {
-            await loadStaff();
-            await loadTimesheets();
-            
-            var selectedDate = formatDate(currentDate);
-            var locationFilter = document.getElementById('locationFilter') ? document.getElementById('locationFilter').value : '';
-            var statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
-            
-            var currentDateDisplay = document.getElementById('currentDateDisplay');
-            if (currentDateDisplay) currentDateDisplay.innerHTML = formatDisplayDate(currentDate);
-            
-            var divisions = [];
-            for (var i = 0; i < allStaff.length; i++) {
-                if (divisions.indexOf(allStaff[i].division) === -1 && allStaff[i].division) { divisions.push(allStaff[i].division); }
-            }
-            divisions.sort();
-            
-            var totalPresent = 0, totalAbsent = 0, totalLate = 0, totalEarly = 0;
-            var divisionsHtml = [];
-            
-            for (var d = 0; d < divisions.length; d++) {
-                var division = divisions[d];
-                var divisionStaff = allStaff.filter(function(s) { return s.division === division; });
-                if (locationFilter) { divisionStaff = divisionStaff.filter(function(s) { return s.location === locationFilter; }); }
-                if (divisionStaff.length === 0) continue;
-                
-                var todayTimesheets = allTimesheets.filter(function(t) { return t.report_date === selectedDate; });
-                var divisionPresent = 0;
-                var divisionHtml = '';
-                
-                for (var s = 0; s < divisionStaff.length; s++) {
-                    var staff = divisionStaff[s];
-                    var record = todayTimesheets.find(function(t) { return t.officer_name === staff.staff_name; });
-                    var hasClockIn = record && record.time_in;
-                    var hasClockOut = record && record.time_out;
-                    var isLateArrival = hasClockIn && isLate(record.time_in);
-                    var isEarlyDeparture = hasClockOut && isEarly(record.time_out);
-                    
-                    var statusBadge = '';
-                    if (hasClockIn && !hasClockOut) {
-                        statusBadge = '<span class="status-present">✅ PRESENT</span>';
-                        divisionPresent++; totalPresent++;
-                        if (isLateArrival) { totalLate++; statusBadge = '<span class="status-late">⚠️ LATE</span>'; }
-                    } else if (hasClockOut) {
-                        totalPresent++; divisionPresent++;
-                        if (isLateArrival) { totalLate++; statusBadge = '<span class="status-late">⚠️ LATE</span>'; }
-                        else if (isEarlyDeparture) { totalEarly++; statusBadge = '<span class="status-early">⚠️ EARLY</span>'; }
-                        else { statusBadge = '<span class="status-present">✅ DONE</span>'; }
-                    } else {
-                        statusBadge = '<span class="status-absent">❌ ABSENT</span>';
-                        totalAbsent++;
-                    }
-                    
-                    if (statusFilter === 'present' && (!hasClockIn && !hasClockOut)) continue;
-                    if (statusFilter === 'absent' && (hasClockIn || hasClockOut)) continue;
-                    if (statusFilter === 'late' && !isLateArrival) continue;
-                    if (statusFilter === 'early' && !isEarlyDeparture) continue;
-                    
-                    var reason = (record && (record.late_reason || record.early_reason)) ? (record.late_reason || record.early_reason) : '-';
-                    var hours = safeHours(record ? record.hours_worked : null);
-                    
-                    divisionHtml += '<tr>' +
-                        '<td><strong>' + (staff.staff_name || '-') + '<\/strong><\/td>' +
-                        '<td>' + (staff.location || '-') + '<\/td>' +
-                        '<td>' + (record && record.time_in ? record.time_in : '-') + '<\/td>' +
-                        '<td>' + (record && record.time_out ? record.time_out : '-') + '<\/td>' +
-                        '<td>' + hours + '<\/td>' +
-                        '<td>' + statusBadge + '<\/td>' +
-                        '<td class="reason-cell">' + reason + '<\/td>' +
-                        '<\/tr>';
-                }
-                
-                if (divisionHtml) {
-                    divisionsHtml.push('<div class="division-section">' +
-                        '<div class="division-header"><span>📁 ' + division + '</span><span>' + divisionPresent + ' / ' + divisionStaff.length + ' present</span></div>' +
-                        '<div style="overflow-x: auto;"><table><thead><tr><th>Staff Name</th><th>Location</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th><th>Reason</th></tr></thead><tbody>' + divisionHtml + '</tbody></table></div></div>');
-                }
-            }
-            
-            var divisionsContainer = document.getElementById('divisionsContainer');
-            if (divisionsContainer) { divisionsContainer.innerHTML = divisionsHtml.join('') || '<div style="background:white; padding:40px; text-align:center; border-radius:12px;">No records for this day</div>'; }
-            
-            var presentTodayEl = document.getElementById('presentToday');
-            var absentTodayEl = document.getElementById('absentToday');
-            var lateTodayEl = document.getElementById('lateToday');
-            var earlyTodayEl = document.getElementById('earlyToday');
-            if (presentTodayEl) presentTodayEl.innerText = totalPresent;
-            if (absentTodayEl) absentTodayEl.innerText = totalAbsent;
-            if (lateTodayEl) lateTodayEl.innerText = totalLate;
-            if (earlyTodayEl) earlyTodayEl.innerText = totalEarly;
-            
-            var daySummary = document.getElementById('daySummary');
-            if (daySummary) {
-                daySummary.innerHTML = '<div class="summary-card"><div class="value">' + allStaff.length + '</div><div class="label">Total Staff</div></div>' +
-                    '<div class="summary-card"><div class="value">' + totalPresent + '</div><div class="label">Present</div></div>' +
-                    '<div class="summary-card"><div class="value">' + totalAbsent + '</div><div class="label">Absent</div></div>' +
-                    '<div class="summary-card"><div class="value">' + totalLate + '</div><div class="label">Late Arrivals</div></div>' +
-                    '<div class="summary-card"><div class="value">' + totalEarly + '</div><div class="label">Early Departures</div></div>' +
-                    '<div class="summary-card"><div class="value">' + divisions.length + '</div><div class="label">Divisions</div></div>';
-            }
-            
-            // History
-            var thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            var historyTimesheets = allTimesheets.filter(function(t) { return t.report_date >= formatDate(thirtyDaysAgo); });
-            var historyHtml = '';
-            for (var i = 0; i < historyTimesheets.length && i < 200; i++) {
-                var ts = historyTimesheets[i];
-                var isLateArrival = ts.time_in && isLate(ts.time_in);
-                var isEarlyDeparture = ts.time_out && isEarly(ts.time_out);
-                var statusBadge = '';
-                if (isLateArrival) statusBadge = '<span class="status-late">⚠️ LATE</span>';
-                else if (isEarlyDeparture) statusBadge = '<span class="status-early">⚠️ EARLY</span>';
-                else if (ts.time_in) statusBadge = '<span class="status-present">✅ PRESENT</span>';
-                else statusBadge = '<span class="status-absent">❌ ABSENT</span>';
-                var reason = (ts.late_reason || ts.early_reason) || '-';
-                historyHtml += '<td>' + (ts.report_date || '-') + '<\/td><td>' + (ts.officer_name || '-') + '<\/td><td>' + (ts.division || '-') + '<\/td><td>' + (ts.location || '-') + '<\/td><td>' + (ts.time_in || '-') + '<\/td><td>' + (ts.time_out || '-') + '<\/td><td>' + safeHours(ts.hours_worked) + '<\/td><td>' + statusBadge + '<\/td><td class="reason-cell">' + reason + '<\/td><\/tr>';
-            }
-            var historyBody = document.getElementById('historyBody');
-            if (historyBody) { historyBody.innerHTML = historyHtml || '<tr><td colspan="9">No history records<\/td><\/tr>'; }
+    async function loadAttendance() {
+        await loadStaff();
+        await loadTimesheets();
+        
+        var selectedDate = formatDate(currentDate);
+        var locationFilter = document.getElementById('locationFilter') ? document.getElementById('locationFilter').value : '';
+        var statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
+        
+        var currentDateDisplay = document.getElementById('currentDateDisplay');
+        if (currentDateDisplay) currentDateDisplay.innerHTML = formatDisplayDate(currentDate);
+        
+        var divisions = [];
+        for (var i = 0; i < allStaff.length; i++) {
+            if (divisions.indexOf(allStaff[i].division) === -1 && allStaff[i].division) { divisions.push(allStaff[i].division); }
         }
+        divisions.sort();
+        
+        var totalPresent = 0, totalAbsent = 0, totalLate = 0, totalEarly = 0;
+        var divisionsHtml = [];
+        
+        for (var d = 0; d < divisions.length; d++) {
+            var division = divisions[d];
+            var divisionStaff = allStaff.filter(function(s) { return s.division === division; });
+            if (locationFilter) { divisionStaff = divisionStaff.filter(function(s) { return s.location === locationFilter; }); }
+            if (divisionStaff.length === 0) continue;
+            
+            var todayTimesheets = allTimesheets.filter(function(t) { return t.report_date === selectedDate; });
+            
+            // Build staff records with their timesheet data
+            var staffRecords = [];
+            for (var s = 0; s < divisionStaff.length; s++) {
+                var staff = divisionStaff[s];
+                var record = todayTimesheets.find(function(t) { return t.officer_name === staff.staff_name; });
+                var hasClockIn = record && record.time_in;
+                var hasClockOut = record && record.time_out;
+                var isLateArrival = hasClockIn && isLate(record.time_in);
+                var isEarlyDeparture = hasClockOut && isEarly(record.time_out);
+                
+                // Parse time_in for sorting (convert to minutes since midnight)
+                var timeInMinutes = 9999; // Default for no clock-in (put at end)
+                if (hasClockIn && record.time_in) {
+                    var timeParts = record.time_in.split(':');
+                    timeInMinutes = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]);
+                }
+                
+                var statusBadge = '';
+                if (hasClockIn && !hasClockOut) {
+                    statusBadge = '<span class="status-present">✅ PRESENT</span>';
+                    totalPresent++;
+                    if (isLateArrival) { totalLate++; statusBadge = '<span class="status-late">⚠️ LATE</span>'; }
+                } else if (hasClockOut) {
+                    totalPresent++;
+                    if (isLateArrival) { totalLate++; statusBadge = '<span class="status-late">⚠️ LATE</span>'; }
+                    else if (isEarlyDeparture) { totalEarly++; statusBadge = '<span class="status-early">⚠️ EARLY</span>'; }
+                    else { statusBadge = '<span class="status-present">✅ DONE</span>'; }
+                } else {
+                    statusBadge = '<span class="status-absent">❌ ABSENT</span>';
+                    totalAbsent++;
+                }
+                
+                var reason = (record && (record.late_reason || record.early_reason)) ? (record.late_reason || record.early_reason) : '-';
+                var hours = safeHours(record ? record.hours_worked : null);
+                
+                staffRecords.push({
+                    staff_name: staff.staff_name,
+                    location: staff.location || '-',
+                    time_in: record && record.time_in ? record.time_in : '-',
+                    time_out: record && record.time_out ? record.time_out : '-',
+                    hours: hours,
+                    statusBadge: statusBadge,
+                    reason: reason,
+                    timeInMinutes: timeInMinutes,
+                    hasClockIn: hasClockIn
+                });
+            }
+            
+            // Sort by clock-in time (earliest first)
+            staffRecords.sort(function(a, b) {
+                // Put all "absent" (no clock-in) at the bottom
+                if (!a.hasClockIn && !b.hasClockIn) return 0;
+                if (!a.hasClockIn) return 1;
+                if (!b.hasClockIn) return -1;
+                return a.timeInMinutes - b.timeInMinutes;
+            });
+            
+            // Apply status filter after sorting
+            if (statusFilter) {
+                if (statusFilter === 'present') {
+                    staffRecords = staffRecords.filter(function(s) { return s.hasClockIn; });
+                } else if (statusFilter === 'absent') {
+                    staffRecords = staffRecords.filter(function(s) { return !s.hasClockIn; });
+                } else if (statusFilter === 'late') {
+                    staffRecords = staffRecords.filter(function(s) { return s.statusBadge.indexOf('LATE') !== -1; });
+                } else if (statusFilter === 'early') {
+                    staffRecords = staffRecords.filter(function(s) { return s.statusBadge.indexOf('EARLY') !== -1; });
+                }
+            }
+            
+            if (staffRecords.length === 0) continue;
+            
+            var divisionPresent = staffRecords.filter(function(s) { return s.hasClockIn; }).length;
+            var divisionHtml = '';
+            
+            for (var r = 0; r < staffRecords.length; r++) {
+                var s = staffRecords[r];
+                divisionHtml += '<tr>' +
+                    '<td><strong>' + (s.staff_name || '-') + '</strong></td>' +
+                    '<td>' + (s.location || '-') + '</td>' +
+                    '<td>' + s.time_in + '</td>' +
+                    '<td>' + s.time_out + '</td>' +
+                    '<td>' + s.hours + '</td>' +
+                    '<td>' + s.statusBadge + '</td>' +
+                    '<td class="reason-cell">' + s.reason + '</td>' +
+                    '</tr>';
+            }
+            
+            divisionsHtml.push('<div class="division-section">' +
+                '<div class="division-header"><span>📁 ' + division + '</span><span>' + divisionPresent + ' / ' + staffRecords.length + ' present (sorted by earliest arrival)</span></div>' +
+                '<div style="overflow-x: auto;"><table><thead><tr><th>Staff Name</th><th>Location</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th><th>Reason</th></tr></thead><tbody>' + divisionHtml + '</tbody></table></div></div>');
+        }
+    
+    var divisionsContainer = document.getElementById('divisionsContainer');
+    if (divisionsContainer) { divisionsContainer.innerHTML = divisionsHtml.join('') || '<div style="background:white; padding:40px; text-align:center; border-radius:12px;">No records for this day</div>'; }
+    
+    var presentTodayEl = document.getElementById('presentToday');
+    var absentTodayEl = document.getElementById('absentToday');
+    var lateTodayEl = document.getElementById('lateToday');
+    var earlyTodayEl = document.getElementById('earlyToday');
+    if (presentTodayEl) presentTodayEl.innerText = totalPresent;
+    if (absentTodayEl) absentTodayEl.innerText = totalAbsent;
+    if (lateTodayEl) lateTodayEl.innerText = totalLate;
+    if (earlyTodayEl) earlyTodayEl.innerText = totalEarly;
+    
+    var daySummary = document.getElementById('daySummary');
+    if (daySummary) {
+        daySummary.innerHTML = '<div class="summary-card"><div class="value">' + allStaff.length + '</div><div class="label">Total Staff</div></div>' +
+            '<div class="summary-card"><div class="value">' + totalPresent + '</div><div class="label">Present</div></div>' +
+            '<div class="summary-card"><div class="value">' + totalAbsent + '</div><div class="label">Absent</div></div>' +
+            '<div class="summary-card"><div class="value">' + totalLate + '</div><div class="label">Late Arrivals</div></div>' +
+            '<div class="summary-card"><div class="value">' + totalEarly + '</div><div class="label">Early Departures</div></div>' +
+            '<div class="summary-card"><div class="value">' + divisions.length + '</div><div class="label">Divisions</div></div>';
+    }
+    
+    // History section remains the same
+    var thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    var historyTimesheets = allTimesheets.filter(function(t) { return t.report_date >= formatDate(thirtyDaysAgo); });
+    var historyHtml = '';
+    for (var i = 0; i < historyTimesheets.length && i < 200; i++) {
+        var ts = historyTimesheets[i];
+        var isLateArrival = ts.time_in && isLate(ts.time_in);
+        var isEarlyDeparture = ts.time_out && isEarly(ts.time_out);
+        var statusBadge = '';
+        if (isLateArrival) statusBadge = '<span class="status-late">⚠️ LATE</span>';
+        else if (isEarlyDeparture) statusBadge = '<span class="status-early">⚠️ EARLY</span>';
+        else if (ts.time_in) statusBadge = '<span class="status-present">✅ PRESENT</span>';
+        else statusBadge = '<span class="status-absent">❌ ABSENT</span>';
+        var reason = (ts.late_reason || ts.early_reason) || '-';
+        historyHtml += '<tr>' +
+            '<td>' + (ts.report_date || '-') + '</td>' +
+            '<td>' + (ts.officer_name || '-') + '</td>' +
+            '<td>' + (ts.division || '-') + '</td>' +
+            '<td>' + (ts.location || '-') + '</td>' +
+            '<td>' + (ts.time_in || '-') + '</td>' +
+            '<td>' + (ts.time_out || '-') + '</td>' +
+            '<td>' + safeHours(ts.hours_worked) + '</td>' +
+            '<td>' + statusBadge + '</td>' +
+            '<td class="reason-cell">' + reason + '</td>' +
+            '</tr>';
+    }
+    var historyBody = document.getElementById('historyBody');
+    if (historyBody) { historyBody.innerHTML = historyHtml || '<tr><td colspan="9">No history records</td></tr>'; }
+}
         
         function exportAttendanceCSV() {
             var selectedDate = formatDate(currentDate);
