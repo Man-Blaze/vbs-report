@@ -104,9 +104,14 @@
             
             <div class="form-title" style="font-size:1.1rem;"><i class="fas fa-vial"></i> Test Measurements</div>
             <div class="form-row">
-                <div class="field-group"><label>Nominal Test Volume</label><select id="fuel_volume" onchange="updateFuelThresholds()"><option value="15">15 Litre Measure (±0.5% = 75mL)</option><option value="200">200 Litre Measure (±0.5% = 1000mL)</option></select></div>
-                <div class="field-group"><label>Pump Indicated Volume (L)</label><input type="number" id="fuel_pump_vol" step="0.01" oninput="calculateFuelError()" placeholder="e.g., 15.00"></div>
-                <div class="field-group"><label>Measure Indicated Volume (L)</label><input type="number" id="fuel_measure_vol" step="0.01" oninput="calculateFuelError()" placeholder="e.g., 14.95"></div>
+                <div class="field-group"><label>Nominal Test Volume</label>
+                    <select id="fuel_volume">
+                        <option value="15">15 Litre Measure (±0.5% = 75mL)</option>
+                        <option value="200">200 Litre Measure (±0.5% = 1000mL)</option>
+                    </select>
+                </div>
+                <div class="field-group"><label>Pump Indicated Volume (L)</label><input type="number" id="fuel_pump_vol" step="0.01" placeholder="e.g., 15.00"></div>
+                <div class="field-group"><label>Measure Indicated Volume (L)</label><input type="number" id="fuel_measure_vol" step="0.01" placeholder="e.g., 14.95"></div>
             </div>
             
             <!-- Error Calculation Display -->
@@ -122,8 +127,22 @@
                     <div class="field-group"><label>Acceptable Variation (mL)</label><input type="text" id="fuelAcceptableDisplay" readonly style="background:#f0fdf4; font-weight:bold;"></div>
                 </div>
                 <div class="form-row">
-                    <div class="field-group"><label>Pass / Fail</label><select id="fuel_result"><option value="">-- Select --</option><option value="Pass">✅ Pass</option><option value="Fail">❌ Fail</option></select></div>
-                    <div class="field-group"><label>Action Taken</label><select id="fuel_action"><option value="Pass - No action">✅ Pass - No action required</option><option value="Warning issued">⚠️ Warning issued</option><option value="Seal affixed">🔒 Seal affixed - Under observation</option><option value="Tagged out">🚫 Dispenser tagged out of service</option><option value="Fine issued">💰 Fine issued</option></select></div>
+                    <div class="field-group"><label>Pass / Fail</label>
+                        <select id="fuel_result">
+                            <option value="">-- Select --</option>
+                            <option value="Pass">✅ Pass</option>
+                            <option value="Fail">❌ Fail</option>
+                        </select>
+                    </div>
+                    <div class="field-group"><label>Action Taken</label>
+                        <select id="fuel_action">
+                            <option value="Pass - No action">✅ Pass - No action required</option>
+                            <option value="Warning issued">⚠️ Warning issued</option>
+                            <option value="Seal affixed">🔒 Seal affixed - Under observation</option>
+                            <option value="Tagged out">🚫 Dispenser tagged out of service</option>
+                            <option value="Fine issued">💰 Fine issued</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             
@@ -203,7 +222,7 @@
             <div class="field-group"><label>Recommendations</label><textarea id="farm_rec" rows="2"></textarea></div>
         </div>
         
-        <button class="btn-submit" onclick="submitInspection()"><i class="fas fa-paper-plane"></i> Submit Inspection Report</button>
+        <button class="btn-submit" id="submitBtn"><i class="fas fa-paper-plane"></i> Submit Inspection Report</button>
         <div id="message" class="message"></div>
     </div>
     
@@ -214,15 +233,21 @@
 </div>
 
 <script>
-    const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+    // Use a unique variable name to avoid conflicts
+    const VBS_SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+    const VBS_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
     
-    let supabase = null;
+    let vbsClient = null;
     let currentForm = 'fuel';
     
-    const fuelThresholds = { 15: { mpv: '±0.5% = 75mL', acceptable: '± 87 mL' }, 200: { mpv: '±0.5% = 1000mL', acceptable: '± 101 mL' } };
+    // Fuel thresholds
+    const fuelThresholds = {
+        15: { mpv: '±0.5% = 75mL', acceptable: '± 87 mL' },
+        200: { mpv: '±0.5% = 1000mL', acceptable: '± 101 mL' }
+    };
     
-    function updateFuelThresholds() {
+    // Initialize thresholds on page load
+    function initFuelThresholds() {
         const vol = document.getElementById('fuel_volume').value;
         const mpvDisplay = document.getElementById('fuelMpvDisplay');
         const acceptableDisplay = document.getElementById('fuelAcceptableDisplay');
@@ -232,6 +257,7 @@
         }
     }
     
+    // Calculate fuel error
     function calculateFuelError() {
         const pumpVol = parseFloat(document.getElementById('fuel_pump_vol').value);
         const measureVol = parseFloat(document.getElementById('fuel_measure_vol').value);
@@ -247,37 +273,56 @@
         const errorPercent = (errorLitres / measureVol) * 100;
         const errorML = errorLitres * 1000;
         
-        errorDisplay.innerHTML = `<strong>📊 Results:</strong><br>Error (Litres): ${errorLitres.toFixed(3)} L<br>Error (%): ${errorPercent.toFixed(3)}%<br>Error (mL): ${errorML.toFixed(1)} mL`;
+        errorDisplay.innerHTML = '<strong>📊 Results:</strong><br>Error (Litres): ' + errorLitres.toFixed(3) + ' L<br>Error (%): ' + errorPercent.toFixed(3) + '%<br>Error (mL): ' + errorML.toFixed(1) + ' mL';
         
         const nominalVol = parseInt(document.getElementById('fuel_volume').value);
         const acceptableML = nominalVol === 200 ? 101 : 87;
-        passFail.value = Math.abs(errorML) <= acceptableML ? 'Pass' : 'Fail';
+        if (Math.abs(errorML) <= acceptableML) {
+            passFail.value = 'Pass';
+        } else {
+            passFail.value = 'Fail';
+        }
     }
     
-    // Form selector
-    document.querySelectorAll('.form-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.form-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentForm = btn.dataset.form;
-            document.querySelectorAll('.inspection-form').forEach(form => form.classList.remove('active-form'));
-            document.getElementById(`${currentForm}Form`).classList.add('active-form');
-        });
-    });
+    // Form selector handler
+    function initFormSelector() {
+        const btns = document.querySelectorAll('.form-btn');
+        for (let i = 0; i < btns.length; i++) {
+            btns[i].addEventListener('click', function() {
+                // Remove active class from all buttons
+                for (let j = 0; j < btns.length; j++) {
+                    btns[j].classList.remove('active');
+                }
+                this.classList.add('active');
+                currentForm = this.getAttribute('data-form');
+                
+                // Hide all forms
+                const forms = document.querySelectorAll('.inspection-form');
+                for (let j = 0; j < forms.length; j++) {
+                    forms[j].classList.remove('active-form');
+                }
+                
+                // Show selected form
+                const activeForm = document.getElementById(currentForm + 'Form');
+                if (activeForm) {
+                    activeForm.classList.add('active-form');
+                }
+            });
+        }
+    }
     
-    // Set today's date
-    document.getElementById('inspectionDate').value = new Date().toISOString().split('T')[0];
-    updateFuelThresholds();
-    
-    // Load saved inspector name
-    const savedName = localStorage.getItem('inspector_name');
-    if (savedName) document.getElementById('inspectorName').value = savedName;
-    
+    // Submit inspection
     async function submitInspection() {
         const inspectorName = document.getElementById('inspectorName').value;
-        if (!inspectorName) { alert('Please enter Inspector Name'); return; }
+        if (!inspectorName) {
+            alert('Please enter Inspector Name');
+            return;
+        }
+        
+        // Save inspector name
         localStorage.setItem('inspector_name', inspectorName);
         
+        // Base data
         const baseData = {
             inspector_name: inspectorName,
             inspector_id: document.getElementById('inspectorId').value,
@@ -291,64 +336,186 @@
         
         let tableName = '';
         let data = {};
-        
-        if (currentForm === 'fuel') {
-            const pumpVol = parseFloat(document.getElementById('fuel_pump_vol').value);
-            const measureVol = parseFloat(document.getElementById('fuel_measure_vol').value);
-            let errorLitres = null, errorPercent = null, errorML = null;
-            if (!isNaN(pumpVol) && !isNaN(measureVol) && measureVol !== 0) {
-                errorLitres = pumpVol - measureVol;
-                errorPercent = (errorLitres / measureVol) * 100;
-                errorML = errorLitres * 1000;
-            }
-            data = { ...baseData, station_name: document.getElementById('fuel_station').value, pump_number: document.getElementById('fuel_pump').value, dispenser_brand: document.getElementById('fuel_brand').value, model_number: document.getElementById('fuel_model').value, ambient_temp: document.getElementById('fuel_temp').value, weather: document.getElementById('fuel_weather').value, nominal_volume: document.getElementById('fuel_volume').value, pump_volume: pumpVol, measure_volume: measureVol, error_litres: errorLitres, error_percent: errorPercent, error_ml: errorML, pass_fail: document.getElementById('fuel_result').value, action_taken: document.getElementById('fuel_action').value, comments: document.getElementById('fuel_comments').value, inspector_signature: document.getElementById('fuel_inspector_sig').value, station_rep_signature: document.getElementById('fuel_station_sig').value };
-            tableName = 'fuel_dispenser_inspections';
-        } else if (currentForm === 'general') {
-            data = { ...baseData, entity_name: document.getElementById('general_entity').value, entity_type: document.getElementById('general_type').value, assessment_result: document.getElementById('general_result').value, non_compliance_type: document.getElementById('general_nc').value, non_compliance_description: document.getElementById('general_nc_desc').value, inspector_notes: document.getElementById('general_notes').value };
-            tableName = 'conformity_assessment';
-        } else if (currentForm === 'food') {
-            data = { ...baseData, product_name: document.getElementById('food_product').value, batch_number: document.getElementById('food_batch').value, manufacturer: document.getElementById('food_manufacturer').value, expiry_date: document.getElementById('food_expiry').value, compliance_status: document.getElementById('food_status').value, issue_type: document.getElementById('food_issue').value, action_taken: document.getElementById('food_action').value };
-            tableName = 'food_inspections';
-        } else if (currentForm === 'packhouse') {
-            data = { ...baseData, packhouse_name: document.getElementById('pack_name').value, volume_processed_kg: document.getElementById('pack_volume').value, waste_percent: document.getElementById('pack_waste').value, cold_room_temp_c: document.getElementById('pack_temp').value, compliance_status: document.getElementById('pack_status').value, staff_on_duty: document.getElementById('pack_staff').value, inspector_notes: document.getElementById('pack_notes').value };
-            tableName = 'packhouse_inspections';
-        } else if (currentForm === 'farm') {
-            data = { ...baseData, farm_name: document.getElementById('farm_name').value, farmer_name: document.getElementById('farm_farmer').value, crop_type: document.getElementById('farm_crop').value, area_hectares: document.getElementById('farm_area').value, compliance_status: document.getElementById('farm_status').value, issues_found: document.getElementById('farm_issues').value, recommendations: document.getElementById('farm_rec').value };
-            tableName = 'farm_inspections';
-        }
-        
         const msgDiv = document.getElementById('message');
+        
         try {
-            if (!supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            const { error } = await supabase.from(tableName).insert([data]);
+            if (!vbsClient) {
+                vbsClient = window.supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
+            }
+            
+            if (currentForm === 'fuel') {
+                const pumpVol = parseFloat(document.getElementById('fuel_pump_vol').value);
+                const measureVol = parseFloat(document.getElementById('fuel_measure_vol').value);
+                let errorLitres = null, errorPercent = null, errorML = null;
+                if (!isNaN(pumpVol) && !isNaN(measureVol) && measureVol !== 0) {
+                    errorLitres = pumpVol - measureVol;
+                    errorPercent = (errorLitres / measureVol) * 100;
+                    errorML = errorLitres * 1000;
+                }
+                data = {
+                    ...baseData,
+                    station_name: document.getElementById('fuel_station').value,
+                    pump_number: document.getElementById('fuel_pump').value,
+                    dispenser_brand: document.getElementById('fuel_brand').value,
+                    model_number: document.getElementById('fuel_model').value,
+                    ambient_temp: document.getElementById('fuel_temp').value,
+                    weather: document.getElementById('fuel_weather').value,
+                    nominal_volume: document.getElementById('fuel_volume').value,
+                    pump_volume: pumpVol,
+                    measure_volume: measureVol,
+                    error_litres: errorLitres,
+                    error_percent: errorPercent,
+                    error_ml: errorML,
+                    pass_fail: document.getElementById('fuel_result').value,
+                    action_taken: document.getElementById('fuel_action').value,
+                    comments: document.getElementById('fuel_comments').value,
+                    inspector_signature: document.getElementById('fuel_inspector_sig').value,
+                    station_rep_signature: document.getElementById('fuel_station_sig').value
+                };
+                tableName = 'fuel_dispenser_inspections';
+            } 
+            else if (currentForm === 'general') {
+                data = {
+                    ...baseData,
+                    entity_name: document.getElementById('general_entity').value,
+                    entity_type: document.getElementById('general_type').value,
+                    assessment_result: document.getElementById('general_result').value,
+                    non_compliance_type: document.getElementById('general_nc').value,
+                    non_compliance_description: document.getElementById('general_nc_desc').value,
+                    inspector_notes: document.getElementById('general_notes').value
+                };
+                tableName = 'conformity_assessment';
+            }
+            else if (currentForm === 'food') {
+                data = {
+                    ...baseData,
+                    product_name: document.getElementById('food_product').value,
+                    batch_number: document.getElementById('food_batch').value,
+                    manufacturer: document.getElementById('food_manufacturer').value,
+                    expiry_date: document.getElementById('food_expiry').value,
+                    compliance_status: document.getElementById('food_status').value,
+                    issue_type: document.getElementById('food_issue').value,
+                    action_taken: document.getElementById('food_action').value
+                };
+                tableName = 'food_inspections';
+            }
+            else if (currentForm === 'packhouse') {
+                data = {
+                    ...baseData,
+                    packhouse_name: document.getElementById('pack_name').value,
+                    volume_processed_kg: document.getElementById('pack_volume').value,
+                    waste_percent: document.getElementById('pack_waste').value,
+                    cold_room_temp_c: document.getElementById('pack_temp').value,
+                    compliance_status: document.getElementById('pack_status').value,
+                    staff_on_duty: document.getElementById('pack_staff').value,
+                    inspector_notes: document.getElementById('pack_notes').value
+                };
+                tableName = 'packhouse_inspections';
+            }
+            else if (currentForm === 'farm') {
+                data = {
+                    ...baseData,
+                    farm_name: document.getElementById('farm_name').value,
+                    farmer_name: document.getElementById('farm_farmer').value,
+                    crop_type: document.getElementById('farm_crop').value,
+                    area_hectares: document.getElementById('farm_area').value,
+                    compliance_status: document.getElementById('farm_status').value,
+                    issues_found: document.getElementById('farm_issues').value,
+                    recommendations: document.getElementById('farm_rec').value
+                };
+                tableName = 'farm_inspections';
+            }
+            
+            const { error } = await vbsClient.from(tableName).insert([data]);
+            
             if (error) throw error;
-            msgDiv.innerHTML = `✅ ${currentForm.toUpperCase()} inspection submitted successfully!`;
+            
+            msgDiv.innerHTML = '✅ ' + currentForm.toUpperCase() + ' inspection submitted successfully!';
             msgDiv.className = 'message success';
             msgDiv.style.display = 'block';
-            setTimeout(() => msgDiv.style.display = 'none', 5000);
+            
+            setTimeout(function() {
+                msgDiv.style.display = 'none';
+            }, 5000);
+            
         } catch (err) {
-            msgDiv.innerHTML = `❌ Error: ${err.message}`;
+            console.error('Error:', err);
+            msgDiv.innerHTML = '❌ Error: ' + err.message;
             msgDiv.className = 'message error';
             msgDiv.style.display = 'block';
         }
     }
     
+    // Logout function
     async function logout() {
-        if (supabase) await supabase.auth.signOut();
+        if (vbsClient) {
+            await vbsClient.auth.signOut();
+        }
         localStorage.clear();
         window.location.href = 'login.html';
     }
     
-    window.addEventListener('DOMContentLoaded', () => {
-        if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const token = localStorage.getItem('vbs_token');
+    // Set today's date and load saved inspector name
+    function initPage() {
+        // Set today's date
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.getElementById('inspectionDate');
+        if (dateInput) dateInput.value = today;
+        
+        // Load saved inspector name
+        const savedName = localStorage.getItem('inspector_name');
+        if (savedName) {
+            const nameInput = document.getElementById('inspectorName');
+            if (nameInput) nameInput.value = savedName;
+        }
+        
+        // Initialize fuel thresholds
+        initFuelThresholds();
+        
+        // Add event listeners for fuel inputs
+        const fuelPumpVol = document.getElementById('fuel_pump_vol');
+        const fuelMeasureVol = document.getElementById('fuel_measure_vol');
+        const fuelVolume = document.getElementById('fuel_volume');
+        
+        if (fuelPumpVol) {
+            fuelPumpVol.addEventListener('input', calculateFuelError);
+        }
+        if (fuelMeasureVol) {
+            fuelMeasureVol.addEventListener('input', calculateFuelError);
+        }
+        if (fuelVolume) {
+            fuelVolume.addEventListener('change', function() {
+                initFuelThresholds();
+                calculateFuelError();
+            });
+        }
+        
+        // Initialize form selector
+        initFormSelector();
+        
+        // Set submit button handler
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.onclick = submitInspection;
+        }
+        
+        // Set user name from localStorage
         const userEmail = localStorage.getItem('vbs_user');
-        if (token && userEmail) document.getElementById('userName').innerHTML = userEmail.split('@')[0];
-    });
+        const userNameSpan = document.getElementById('userName');
+        if (userEmail && userNameSpan) {
+            userNameSpan.innerHTML = userEmail.split('@')[0];
+        }
+        
+        // Initialize Supabase client
+        if (window.supabase && !vbsClient) {
+            vbsClient = window.supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
+        }
+    }
     
-    window.updateFuelThresholds = updateFuelThresholds;
-    window.calculateFuelError = calculateFuelError;
-    window.submitInspection = submitInspection;
+    // Run init when page loads
+    window.addEventListener('DOMContentLoaded', initPage);
+    
+    // Make functions global for onclick handlers
     window.logout = logout;
 </script>
 </body>
