@@ -239,13 +239,23 @@
         }
     }
     
+       // Replace the loadStaffList() function with this:
     async function loadStaffList() {
         let query = vbsClient.from('staff_list').select('*').eq('is_active', true).order('staff_name');
-        if (currentUserDivision === 'Provincial' && currentUserLocation) {
+        
+        // Special case for Natacha (Santo focal point) - show ALL Santo staff
+        if (currentUserEmail === 'natachajoel32@gmail.com') {
+            query = query.eq('location', 'Santo');
+        }
+        // Provincial focal points see their specific location
+        else if (currentUserDivision === 'Provincial' && currentUserLocation) {
             query = query.eq('division', 'Provincial').eq('location', currentUserLocation);
-        } else if (currentUserDivision) {
+        }
+        // Other focal points see their division only
+        else if (currentUserDivision) {
             query = query.eq('division', currentUserDivision);
         }
+        
         const { data: staff } = await query;
         const select = document.getElementById('staffSelect');
         select.innerHTML = '<option value="">-- Select Staff --</option>';
@@ -255,13 +265,22 @@
         document.getElementById('totalStaff').innerText = staff?.length || 0;
     }
     
+    // Replace the loadTodayAttendance() function with this:
     async function loadTodayAttendance() {
         const date = document.getElementById('reportDate').value;
         
         let staffQuery = vbsClient.from('staff_list').select('*').eq('is_active', true).order('staff_name');
-        if (currentUserDivision === 'Provincial' && currentUserLocation) {
+        
+        // Special case for Natacha (Santo focal point) - show ALL Santo staff
+        if (currentUserEmail === 'natachajoel32@gmail.com') {
+            staffQuery = staffQuery.eq('location', 'Santo');
+        }
+        // Provincial focal points see their specific location
+        else if (currentUserDivision === 'Provincial' && currentUserLocation) {
             staffQuery = staffQuery.eq('division', 'Provincial').eq('location', currentUserLocation);
-        } else if (currentUserDivision) {
+        }
+        // Other focal points see their division only
+        else if (currentUserDivision) {
             staffQuery = staffQuery.eq('division', currentUserDivision);
         }
         
@@ -295,7 +314,7 @@
             
             html += `<tr>
                 <td><strong>${s.staff_name}</strong></td>
-                <td>${s.division || '-'}</td>
+                <td>${s.division || '-'}${s.location ? ' (' + s.location + ')' : ''}</td>
                 <td>${timeIn}</td>
                 <td>${timeOut}</td>
                 <td>${hours}</td>
@@ -308,7 +327,6 @@
         document.getElementById('presentCount').innerText = present;
         document.getElementById('absentCount').innerText = absent;
     }
-    
     async function loadStaffSelfStatus() {
         const date = document.getElementById('selfDate').value;
         
