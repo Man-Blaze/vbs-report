@@ -22,11 +22,13 @@
         .staff-panel { background: white; border-radius: 20px; padding: 20px; overflow-x: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .btn-clock-in { background: #2c7a4d; color: white; border: none; padding: 14px; border-radius: 40px; cursor: pointer; width: 100%; margin-top: 15px; font-size: 16px; font-weight: bold; }
         .btn-clock-out { background: #dc3545; color: white; border: none; padding: 14px; border-radius: 40px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 16px; font-weight: bold; }
+        .btn-edit { background: #ffc107; color: #333; border: none; padding: 14px; border-radius: 40px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 16px; font-weight: bold; }
         .btn-self { background: #17a2b8; }
         select, input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-top: 5px; font-size: 14px; }
         label { font-weight: 600; font-size: 13px; display: block; margin-top: 12px; color: #333; }
         .status-present { background: #d4edda; color: #155724; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
         .status-absent { background: #f8d7da; color: #721c24; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
+        .status-edited { background: #fff3cd; color: #856404; padding: 4px 12px; border-radius: 20px; display: inline-block; font-size: 11px; font-weight: bold; }
         .refresh-btn { background: #6c757d; color: white; border: none; padding: 6px 15px; border-radius: 20px; cursor: pointer; margin-left: 10px; font-size: 12px; }
         .current-time { font-size: 36px; text-align: center; color: #1a5a3a; margin: 10px 0; font-family: monospace; font-weight: bold; }
         .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #888; }
@@ -76,6 +78,32 @@
             font-size: 14px;
             font-weight: bold;
         }
+        
+        /* Edit Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+        }
+        .modal-content h3 { color: #1a5a3a; margin-bottom: 15px; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-buttons button { flex: 1; padding: 10px; border-radius: 30px; border: none; cursor: pointer; }
+        .save-btn { background: #2c7a4d; color: white; }
+        .cancel-btn { background: #6c757d; color: white; }
     </style>
 </head>
 <body>
@@ -108,6 +136,7 @@
         <select id="staffSelect"><option>-- Select Staff --</option></select>
         <button class="btn-clock-in" onclick="clockIn()">✅ KAM IN - Clock In</button>
         <button class="btn-clock-out" onclick="clockOut()">❌ KAM OUT - Clock Out</button>
+        <button class="btn-edit" onclick="openEditModal()">✏️ MANUAL EDIT - Adjust Time</button>
     </div>
     
     <div class="clock-panel" id="selfPanel" style="display:none;">
@@ -140,15 +169,46 @@
         </h3>
         <div style="overflow-x: auto; max-height: 500px;">
             <table id="attendanceTable">
-                <thead><tr><th>Staff</th><th>Division</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th><th>Action</th></tr></thead>
-                <tbody id="attendanceBody"><td><td colspan="7">Loading data from Supabase...</td></tr></tbody>
-            </td>
+                <thead><tr><th>Staff</th><th>Division / Location</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="attendanceBody"><td><td colspan="7">Loading data from Supabase...<\/td><\/tr><\/tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h3>✏️ Manual Edit Clock In/Out</h3>
+        <div class="field-group">
+            <label>Staff Name</label>
+            <input type="text" id="editStaffName" readonly style="background:#f0f0f0;">
+        </div>
+        <div class="field-group">
+            <label>Date</label>
+            <input type="date" id="editDate">
+        </div>
+        <div class="field-group">
+            <label>Time In</label>
+            <input type="time" id="editTimeIn" step="1">
+        </div>
+        <div class="field-group">
+            <label>Time Out</label>
+            <input type="time" id="editTimeOut" step="1">
+        </div>
+        <div class="field-group">
+            <label>Reason for Edit (required)</label>
+            <textarea id="editReason" rows="2" placeholder="e.g., Staff forgot to clock in, system error, manual correction..."></textarea>
+        </div>
+        <div class="modal-buttons">
+            <button class="save-btn" onclick="saveEdit()">💾 Save Changes</button>
+            <button class="cancel-btn" onclick="closeEditModal()">Cancel</button>
         </div>
     </div>
 </div>
 
 <div class="footer">
-    ✅ Data from timesheet table • Refresh shows current status • Time is ALWAYS captured<br>
+    ✅ Focal points can manually edit any staff clock in/out times<br>
     🔓 Self clock is immediate - no approval needed
 </div>
 
@@ -163,6 +223,7 @@
     let currentUserDivision = null;
     let currentUserLocation = null;
     let isFocalPoint = false;
+    let currentEditRecord = null;
     
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('todayDate').innerText = today;
@@ -239,19 +300,15 @@
         }
     }
     
-       // Replace the loadStaffList() function with this:
     async function loadStaffList() {
         let query = vbsClient.from('staff_list').select('*').eq('is_active', true).order('staff_name');
         
-        // Special case for Natacha (Santo focal point) - show ALL Santo staff
         if (currentUserEmail === 'natachajoel32@gmail.com') {
             query = query.eq('location', 'Santo');
         }
-        // Provincial focal points see their specific location
         else if (currentUserDivision === 'Provincial' && currentUserLocation) {
             query = query.eq('division', 'Provincial').eq('location', currentUserLocation);
         }
-        // Other focal points see their division only
         else if (currentUserDivision) {
             query = query.eq('division', currentUserDivision);
         }
@@ -265,21 +322,17 @@
         document.getElementById('totalStaff').innerText = staff?.length || 0;
     }
     
-    // Replace the loadTodayAttendance() function with this:
     async function loadTodayAttendance() {
         const date = document.getElementById('reportDate').value;
         
         let staffQuery = vbsClient.from('staff_list').select('*').eq('is_active', true).order('staff_name');
         
-        // Special case for Natacha (Santo focal point) - show ALL Santo staff
         if (currentUserEmail === 'natachajoel32@gmail.com') {
             staffQuery = staffQuery.eq('location', 'Santo');
         }
-        // Provincial focal points see their specific location
         else if (currentUserDivision === 'Provincial' && currentUserLocation) {
             staffQuery = staffQuery.eq('division', 'Provincial').eq('location', currentUserLocation);
         }
-        // Other focal points see their division only
         else if (currentUserDivision) {
             staffQuery = staffQuery.eq('division', currentUserDivision);
         }
@@ -293,9 +346,11 @@
         for (let s of staff || []) {
             const record = records?.find(r => r.officer_name === s.staff_name);
             let timeIn = '-', timeOut = '-', hours = '-', status = 'ABSENT', statusClass = 'status-absent', canClockOut = false;
+            let recordId = null;
             
             if (record && record.time_in) {
                 timeIn = record.time_in;
+                recordId = record.id;
                 if (record.time_out) {
                     timeOut = record.time_out;
                     hours = record.hours_worked || 0;
@@ -308,6 +363,10 @@
                     present++;
                     canClockOut = true;
                 }
+                // Check if edited
+                if (record.edited_by) {
+                    statusClass = 'status-edited';
+                }
             } else {
                 absent++;
             }
@@ -319,7 +378,10 @@
                 <td>${timeOut}</td>
                 <td>${hours}</td>
                 <td><span class="${statusClass}">${status}</span></td>
-                <td>${canClockOut ? `<button class="btn-clock-out" style="padding:5px 10px; font-size:11px; margin:0;" onclick="quickClockOut('${s.staff_name}')">Clock Out</button>` : '-'}</td>
+                <td>
+                    ${recordId ? `<button class="refresh-btn" style="margin:2px; padding:4px 10px;" onclick="openEditRecord(${recordId}, '${s.staff_name}', '${date}', '${timeIn !== '-' ? timeIn : ''}', '${timeOut !== '-' ? timeOut : ''}')">✏️ Edit</button>` : ''}
+                    ${canClockOut ? `<button class="btn-clock-out" style="margin:2px; padding:4px 10px; font-size:11px;" onclick="quickClockOut('${s.staff_name}')">Clock Out</button>` : ''}
+                <\/td>
             </tr>`;
         }
         
@@ -327,6 +389,134 @@
         document.getElementById('presentCount').innerText = present;
         document.getElementById('absentCount').innerText = absent;
     }
+    
+    function openEditRecord(id, staffName, date, timeIn, timeOut) {
+        currentEditRecord = { id, staffName, date, timeIn, timeOut };
+        document.getElementById('editStaffName').value = staffName;
+        document.getElementById('editDate').value = date;
+        document.getElementById('editTimeIn').value = timeIn;
+        document.getElementById('editTimeOut').value = timeOut;
+        document.getElementById('editReason').value = '';
+        document.getElementById('editModal').style.display = 'flex';
+    }
+    
+    function openEditModal() {
+        const staffName = document.getElementById('staffSelect').value;
+        const date = document.getElementById('reportDate').value;
+        if (!staffName) {
+            alert('Please select a staff member first');
+            return;
+        }
+        currentEditRecord = { id: null, staffName, date, timeIn: '', timeOut: '' };
+        document.getElementById('editStaffName').value = staffName;
+        document.getElementById('editDate').value = date;
+        document.getElementById('editTimeIn').value = '';
+        document.getElementById('editTimeOut').value = '';
+        document.getElementById('editReason').value = '';
+        document.getElementById('editModal').style.display = 'flex';
+    }
+    
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+        currentEditRecord = null;
+    }
+    
+    async function saveEdit() {
+        const staffName = document.getElementById('editStaffName').value;
+        const date = document.getElementById('editDate').value;
+        const timeIn = document.getElementById('editTimeIn').value;
+        const timeOut = document.getElementById('editTimeOut').value;
+        const reason = document.getElementById('editReason').value;
+        
+        if (!reason) {
+            alert('Please provide a reason for editing');
+            return;
+        }
+        
+        // Calculate hours if both times exist
+        let hoursWorked = null;
+        if (timeIn && timeOut) {
+            const inParts = timeIn.split(':');
+            const outParts = timeOut.split(':');
+            let hours = parseInt(outParts[0]) - parseInt(inParts[0]);
+            let minutes = parseInt(outParts[1]) - parseInt(inParts[1]);
+            if (minutes < 0) { hours--; minutes += 60; }
+            hoursWorked = hours + minutes / 60;
+        }
+        
+        try {
+            if (currentEditRecord && currentEditRecord.id) {
+                // Update existing record
+                const updateData = {};
+                if (timeIn) updateData.time_in = timeIn;
+                if (timeOut) updateData.time_out = timeOut;
+                if (hoursWorked !== null) updateData.hours_worked = hoursWorked.toFixed(2);
+                updateData.edited_by = currentUserEmail;
+                updateData.edit_reason = reason;
+                updateData.edited_at = new Date().toISOString();
+                
+                const { error } = await vbsClient
+                    .from('timesheet')
+                    .update(updateData)
+                    .eq('id', currentEditRecord.id);
+                    
+                if (error) throw error;
+                alert(`✅ Updated ${staffName}'s timesheet`);
+            } else {
+                // Check if record exists
+                const { data: existing } = await vbsClient
+                    .from('timesheet')
+                    .select('*')
+                    .eq('officer_name', staffName)
+                    .eq('report_date', date);
+                
+                if (existing && existing.length > 0) {
+                    // Update existing
+                    const updateData = {};
+                    if (timeIn) updateData.time_in = timeIn;
+                    if (timeOut) updateData.time_out = timeOut;
+                    if (hoursWorked !== null) updateData.hours_worked = hoursWorked.toFixed(2);
+                    updateData.edited_by = currentUserEmail;
+                    updateData.edit_reason = reason;
+                    updateData.edited_at = new Date().toISOString();
+                    
+                    const { error } = await vbsClient
+                        .from('timesheet')
+                        .update(updateData)
+                        .eq('id', existing[0].id);
+                        
+                    if (error) throw error;
+                    alert(`✅ Updated ${staffName}'s timesheet`);
+                } else {
+                    // Create new record
+                    const { error } = await vbsClient.from('timesheet').insert({
+                        officer_name: staffName,
+                        division: currentUserDivision,
+                        report_date: date,
+                        time_in: timeIn || null,
+                        time_out: timeOut || null,
+                        hours_worked: hoursWorked ? hoursWorked.toFixed(2) : null,
+                        clock_method: 'focal_point_manual',
+                        clocked_by: currentUserEmail,
+                        status: 'APPROVED',
+                        edited_by: currentUserEmail,
+                        edit_reason: reason,
+                        edited_at: new Date().toISOString()
+                    });
+                    if (error) throw error;
+                    alert(`✅ Created timesheet for ${staffName}`);
+                }
+            }
+            
+            closeEditModal();
+            await loadTodayAttendance();
+            document.getElementById('staffSelect').value = '';
+            
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+    
     async function loadStaffSelfStatus() {
         const date = document.getElementById('selfDate').value;
         
@@ -494,7 +684,6 @@
         }
     }
     
-    // FIXED: Self clock is IMMEDIATE - no approval needed
     async function selfClockIn() {
         const date = document.getElementById('selfDate').value;
         
@@ -533,7 +722,7 @@
             time_in: timeIn,
             clock_method: 'self',
             clocked_by: currentUserEmail,
-            status: 'APPROVED'  // Immediately approved
+            status: 'APPROVED'
         });
         
         if (!error) {
@@ -558,6 +747,10 @@
     window.selfClockIn = selfClockIn;
     window.setMode = setMode;
     window.logout = logout;
+    window.openEditRecord = openEditRecord;
+    window.openEditModal = openEditModal;
+    window.closeEditModal = closeEditModal;
+    window.saveEdit = saveEdit;
 </script>
 </body>
 </html>
