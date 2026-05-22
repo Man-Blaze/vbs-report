@@ -34,6 +34,7 @@
         .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #888; }
         .focal-badge { background: #ffc107; color: #333; padding: 2px 10px; border-radius: 20px; font-size: 11px; margin-left: 8px; }
         .alert { background: #cce5ff; padding: 12px; border-radius: 12px; margin: 15px 0; font-size: 13px; color: #004085; }
+        .alert-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
         
         .staff-status-card {
             background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
@@ -104,6 +105,8 @@
         .modal-buttons button { flex: 1; padding: 10px; border-radius: 30px; border: none; cursor: pointer; }
         .save-btn { background: #2c7a4d; color: white; }
         .cancel-btn { background: #6c757d; color: white; }
+        
+        .error-text { color: #dc3545; font-size: 12px; margin-top: 5px; display: none; }
     </style>
 </head>
 <body>
@@ -209,7 +212,8 @@
 
 <div class="footer">
     ✅ Focal points can manually edit any staff clock in/out times<br>
-    🔓 Self clock is immediate - no approval needed
+    🔓 Self clock is immediate - no approval needed<br>
+    ⚠️ Multiple clock-ins BLOCKED | Negative hours NEVER allowed
 </div>
 
 <script>
@@ -353,7 +357,7 @@
                 recordId = record.id;
                 if (record.time_out) {
                     timeOut = record.time_out;
-                    hours = record.hours_worked || 0;
+                    hours = (record.hours_worked && record.hours_worked > 0) ? record.hours_worked : 0;
                     status = 'CLOCKED OUT';
                     statusClass = 'status-present';
                     present++;
@@ -363,7 +367,6 @@
                     present++;
                     canClockOut = true;
                 }
-                // Check if edited
                 if (record.edited_by) {
                     statusClass = 'status-edited';
                 }
@@ -421,6 +424,57 @@
         currentEditRecord = null;
     }
     
+    // FIXED: Calculate hours - NEVER returns negative
+    function calculateHours(timeIn, timeOut) {
+        if (!timeIn || !timeOut) return 0;
+        
+        const inParts = timeIn.split(':');
+        const outParts = timeOut.split(':');
+        let inHour = parseInt(inParts[0]);
+        let inMinute = parseInt(inParts[1]);
+        let outHour = parseInt(outParts[0]);
+        let outMinute = parseInt(outParts[1]);
+        
+        // Convert to minutes since midnight
+        let inTotalMinutes = (inHour * 60) + inMinute;
+        let outTotalMinutes = (outHour * 60) + outMinute;
+        
+        // If clock out is before clock in (crossed midnight), add 24 hours
+        if (outTotalMinutes < inTotalMinutes) {
+            outTotalMinutes += 24 * 60;
+        }
+        
+        let diffMinutes = outTotalMinutes - inTotalMinutes;
+        let hours = diffMinutes / 60;
+        
+        // NEVER return negative - always at least 0
+        return hours < 0 ? 0 : hours;
+    }
+    
+    // FIXED: Check if already clocked in today - PREVENT MULTIPLE CLOCK-INS
+    async function hasActiveClockIn(staffName, date) {
+        const { data: existing } = await vbsClient
+            .from('timesheet')
+            .select('*')
+            .eq('officer_name', staffName)
+            .eq('report_date', date)
+            .is('time_out', null);
+        
+        return existing && existing.length > 0 && existing[0].time_in;
+    }
+    
+    // FIXED: Check if already clocked out today
+    async function hasClockOutToday(staffName, date) {
+        const { data: existing } = await vbsClient
+            .from('timesheet')
+            .select('*')
+            .eq('officer_name', staffName)
+            .eq('report_date', date)
+            .not('time_out', 'is', null);
+        
+        return existing && existing.length > 0;
+    }
+    
     async function saveEdit() {
         const staffName = document.getElementById('editStaffName').value;
         const date = document.getElementById('editDate').value;
@@ -433,15 +487,13 @@
             return;
         }
         
-        // Calculate hours if both times exist
-        let hoursWorked = null;
-        if (timeIn && timeOut) {
-            const inParts = timeIn.split(':');
-            const outParts = timeOut.split(':');
-            let hours = parseInt(outParts[0]) - parseInt(inParts[0]);
-            let minutes = parseInt(outParts[1]) - parseInt(inParts[1]);
-            if (minutes < 0) { hours--; minutes += 60; }
-            hoursWorked = hours + minutes / 60;
+        // Calculate hours using safe method - NEVER negative
+        let hoursWorked = calculateHours(timeIn, timeOut);
+        
+        // Validate: Cannot have time_out without time_in
+        if (timeOut && !timeIn) {
+            alert('❌ Cannot have Clock Out without Clock In time');
+            return;
         }
         
         try {
@@ -450,7 +502,7 @@
                 const updateData = {};
                 if (timeIn) updateData.time_in = timeIn;
                 if (timeOut) updateData.time_out = timeOut;
-                if (hoursWorked !== null) updateData.hours_worked = hoursWorked.toFixed(2);
+                updateData.hours_worked = hoursWorked.toFixed(2);
                 updateData.edited_by = currentUserEmail;
                 updateData.edit_reason = reason;
                 updateData.edited_at = new Date().toISOString();
@@ -461,7 +513,7 @@
                     .eq('id', currentEditRecord.id);
                     
                 if (error) throw error;
-                alert(`✅ Updated ${staffName}'s timesheet`);
+                alert(`✅ Updated ${staffName}'s timesheet - Hours: ${hoursWorked.toFixed(2)}`);
             } else {
                 // Check if record exists
                 const { data: existing } = await vbsClient
@@ -475,7 +527,7 @@
                     const updateData = {};
                     if (timeIn) updateData.time_in = timeIn;
                     if (timeOut) updateData.time_out = timeOut;
-                    if (hoursWorked !== null) updateData.hours_worked = hoursWorked.toFixed(2);
+                    updateData.hours_worked = hoursWorked.toFixed(2);
                     updateData.edited_by = currentUserEmail;
                     updateData.edit_reason = reason;
                     updateData.edited_at = new Date().toISOString();
@@ -486,7 +538,7 @@
                         .eq('id', existing[0].id);
                         
                     if (error) throw error;
-                    alert(`✅ Updated ${staffName}'s timesheet`);
+                    alert(`✅ Updated ${staffName}'s timesheet - Hours: ${hoursWorked.toFixed(2)}`);
                 } else {
                     // Create new record
                     const { error } = await vbsClient.from('timesheet').insert({
@@ -495,7 +547,7 @@
                         report_date: date,
                         time_in: timeIn || null,
                         time_out: timeOut || null,
-                        hours_worked: hoursWorked ? hoursWorked.toFixed(2) : null,
+                        hours_worked: hoursWorked > 0 ? hoursWorked.toFixed(2) : null,
                         clock_method: 'focal_point_manual',
                         clocked_by: currentUserEmail,
                         status: 'APPROVED',
@@ -504,7 +556,7 @@
                         edited_at: new Date().toISOString()
                     });
                     if (error) throw error;
-                    alert(`✅ Created timesheet for ${staffName}`);
+                    alert(`✅ Created timesheet for ${staffName} - Hours: ${hoursWorked.toFixed(2)}`);
                 }
             }
             
@@ -559,11 +611,12 @@
                 document.getElementById('absentCount').innerText = 0;
             } 
             else if (r.time_out) {
+                const hours = (r.hours_worked && r.hours_worked > 0) ? r.hours_worked : 0;
                 statusBadge.innerHTML = '<span class="staff-status-badge" style="background:#cce5ff; color:#004085;">⏳ CLOCKED OUT</span>';
                 timeDetails.innerHTML = `
                     <strong>✅ Clocked IN at:</strong> ${r.time_in}<br>
                     <strong>❌ Clocked OUT at:</strong> ${r.time_out}<br>
-                    <strong>📊 Hours worked:</strong> ${r.hours_worked || 0}
+                    <strong>📊 Hours worked:</strong> ${hours}
                 `;
                 clockOutBtn.style.display = 'none';
                 messageDiv.style.display = 'none';
@@ -583,14 +636,23 @@
         document.getElementById('selfStaffName').innerHTML = staffFullName;
     }
     
+    // FIXED: Clock In - PREVENTS multiple clock-ins
     async function clockIn() {
         const staffName = document.getElementById('staffSelect').value;
         const date = document.getElementById('reportDate').value;
         if (!staffName) { alert('Select staff'); return; }
         
-        const { data: existing } = await vbsClient.from('timesheet').select('*').eq('officer_name', staffName).eq('report_date', date);
-        if (existing?.length > 0 && existing[0].time_in && !existing[0].time_out) {
-            alert(`⚠️ ${staffName} already clocked IN at ${existing[0].time_in}`);
+        // CHECK: Already clocked in today? - PREVENT MULTIPLE
+        const alreadyClockedIn = await hasActiveClockIn(staffName, date);
+        if (alreadyClockedIn) {
+            alert(`❌ ${staffName} already clocked IN today! Cannot clock in again.`);
+            return;
+        }
+        
+        // CHECK: Already clocked out today?
+        const alreadyClockedOut = await hasClockOutToday(staffName, date);
+        if (alreadyClockedOut) {
+            alert(`❌ ${staffName} already clocked OUT today! Cannot clock in again.`);
             return;
         }
         
@@ -607,23 +669,46 @@
         } else { alert('Error: ' + error.message); }
     }
     
+    // FIXED: Clock Out - Validates clock-in exists and calculates NON-NEGATIVE hours
     async function quickClockOut(staffName) {
         const date = document.getElementById('reportDate')?.value || today;
-        const { data: records } = await vbsClient.from('timesheet').select('*').eq('officer_name', staffName).eq('report_date', date).is('time_out', null);
-        if (!records?.length) { alert('No clock-in record'); return; }
+        
+        // Find active clock-in (no time_out)
+        const { data: records } = await vbsClient
+            .from('timesheet')
+            .select('*')
+            .eq('officer_name', staffName)
+            .eq('report_date', date)
+            .is('time_out', null);
+        
+        if (!records || records.length === 0) {
+            alert(`❌ ${staffName} has no active clock-in record. Cannot clock out.`);
+            return;
+        }
         
         const record = records[0];
-        const timeOut = new Date().toLocaleTimeString();
-        const inParts = record.time_in.split(':');
-        const outParts = timeOut.split(':');
-        let hours = parseInt(outParts[0]) - parseInt(inParts[0]);
-        let minutes = parseInt(outParts[1]) - parseInt(inParts[1]);
-        if (minutes < 0) { hours--; minutes += 60; }
-        const totalHours = hours + minutes / 60;
+        if (!record.time_in) {
+            alert(`❌ ${staffName} has no clock-in time. Cannot clock out.`);
+            return;
+        }
         
-        const { error } = await vbsClient.from('timesheet').update({ time_out: timeOut, hours_worked: totalHours.toFixed(2) }).eq('id', record.id);
+        const timeOut = new Date().toLocaleTimeString();
+        
+        // Calculate hours using safe method - NEVER negative
+        const totalHours = calculateHours(record.time_in, timeOut);
+        
+        if (totalHours <= 0) {
+            alert(`⚠️ Invalid hours calculated (${totalHours.toFixed(2)}). Clock out time must be after clock in time.`);
+            return;
+        }
+        
+        const { error } = await vbsClient
+            .from('timesheet')
+            .update({ time_out: timeOut, hours_worked: totalHours.toFixed(2) })
+            .eq('id', record.id);
+        
         if (!error) {
-            alert(`❌ ${staffName} clocked OUT at ${timeOut} | Hours: ${totalHours.toFixed(2)}`);
+            alert(`✅ ${staffName} clocked OUT at ${timeOut} | Hours worked: ${totalHours.toFixed(2)}`);
             if (isFocalPoint) await loadTodayAttendance(); else await loadStaffSelfStatus();
         } else { alert('Error: ' + error.message); }
     }
@@ -657,19 +742,23 @@
             .is('time_out', null);
         
         if (!records || records.length === 0) {
-            alert('No clock-in record found');
+            alert('❌ You have no active clock-in record. Cannot clock out.');
             return;
         }
         
         const record = records[0];
-        const timeOut = new Date().toLocaleTimeString();
+        if (!record.time_in) {
+            alert('❌ You have no clock-in time. Cannot clock out.');
+            return;
+        }
         
-        const inParts = record.time_in.split(':');
-        const outParts = timeOut.split(':');
-        let hours = parseInt(outParts[0]) - parseInt(inParts[0]);
-        let minutes = parseInt(outParts[1]) - parseInt(inParts[1]);
-        if (minutes < 0) { hours--; minutes += 60; }
-        const totalHours = hours + minutes / 60;
+        const timeOut = new Date().toLocaleTimeString();
+        const totalHours = calculateHours(record.time_in, timeOut);
+        
+        if (totalHours <= 0) {
+            alert(`⚠️ Invalid hours calculated. Clock out time must be after clock in time.`);
+            return;
+        }
         
         const { error } = await vbsClient
             .from('timesheet')
@@ -677,13 +766,14 @@
             .eq('id', record.id);
         
         if (!error) {
-            alert(`❌ You clocked OUT at ${timeOut} | Hours worked: ${totalHours.toFixed(2)}`);
+            alert(`✅ You clocked OUT at ${timeOut} | Hours worked: ${totalHours.toFixed(2)}`);
             await loadStaffSelfStatus();
         } else {
             alert('Error: ' + error.message);
         }
     }
     
+    // FIXED: Self Clock In - PREVENTS multiple clock-ins
     async function selfClockIn() {
         const date = document.getElementById('selfDate').value;
         
@@ -698,19 +788,16 @@
             staffFullName = staffData.staff_name;
         }
         
-        const { data: existing } = await vbsClient
-            .from('timesheet')
-            .select('*')
-            .eq('officer_name', staffFullName)
-            .eq('report_date', date);
-        
-        if (existing?.length > 0 && existing[0].time_in && !existing[0].time_out) {
-            alert(`⚠️ You already clocked IN at ${existing[0].time_in}`);
+        // PREVENT multiple clock-ins
+        const alreadyClockedIn = await hasActiveClockIn(staffFullName, date);
+        if (alreadyClockedIn) {
+            alert(`❌ You already clocked IN today! Cannot clock in again.`);
             return;
         }
         
-        if (existing?.length > 0 && existing[0].time_out) {
-            alert('⚠️ You already clocked out today');
+        const alreadyClockedOut = await hasClockOutToday(staffFullName, date);
+        if (alreadyClockedOut) {
+            alert(`❌ You already clocked OUT today! Cannot clock in again.`);
             return;
         }
         
