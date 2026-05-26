@@ -18,8 +18,11 @@
         .row > div { flex: 1; min-width: 150px; }
         .error-msg { color: red; margin-top: 10px; padding: 10px; background: #ffebee; border-radius: 5px; display: none; }
         .success-msg { color: green; margin-top: 10px; padding: 10px; background: #e8f5e9; border-radius: 5px; display: none; }
+        .warning-msg { color: orange; margin-top: 10px; padding: 10px; background: #fff3e0; border-radius: 5px; display: none; }
         .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; margin-left: 8px; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .login-prompt { background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; display: none; }
+        .login-prompt a { color: #2c7a4d; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -27,8 +30,13 @@
         <h1>🔬 Laboratory Report</h1>
         <p>Santo Lab (Galana Siro) | Port Vila Lab (Rollina Kelep)</p>
         
+        <div id="loginPrompt" class="login-prompt">
+            ⚠️ Your session has expired. Please <a href="login.html">click here to login again</a>.
+        </div>
+        
         <div id="errorMsg" class="error-msg"></div>
         <div id="successMsg" class="success-msg"></div>
+        <div id="warningMsg" class="warning-msg"></div>
         
         <form id="reportForm">
             <!-- Basic Info -->
@@ -195,26 +203,31 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Use a unique variable name to avoid conflicts
+        // Supabase configuration
         const VBS_SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const VBS_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
-        let vbsSupabaseClient = null;
-        
-        // Initialize Supabase
-        if (typeof window.supabase !== 'undefined') {
-            vbsSupabaseClient = window.supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
-            console.log('Supabase initialized');
+        // Check if user is logged in
+        function checkLogin() {
+            const token = localStorage.getItem('vbs_token');
+            const user = localStorage.getItem('vbs_user');
+            
+            if (!token || !user) {
+                document.getElementById('loginPrompt').style.display = 'block';
+                document.getElementById('submitBtn').disabled = true;
+                return false;
+            }
+            return true;
         }
         
         // Set default date
         document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
         
         // Try to get user info from localStorage
-        const userEmail = localStorage.getItem('vbs_user');
-        const officerNameInput = document.getElementById('officerName');
-        if (userEmail && officerNameInput) {
-            officerNameInput.value = userEmail.split('@')[0];
+        const storedUserEmail = localStorage.getItem('vbs_user');
+        const officerNameField = document.getElementById('officerName');
+        if (storedUserEmail && officerNameField) {
+            officerNameField.value = storedUserEmail.split('@')[0];
         }
         
         // Auto-calculate turnaround days
@@ -261,63 +274,75 @@
             
             const errorDiv = document.getElementById('errorMsg');
             const successDiv = document.getElementById('successMsg');
+            const warningDiv = document.getElementById('warningMsg');
             const submitBtn = document.getElementById('submitBtn');
             
-            // Hide previous messages
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
+            warningDiv.style.display = 'none';
             
-            // Get token from localStorage
-            const token = localStorage.getItem('vbs_token');
-            if (!token) {
-                errorDiv.innerHTML = '❌ You are not logged in. Please login first.';
+            // Check login first
+            if (!checkLogin()) {
+                errorDiv.innerHTML = '❌ Please login first. Redirecting to login page...';
                 errorDiv.style.display = 'block';
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                return;
+            }
+            
+            let authToken = localStorage.getItem('vbs_token');
+            if (!authToken) {
+                errorDiv.innerHTML = '❌ You are not logged in. Redirecting to login page...';
+                errorDiv.style.display = 'block';
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
                 return;
             }
             
             // Collect form data
             const formData = new FormData(e.target);
-            const data = {};
+            const reportData = {};
             
             for (let [key, value] of formData.entries()) {
                 if (value !== null && value !== '') {
-                    // Convert numeric fields
                     if (key === 'lab_tests_conducted' || key === 'non_compliance_cases' || key === 'tasks_completed' || key === 'turnaround_days') {
-                        data[key] = parseInt(value) || 0;
+                        reportData[key] = parseInt(value) || 0;
                     } else if (key === 'hours_worked') {
-                        data[key] = parseFloat(value) || 0;
+                        reportData[key] = parseFloat(value) || 0;
                     } else {
-                        data[key] = value;
+                        reportData[key] = value;
                     }
                 }
             }
             
-            // Add required fields
-            data.status = 'PENDING';
-            data.created_at = new Date().toISOString();
+            reportData.status = 'PENDING';
+            reportData.created_at = new Date().toISOString();
             
-            console.log('Submitting data:', data);
+            console.log('Submitting data:', reportData);
             
-            // Disable button and show loading
             submitBtn.disabled = true;
             submitBtn.innerHTML = 'Submitting... <span class="loading"></span>';
             
             try {
-                // Using fetch directly with token
                 const response = await fetch(`${VBS_SUPABASE_URL}/rest/v1/laboratory_reports`, {
                     method: 'POST',
                     headers: { 
                         'apikey': VBS_SUPABASE_KEY, 
-                        'Authorization': `Bearer ${token}`, 
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=minimal'
+                        'Authorization': `Bearer ${authToken}`, 
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(reportData)
                 });
                 
-                const responseText = await response.text();
                 console.log('Response status:', response.status);
-                console.log('Response body:', responseText);
+                
+                if (response.status === 401) {
+                    // Token expired
+                    localStorage.removeItem('vbs_token');
+                    localStorage.removeItem('vbs_user');
+                    errorDiv.innerHTML = '❌ Your session has expired. Redirecting to login page...';
+                    errorDiv.style.display = 'block';
+                    setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                    return;
+                }
                 
                 if (response.ok) {
                     successDiv.innerHTML = '✅ Laboratory report submitted successfully! Manager will review.';
@@ -330,15 +355,15 @@
                     document.querySelector('input[name="tasks_completed"]').value = 1;
                     document.querySelector('select[name="reagent_status"]').value = 'Good';
                     
-                    // Refresh officer name
-                    if (userEmail) {
-                        document.getElementById('officerName').value = userEmail.split('@')[0];
+                    if (storedUserEmail && officerNameField) {
+                        officerNameField.value = storedUserEmail.split('@')[0];
                     }
                     
-                    // Scroll to success message
                     successDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } else {
-                    errorDiv.innerHTML = `❌ Error: ${responseText}`;
+                    const errorText = await response.text();
+                    console.log('Error response:', errorText);
+                    errorDiv.innerHTML = `❌ Error: ${errorText}`;
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
@@ -351,7 +376,12 @@
             }
         });
         
-        // Resubmit handling for rejected reports
+        // Check login on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkLogin();
+        });
+        
+        // Handle resubmit from rejected reports
         window.onload = function() {
             const resubmitMode = localStorage.getItem('resubmit_mode');
             if (resubmitMode === 'true') {
