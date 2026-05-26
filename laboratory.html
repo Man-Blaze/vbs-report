@@ -4,7 +4,7 @@
     <title>VBS - Laboratory Report</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 550px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        body { font-family: Arial, sans-serif; max-width: 650px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
         .container { background: white; padding: 20px; border-radius: 10px; }
         h1 { color: #2c7a4d; }
         h3 { color: #1a5a3a; margin-bottom: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
@@ -13,6 +13,9 @@
         textarea { min-height: 60px; }
         button { width: 100%; padding: 12px; margin-top: 20px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         .section { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px; }
+        .row { display: flex; gap: 15px; flex-wrap: wrap; }
+        .row > div { flex: 1; min-width: 150px; }
+        small { color: #666; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -24,12 +27,16 @@
             <!-- Basic Info -->
             <div class="section">
                 <h3>📋 Basic Information</h3>
-                <label>Officer Name:</label>
-                <input name="officer_name" required>
-                
-                <label>Report Date:</label>
-                <input name="report_date" type="date" required>
-                
+                <div class="row">
+                    <div>
+                        <label>Officer Name:</label>
+                        <input name="officer_name" required>
+                    </div>
+                    <div>
+                        <label>Report Date:</label>
+                        <input name="report_date" type="date" required>
+                    </div>
+                </div>
                 <label>Lab Location:</label>
                 <select name="lab_location" required>
                     <option value="Santo">Santo Laboratory</option>
@@ -40,102 +47,223 @@
             <!-- Sample Information -->
             <div class="section">
                 <h3>🧪 Sample Information</h3>
-                <label>Sample ID:</label>
-                <input name="sample_id" placeholder="e.g., LAB-2409-001" required>
-                
-                <label>Sample Name:</label>
-                <input name="sample_name" placeholder="e.g., Taro, Kava, Water Sample">
-                
-                <label>Sample Type:</label>
-                <select name="sample_type" required>
-                    <option value="Food">Food</option>
-                    <option value="Water">Water</option>
-                    <option value="Soil">Soil</option>
-                    <option value="Cosmetic">Cosmetic</option>
-                    <option value="Beverages">Beverages</option>
-                    <option value="Other">Other</option>
-                </select>
+                <div class="row">
+                    <div>
+                        <label>Sample ID:</label>
+                        <input name="sample_id" placeholder="e.g., LAB-2409-001" required>
+                    </div>
+                    <div>
+                        <label>Sample Type:</label>
+                        <select name="sample_type" required>
+                            <option value="Food">Food</option>
+                            <option value="Water">Water</option>
+                            <option value="Soil">Soil</option>
+                            <option value="Cosmetic">Cosmetic</option>
+                            <option value="Beverages">Beverages</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             
             <!-- Test Details -->
             <div class="section">
                 <h3>🔬 Test Details</h3>
-                <label>Test Type:</label>
-                <select name="test_type" required>
-                    <option value="Microbiology">Microbiology</option>
-                    <option value="Chemical">Chemical</option>
-                    <option value="DNA/GMO">DNA/GMO</option>
-                </select>
+                <div class="row">
+                    <div>
+                        <label>Test Type:</label>
+                        <select name="test_type" required>
+                            <option value="Microbiology">Microbiology</option>
+                            <option value="Chemical">Chemical</option>
+                            <option value="DNA/GMO">DNA/GMO</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Number of Tests Conducted:</label>
+                        <input name="lab_tests_conducted" type="number" value="1" min="1">
+                        <small>Count of tests performed on this sample</small>
+                    </div>
+                </div>
                 
-                <label>Lab Tests Conducted:</label>
-                <select name="lab_tests_conducted" multiple size="8" style="height: auto;">
-                    <option value="Microbial Test">Microbial Test</option>
-                    <option value="Nobility Test">Nobility Test</option>
-                    <option value="NIP Test">NIP Test</option>
-                    <option value="Cocoa Quality Test">Cocoa Quality Test</option>
-                    <option value="Copra Quality Test">Copra Quality Test</option>
-                    <option value="Shelf-life Test">Shelf-life Test</option>
-                    <option value="AMR (Antimicrobial Resistance)">AMR (Antimicrobial Resistance)</option>
-                    <option value="Heavy Metal">Heavy Metal</option>
-                    <option value="Other">Other</option>
-                </select>
-                <small>Hold Ctrl (Windows) or Cmd (Mac) to select multiple tests</small>
+                <div class="row">
+                    <div>
+                        <label>Test Result:</label>
+                        <select name="test_result" required>
+                            <option value="Pass">✅ Pass</option>
+                            <option value="Fail">❌ Fail</option>
+                            <option value="Inconclusive">⚠️ Inconclusive</option>
+                            <option value="Pending">⏳ Pending</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Reagent Status:</label>
+                        <select name="reagent_status">
+                            <option value="">-- Select --</option>
+                            <option value="Sufficient">Sufficient</option>
+                            <option value="Low">Low - Order soon</option>
+                            <option value="Critical">Critical - Order immediately</option>
+                        </select>
+                    </div>
+                </div>
                 
-                <label>Other Test (if Other selected):</label>
-                <input name="other_test" placeholder="Specify other test conducted">
-                
-                <label>Test Result Status:</label>
-                <select name="test_result_status" required>
-                    <option value="Completed">Completed</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Pending">Pending</option>
-                </select>
+                <label>Equipment Issues (if any):</label>
+                <textarea name="equipment_issues" rows="2" placeholder="Describe any equipment problems..."></textarea>
             </div>
             
             <!-- Dates -->
             <div class="section">
-                <h3>📅 Dates</h3>
-                <label>Date Sample Received:</label>
-                <input name="date_sample_received" type="date">
-                
-                <label>Expected Result Date:</label>
-                <input name="expected_result_date" type="date">
+                <h3>📅 Dates & Turnaround</h3>
+                <div class="row">
+                    <div>
+                        <label>Date Sample Received:</label>
+                        <input name="date_sample_received" type="date">
+                    </div>
+                    <div>
+                        <label>Date Result Completed:</label>
+                        <input name="date_result_completed" type="date">
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label>Turnaround Days:</label>
+                        <input name="turnaround_days" type="number" value="0" min="0">
+                        <small>Days between received and completed</small>
+                    </div>
+                    <div>
+                        <label>Calibration Due Date:</label>
+                        <input name="calibration_due_date" type="date">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Certificate & Compliance -->
+            <div class="section">
+                <h3>📜 Certificate & Compliance</h3>
+                <div class="row">
+                    <div>
+                        <label>Certificate Number:</label>
+                        <input name="certificate_number" placeholder="e.g., VBS-CERT-001">
+                    </div>
+                    <div>
+                        <label>Non-Compliance Cases:</label>
+                        <input name="non_compliance_cases" type="number" value="0" min="0">
+                    </div>
+                </div>
             </div>
             
             <!-- Comments -->
             <div class="section">
                 <h3>📝 Comments & Analysis</h3>
-                <label>Comment on Overall Analysis:</label>
-                <textarea name="inspector_notes" placeholder="Enter your analysis comments here..."></textarea>
+                <label>Inspector Notes:</label>
+                <textarea name="inspector_notes" rows="3" placeholder="Enter your analysis comments here..."></textarea>
+            </div>
+            
+            <!-- Timesheet Integration -->
+            <div class="section">
+                <h3>⏰ Working Hours</h3>
+                <div class="row">
+                    <div>
+                        <label>Time In:</label>
+                        <input name="time_in" type="time">
+                    </div>
+                    <div>
+                        <label>Time Out:</label>
+                        <input name="time_out" type="time">
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label>Hours Worked:</label>
+                        <input name="hours_worked" type="number" step="0.5" value="8">
+                    </div>
+                    <div>
+                        <label>Tasks Completed:</label>
+                        <input name="tasks_completed" type="number" value="1" min="1">
+                    </div>
+                </div>
             </div>
             
             <button type="submit">Submit Laboratory Report</button>
         </form>
     </div>
     
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
+        let supabase = null;
+        
+        if (typeof window.supabase !== 'undefined') {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+        
+        // Set default date
+        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+        
+        // Auto-calculate turnaround days
+        function calculateTurnaround() {
+            const received = document.querySelector('input[name="date_sample_received"]').value;
+            const completed = document.querySelector('input[name="date_result_completed"]').value;
+            
+            if (received && completed) {
+                const start = new Date(received);
+                const end = new Date(completed);
+                const diffTime = Math.abs(end - start);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                document.querySelector('input[name="turnaround_days"]').value = diffDays;
+            }
+        }
+        
+        document.querySelector('input[name="date_sample_received"]').addEventListener('change', calculateTurnaround);
+        document.querySelector('input[name="date_result_completed"]').addEventListener('change', calculateTurnaround);
+        
+        // Calculate hours worked if time_in and time_out provided
+        function calculateHours() {
+            const timeIn = document.querySelector('input[name="time_in"]').value;
+            const timeOut = document.querySelector('input[name="time_out"]').value;
+            
+            if (timeIn && timeOut) {
+                const inParts = timeIn.split(':');
+                const outParts = timeOut.split(':');
+                let hours = parseInt(outParts[0]) - parseInt(inParts[0]);
+                let minutes = parseInt(outParts[1]) - parseInt(inParts[1]);
+                if (minutes < 0) { hours--; minutes += 60; }
+                const totalHours = hours + minutes / 60;
+                if (totalHours > 0) {
+                    document.querySelector('input[name="hours_worked"]').value = totalHours.toFixed(1);
+                }
+            }
+        }
+        
+        document.querySelector('input[name="time_in"]').addEventListener('change', calculateHours);
+        document.querySelector('input[name="time_out"]').addEventListener('change', calculateHours);
+        
         document.getElementById('reportForm').onsubmit = async (e) => {
             e.preventDefault();
+            
             const formData = new FormData(e.target);
             const data = {};
             
-            // Handle multiple select for lab tests
-            const testsSelect = document.querySelector('select[name="lab_tests_conducted"]');
-            const selectedTests = Array.from(testsSelect.selectedOptions).map(opt => opt.value);
-            data.lab_tests_conducted = selectedTests.join(', ');
-            
-            // Handle all other fields
             for (let [key, value] of formData.entries()) {
-                if (key !== 'lab_tests_conducted' && value) {
-                    data[key] = value;
+                if (value !== null && value !== '') {
+                    // Convert numeric fields
+                    if (key === 'lab_tests_conducted' || key === 'non_compliance_cases' || key === 'tasks_completed' || key === 'turnaround_days') {
+                        data[key] = parseInt(value) || 0;
+                    } else if (key === 'hours_worked') {
+                        data[key] = parseFloat(value) || 0;
+                    } else {
+                        data[key] = value;
+                    }
                 }
             }
             
             data.status = 'PENDING';
             data.created_at = new Date().toISOString();
+            
+            const submitBtn = document.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
             
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/laboratory_reports`, {
@@ -143,7 +271,8 @@
                     headers: { 
                         'apikey': SUPABASE_KEY, 
                         'Authorization': `Bearer ${SUPABASE_KEY}`, 
-                        'Content-Type': 'application/json' 
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
                     },
                     body: JSON.stringify(data)
                 });
@@ -152,46 +281,44 @@
                     alert('✅ Laboratory report submitted! Manager will review.');
                     document.getElementById('reportForm').reset();
                     document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+                    document.querySelector('input[name="hours_worked"]').value = 8;
+                    document.querySelector('input[name="lab_tests_conducted"]').value = 1;
+                    document.querySelector('input[name="non_compliance_cases"]').value = 0;
+                    document.querySelector('input[name="tasks_completed"]').value = 1;
                 } else {
                     const error = await response.text();
                     alert('❌ Error: ' + error);
                 }
             } catch (error) {
                 alert('❌ Connection error: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Laboratory Report';
             }
         };
         
-        // Set default date
-        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
-    </script>
-
-    <script>
-    // Check if this is a resubmit from a rejected report
-    window.onload = function() {
-        const resubmitMode = localStorage.getItem('resubmit_mode');
-        if (resubmitMode === 'true') {
-            const resubmitData = JSON.parse(localStorage.getItem('resubmit_data'));
-            if (resubmitData) {
-                // Show alert with manager comment
-                alert(`⚠️ This report was previously rejected.\n\nManager comment: ${resubmitData.comment || 'No comment'}\n\nPlease fix the issue and resubmit.`);
-                
-                // Optionally pre-fill the form with old data (implementation varies by form)
-                const form = document.getElementById('reportForm');
-                if (form && resubmitData.report) {
-                    for (let key in resubmitData.report) {
-                        let field = form.querySelector(`[name="${key}"]`);
-                        if (field && key !== 'id' && key !== 'created_at' && key !== 'status') {
-                            field.value = resubmitData.report[key];
+        // Resubmit handling
+        window.onload = function() {
+            const resubmitMode = localStorage.getItem('resubmit_mode');
+            if (resubmitMode === 'true') {
+                const resubmitData = JSON.parse(localStorage.getItem('resubmit_data'));
+                if (resubmitData) {
+                    alert(`⚠️ This report was previously rejected.\n\nManager comment: ${resubmitData.comment || 'No comment'}\n\nPlease fix the issue and resubmit.`);
+                    
+                    const form = document.getElementById('reportForm');
+                    if (form && resubmitData.report) {
+                        for (let key in resubmitData.report) {
+                            let field = form.querySelector(`[name="${key}"]`);
+                            if (field && key !== 'id' && key !== 'created_at' && key !== 'status') {
+                                field.value = resubmitData.report[key];
+                            }
                         }
                     }
+                    localStorage.removeItem('resubmit_mode');
+                    localStorage.removeItem('resubmit_data');
                 }
-                
-                // Clear resubmit mode after loading
-                localStorage.removeItem('resubmit_mode');
-                localStorage.removeItem('resubmit_data');
             }
-        }
-    };
-</script>
+        };
+    </script>
 </body>
 </html>
