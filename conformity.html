@@ -69,22 +69,67 @@
             </div>
             <div class="form-row">
                 <div class="field-group"><label><i class="fas fa-building"></i> Division</label><select id="division"><option value="Metrology">⚖️ Metrology</option><option value="Provincial">🌾 Provincial</option><option value="Laboratory">🔬 Laboratory</option><option value="Packhouse">📦 Packhouse</option><option value="Standards">📜 Standards</option><option value="Conformity">✅ Conformity</option></select></div>
-                <div class="field-group"><label><i class="fas fa-map-marker-alt"></i> Location</label><input type="text" id="location" placeholder="e.g., Port Vila, Luganville"></div>
+                <div class="field-group"><label><i class="fas fa-map-marker-alt"></i> Location</label><input type="text" id="location" placeholder="e.g., Port Vila, Luganville, Santo"></div>
             </div>
         </div>
         
         <!-- Form Selector -->
         <div class="form-title"><i class="fas fa-file-alt"></i> Select Inspection Type</div>
         <div class="form-selector" id="formSelector">
-            <div class="form-btn active" data-form="fuel"><i class="fas fa-gas-pump"></i><span>Fuel Dispenser</span></div>
-            <div class="form-btn" data-form="general"><i class="fas fa-clipboard"></i><span>General Inspection</span></div>
+            <div class="form-btn" data-form="fuel"><i class="fas fa-gas-pump"></i><span>Fuel Dispenser</span></div>
+            <div class="form-btn" data-form="preExport"><i class="fas fa-ship"></i><span>Pre-Export</span></div>
+            <div class="form-btn" data-form="general"><i class="fas fa-clipboard"></i><span>General</span></div>
             <div class="form-btn" data-form="food"><i class="fas fa-apple-alt"></i><span>Food Products</span></div>
             <div class="form-btn" data-form="packhouse"><i class="fas fa-boxes"></i><span>Packhouse</span></div>
             <div class="form-btn" data-form="farm"><i class="fas fa-tractor"></i><span>Farm</span></div>
         </div>
         
+        <!-- ==================== PRE-EXPORT INSPECTION FORM (NEW) ==================== -->
+        <div id="preExportForm" class="inspection-form">
+            <div class="form-title"><i class="fas fa-ship"></i> Pre-Export Inspection</div>
+            
+            <div class="form-row">
+                <div class="field-group"><label>Exporter's Name <span class="required-star">*</span></label><input type="text" id="preExport_exporter" placeholder="e.g., Vanuatu Organic Exports Ltd"></div>
+                <div class="field-group"><label>Commodities <span class="required-star">*</span></label>
+                    <select id="preExport_commodity">
+                        <option value="Kava">🌿 Kava</option>
+                        <option value="Cocoa">🍫 Cocoa</option>
+                        <option value="Copra">🥥 Copra</option>
+                        <option value="Vanilla">🌱 Vanilla</option>
+                        <option value="Taro">🍠 Taro</option>
+                        <option value="Beef">🥩 Beef</option>
+                        <option value="Fish">🐟 Fish</option>
+                        <option value="Other">📦 Other</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="field-group"><label>Other Commodity (if Other selected)</label><input type="text" id="preExport_commodity_other" placeholder="Specify other commodity"></div>
+                <div class="field-group"><label>Quantity (kg/litres/units)</label><input type="text" id="preExport_quantity" placeholder="e.g., 500 kg"></div>
+            </div>
+            <div class="form-row">
+                <div class="field-group"><label>Destination Country</label><input type="text" id="preExport_destination" placeholder="e.g., Australia, New Zealand, China"></div>
+                <div class="field-group"><label>Container/Seal Number</label><input type="text" id="preExport_seal" placeholder="e.g., SUDU1234567"></div>
+            </div>
+            <div class="form-row">
+                <div class="field-group"><label>Assessment Result <span class="required-star">*</span></label>
+                    <select id="preExport_result">
+                        <option value="Compliant">✅ Compliant - Approved for Export</option>
+                        <option value="Non-Compliant">❌ Non-Compliant - Rejected</option>
+                        <option value="Conditional">⚠️ Conditional - Requires Treatment</option>
+                    </select>
+                </div>
+                <div class="field-group"><label>Certificate Number (if issued)</label><input type="text" id="preExport_certificate" placeholder="e.g., VBS-PE-001/2026"></div>
+            </div>
+            <div class="field-group"><label><i class="fas fa-comment"></i> Inspector's Notes</label><textarea id="preExport_notes" rows="3" placeholder="Any additional observations, quality remarks, or non-compliance details..."></textarea></div>
+            <div class="form-row">
+                <div class="field-group"><label><i class="fas fa-pen"></i> Inspector Signature</label><input type="text" id="preExport_signature" placeholder="Type your name as signature"></div>
+                <div class="field-group"><label><i class="fas fa-user-check"></i> Exporter Representative</label><input type="text" id="preExport_rep" placeholder="Exporter representative name"></div>
+            </div>
+        </div>
+        
         <!-- ==================== FULL FUEL DISPENSER FORM (OIML R120) ==================== -->
-        <div id="fuelForm" class="inspection-form active-form">
+        <div id="fuelForm" class="inspection-form">
             <div class="form-title"><i class="fas fa-gas-pump"></i> Fuel Dispenser Verification (OIML R120)</div>
             
             <div class="form-row">
@@ -289,20 +334,17 @@
         const btns = document.querySelectorAll('.form-btn');
         for (let i = 0; i < btns.length; i++) {
             btns[i].addEventListener('click', function() {
-                // Remove active class from all buttons
                 for (let j = 0; j < btns.length; j++) {
                     btns[j].classList.remove('active');
                 }
                 this.classList.add('active');
                 currentForm = this.getAttribute('data-form');
                 
-                // Hide all forms
                 const forms = document.querySelectorAll('.inspection-form');
                 for (let j = 0; j < forms.length; j++) {
                     forms[j].classList.remove('active-form');
                 }
                 
-                // Show selected form
                 const activeForm = document.getElementById(currentForm + 'Form');
                 if (activeForm) {
                     activeForm.classList.add('active-form');
@@ -319,10 +361,8 @@
             return;
         }
         
-        // Save inspector name
         localStorage.setItem('inspector_name', inspectorName);
         
-        // Base data
         const baseData = {
             inspector_name: inspectorName,
             inspector_id: document.getElementById('inspectorId').value,
@@ -373,7 +413,27 @@
                     station_rep_signature: document.getElementById('fuel_station_sig').value
                 };
                 tableName = 'fuel_dispenser_inspections';
-            } 
+            }
+            else if (currentForm === 'preExport') {
+                let commodity = document.getElementById('preExport_commodity').value;
+                if (commodity === 'Other') {
+                    commodity = document.getElementById('preExport_commodity_other').value;
+                }
+                data = {
+                    ...baseData,
+                    exporter_name: document.getElementById('preExport_exporter').value,
+                    commodity: commodity,
+                    quantity: document.getElementById('preExport_quantity').value,
+                    destination_country: document.getElementById('preExport_destination').value,
+                    container_seal_number: document.getElementById('preExport_seal').value,
+                    assessment_result: document.getElementById('preExport_result').value,
+                    certificate_number: document.getElementById('preExport_certificate').value,
+                    inspector_notes: document.getElementById('preExport_notes').value,
+                    inspector_signature: document.getElementById('preExport_signature').value,
+                    exporter_representative: document.getElementById('preExport_rep').value
+                };
+                tableName = 'pre_export_inspections';
+            }
             else if (currentForm === 'general') {
                 data = {
                     ...baseData,
@@ -457,65 +517,44 @@
     
     // Set today's date and load saved inspector name
     function initPage() {
-        // Set today's date
         const today = new Date().toISOString().split('T')[0];
         const dateInput = document.getElementById('inspectionDate');
         if (dateInput) dateInput.value = today;
         
-        // Load saved inspector name
         const savedName = localStorage.getItem('inspector_name');
         if (savedName) {
             const nameInput = document.getElementById('inspectorName');
             if (nameInput) nameInput.value = savedName;
         }
         
-        // Initialize fuel thresholds
         initFuelThresholds();
         
-        // Add event listeners for fuel inputs
         const fuelPumpVol = document.getElementById('fuel_pump_vol');
         const fuelMeasureVol = document.getElementById('fuel_measure_vol');
         const fuelVolume = document.getElementById('fuel_volume');
         
-        if (fuelPumpVol) {
-            fuelPumpVol.addEventListener('input', calculateFuelError);
-        }
-        if (fuelMeasureVol) {
-            fuelMeasureVol.addEventListener('input', calculateFuelError);
-        }
-        if (fuelVolume) {
-            fuelVolume.addEventListener('change', function() {
-                initFuelThresholds();
-                calculateFuelError();
-            });
-        }
+        if (fuelPumpVol) fuelPumpVol.addEventListener('input', calculateFuelError);
+        if (fuelMeasureVol) fuelMeasureVol.addEventListener('input', calculateFuelError);
+        if (fuelVolume) fuelVolume.addEventListener('change', function() {
+            initFuelThresholds();
+            calculateFuelError();
+        });
         
-        // Initialize form selector
         initFormSelector();
         
-        // Set submit button handler
         const submitBtn = document.getElementById('submitBtn');
-        if (submitBtn) {
-            submitBtn.onclick = submitInspection;
-        }
+        if (submitBtn) submitBtn.onclick = submitInspection;
         
-        // Set user name from localStorage
         const userEmail = localStorage.getItem('vbs_user');
         const userNameSpan = document.getElementById('userName');
-        if (userEmail && userNameSpan) {
-            userNameSpan.innerHTML = userEmail.split('@')[0];
-        }
+        if (userEmail && userNameSpan) userNameSpan.innerHTML = userEmail.split('@')[0];
         
-        // Initialize Supabase client
         if (window.supabase && !vbsClient) {
             vbsClient = window.supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
         }
     }
     
-    // Run init when page loads
     window.addEventListener('DOMContentLoaded', initPage);
-    
-    // Make functions global for onclick handlers
     window.logout = logout;
 </script>
 </body>
