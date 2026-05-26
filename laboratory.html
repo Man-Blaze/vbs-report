@@ -12,17 +12,23 @@
         input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         textarea { min-height: 60px; }
         button { width: 100%; padding: 12px; margin-top: 20px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:disabled { background: #aaa; cursor: not-allowed; }
         .section { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px; }
         .row { display: flex; gap: 15px; flex-wrap: wrap; }
         .row > div { flex: 1; min-width: 150px; }
-        small { color: #666; font-size: 11px; }
-        .example { font-size: 11px; color: #888; margin-top: 3px; }
+        .error-msg { color: red; margin-top: 10px; padding: 10px; background: #ffebee; border-radius: 5px; display: none; }
+        .success-msg { color: green; margin-top: 10px; padding: 10px; background: #e8f5e9; border-radius: 5px; display: none; }
+        .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; margin-left: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔬 Laboratory Report</h1>
         <p>Santo Lab (Galana Siro) | Port Vila Lab (Rollina Kelep)</p>
+        
+        <div id="errorMsg" class="error-msg"></div>
+        <div id="successMsg" class="success-msg"></div>
         
         <form id="reportForm">
             <!-- Basic Info -->
@@ -31,11 +37,11 @@
                 <div class="row">
                     <div>
                         <label>Officer Name:</label>
-                        <input name="officer_name" required>
+                        <input name="officer_name" id="officerName" required>
                     </div>
                     <div>
                         <label>Report Date:</label>
-                        <input name="report_date" type="date" required>
+                        <input name="report_date" type="date" id="reportDate" required>
                     </div>
                 </div>
                 <label>Lab Location:</label>
@@ -52,7 +58,6 @@
                     <div>
                         <label>Sample ID:</label>
                         <input name="sample_id" placeholder="e.g., Kava powder / BVKAN01000426" required>
-                        <div class="example">Example: Kava powder, Water Sample, Taro</div>
                     </div>
                     <div>
                         <label>Sample Type:</label>
@@ -83,9 +88,8 @@
                         </select>
                     </div>
                     <div>
-                        <label>Number of Tests Conducted:</label>
+                        <label>Number of Tests:</label>
                         <input name="lab_tests_conducted" type="number" value="1" min="1">
-                        <div class="example">Count of tests performed on this sample</div>
                     </div>
                 </div>
                 
@@ -109,13 +113,13 @@
                     </div>
                 </div>
                 
-                <label>Equipment Issues (if any):</label>
+                <label>Equipment Issues:</label>
                 <textarea name="equipment_issues" rows="2" placeholder="e.g., Colorimeter, centrifuge issues..."></textarea>
             </div>
             
             <!-- Dates -->
             <div class="section">
-                <h3>📅 Dates & Turnaround</h3>
+                <h3>📅 Dates</h3>
                 <div class="row">
                     <div>
                         <label>Date Sample Received:</label>
@@ -130,7 +134,6 @@
                     <div>
                         <label>Turnaround Days:</label>
                         <input name="turnaround_days" type="number" value="0" min="0">
-                        <div class="example">Auto-calculated from dates above</div>
                     </div>
                     <div>
                         <label>Calibration Due Date:</label>
@@ -139,14 +142,13 @@
                 </div>
             </div>
             
-            <!-- Certificate & Compliance -->
+            <!-- Certificate -->
             <div class="section">
-                <h3>📜 Certificate & Compliance</h3>
+                <h3>📜 Certificate</h3>
                 <div class="row">
                     <div>
                         <label>Certificate Number:</label>
-                        <input name="certificate_number" placeholder="e.g., 01BV220426, 107BV210426">
-                        <div class="example">Format: 01BV220426 (BV=Port Vila, date)</div>
+                        <input name="certificate_number" placeholder="e.g., 01BV220426">
                     </div>
                     <div>
                         <label>Non-Compliance Cases:</label>
@@ -157,12 +159,12 @@
             
             <!-- Comments -->
             <div class="section">
-                <h3>📝 Comments & Analysis</h3>
+                <h3>📝 Comments</h3>
                 <label>Inspector Notes:</label>
-                <textarea name="inspector_notes" rows="3" placeholder="e.g., Complete sample test, Kava is a noble variety..."></textarea>
+                <textarea name="inspector_notes" rows="3" placeholder="Enter your analysis comments..."></textarea>
             </div>
             
-            <!-- Timesheet Integration -->
+            <!-- Working Hours -->
             <div class="section">
                 <h3>⏰ Working Hours</h3>
                 <div class="row">
@@ -187,7 +189,7 @@
                 </div>
             </div>
             
-            <button type="submit">Submit Laboratory Report</button>
+            <button type="submit" id="submitBtn">Submit Laboratory Report</button>
         </form>
     </div>
     
@@ -198,12 +200,21 @@
         
         let supabase = null;
         
+        // Initialize Supabase
         if (typeof window.supabase !== 'undefined') {
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log('Supabase initialized');
         }
         
         // Set default date
-        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+        document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+        
+        // Try to get user info from localStorage
+        const userEmail = localStorage.getItem('vbs_user');
+        const officerNameInput = document.getElementById('officerName');
+        if (userEmail && officerNameInput) {
+            officerNameInput.value = userEmail.split('@')[0];
+        }
         
         // Auto-calculate turnaround days
         function calculateTurnaround() {
@@ -222,7 +233,7 @@
         document.querySelector('input[name="date_sample_received"]').addEventListener('change', calculateTurnaround);
         document.querySelector('input[name="date_result_completed"]').addEventListener('change', calculateTurnaround);
         
-        // Calculate hours worked if time_in and time_out provided
+        // Calculate hours worked
         function calculateHours() {
             const timeIn = document.querySelector('input[name="time_in"]').value;
             const timeOut = document.querySelector('input[name="time_out"]').value;
@@ -243,9 +254,27 @@
         document.querySelector('input[name="time_in"]').addEventListener('change', calculateHours);
         document.querySelector('input[name="time_out"]').addEventListener('change', calculateHours);
         
-        document.getElementById('reportForm').onsubmit = async (e) => {
+        // Form submission
+        document.getElementById('reportForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const errorDiv = document.getElementById('errorMsg');
+            const successDiv = document.getElementById('successMsg');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // Hide previous messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            // Get token from localStorage
+            const token = localStorage.getItem('vbs_token');
+            if (!token) {
+                errorDiv.innerHTML = '❌ You are not logged in. Please login first.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // Collect form data
             const formData = new FormData(e.target);
             const data = {};
             
@@ -262,47 +291,66 @@
                 }
             }
             
+            // Add required fields
             data.status = 'PENDING';
             data.created_at = new Date().toISOString();
             
-            const submitBtn = document.querySelector('button[type="submit"]');
+            console.log('Submitting data:', data);
+            
+            // Disable button and show loading
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Submitting...';
+            submitBtn.innerHTML = 'Submitting... <span class="loading"></span>';
             
             try {
+                // Method 1: Using fetch directly (most reliable)
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/laboratory_reports`, {
                     method: 'POST',
                     headers: { 
                         'apikey': SUPABASE_KEY, 
-                        'Authorization': `Bearer ${SUPABASE_KEY}`, 
+                        'Authorization': `Bearer ${token}`, 
                         'Content-Type': 'application/json',
                         'Prefer': 'return=minimal'
                     },
                     body: JSON.stringify(data)
                 });
                 
+                const responseText = await response.text();
+                console.log('Response status:', response.status);
+                console.log('Response body:', responseText);
+                
                 if (response.ok) {
-                    alert('✅ Laboratory report submitted! Manager will review.');
+                    successDiv.innerHTML = '✅ Laboratory report submitted successfully! Manager will review.';
+                    successDiv.style.display = 'block';
                     document.getElementById('reportForm').reset();
-                    document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+                    document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
                     document.querySelector('input[name="hours_worked"]').value = 8;
                     document.querySelector('input[name="lab_tests_conducted"]').value = 1;
                     document.querySelector('input[name="non_compliance_cases"]').value = 0;
                     document.querySelector('input[name="tasks_completed"]').value = 1;
                     document.querySelector('select[name="reagent_status"]').value = 'Good';
+                    
+                    // Refresh officer name
+                    if (userEmail) {
+                        document.getElementById('officerName').value = userEmail.split('@')[0];
+                    }
+                    
+                    // Scroll to success message
+                    successDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } else {
-                    const error = await response.text();
-                    alert('❌ Error: ' + error);
+                    errorDiv.innerHTML = `❌ Error: ${responseText}`;
+                    errorDiv.style.display = 'block';
                 }
             } catch (error) {
-                alert('❌ Connection error: ' + error.message);
+                console.error('Submit error:', error);
+                errorDiv.innerHTML = `❌ Connection error: ${error.message}`;
+                errorDiv.style.display = 'block';
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit Laboratory Report';
+                submitBtn.innerHTML = 'Submit Laboratory Report';
             }
-        };
+        });
         
-        // Resubmit handling
+        // Resubmit handling for rejected reports
         window.onload = function() {
             const resubmitMode = localStorage.getItem('resubmit_mode');
             if (resubmitMode === 'true') {
