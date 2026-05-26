@@ -4,7 +4,7 @@
     <title>VBS - Laboratory Report</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 650px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
         .container { background: white; padding: 20px; border-radius: 10px; }
         h1 { color: #2c7a4d; }
         h3 { color: #1a5a3a; margin-bottom: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
@@ -16,6 +16,7 @@
         .row { display: flex; gap: 15px; flex-wrap: wrap; }
         .row > div { flex: 1; min-width: 150px; }
         small { color: #666; font-size: 11px; }
+        .example { font-size: 11px; color: #888; margin-top: 3px; }
     </style>
 </head>
 <body>
@@ -39,8 +40,8 @@
                 </div>
                 <label>Lab Location:</label>
                 <select name="lab_location" required>
-                    <option value="Santo">Santo Laboratory</option>
                     <option value="Port Vila">Port Vila Laboratory</option>
+                    <option value="Santo">Santo Laboratory</option>
                 </select>
             </div>
             
@@ -50,7 +51,8 @@
                 <div class="row">
                     <div>
                         <label>Sample ID:</label>
-                        <input name="sample_id" placeholder="e.g., LAB-2409-001" required>
+                        <input name="sample_id" placeholder="e.g., Kava powder / BVKAN01000426" required>
+                        <div class="example">Example: Kava powder, Water Sample, Taro</div>
                     </div>
                     <div>
                         <label>Sample Type:</label>
@@ -60,6 +62,7 @@
                             <option value="Soil">Soil</option>
                             <option value="Cosmetic">Cosmetic</option>
                             <option value="Beverages">Beverages</option>
+                            <option value="Kava">Kava</option>
                             <option value="Other">Other</option>
                         </select>
                     </div>
@@ -73,15 +76,16 @@
                     <div>
                         <label>Test Type:</label>
                         <select name="test_type" required>
-                            <option value="Microbiology">Microbiology</option>
                             <option value="Chemical">Chemical</option>
+                            <option value="Microbiology">Microbiology</option>
                             <option value="DNA/GMO">DNA/GMO</option>
+                            <option value="Nobility">Nobility Test (Kava)</option>
                         </select>
                     </div>
                     <div>
                         <label>Number of Tests Conducted:</label>
                         <input name="lab_tests_conducted" type="number" value="1" min="1">
-                        <small>Count of tests performed on this sample</small>
+                        <div class="example">Count of tests performed on this sample</div>
                     </div>
                 </div>
                 
@@ -98,8 +102,7 @@
                     <div>
                         <label>Reagent Status:</label>
                         <select name="reagent_status">
-                            <option value="">-- Select --</option>
-                            <option value="Sufficient">Sufficient</option>
+                            <option value="Good">Good</option>
                             <option value="Low">Low - Order soon</option>
                             <option value="Critical">Critical - Order immediately</option>
                         </select>
@@ -107,7 +110,7 @@
                 </div>
                 
                 <label>Equipment Issues (if any):</label>
-                <textarea name="equipment_issues" rows="2" placeholder="Describe any equipment problems..."></textarea>
+                <textarea name="equipment_issues" rows="2" placeholder="e.g., Colorimeter, centrifuge issues..."></textarea>
             </div>
             
             <!-- Dates -->
@@ -127,7 +130,7 @@
                     <div>
                         <label>Turnaround Days:</label>
                         <input name="turnaround_days" type="number" value="0" min="0">
-                        <small>Days between received and completed</small>
+                        <div class="example">Auto-calculated from dates above</div>
                     </div>
                     <div>
                         <label>Calibration Due Date:</label>
@@ -142,7 +145,8 @@
                 <div class="row">
                     <div>
                         <label>Certificate Number:</label>
-                        <input name="certificate_number" placeholder="e.g., VBS-CERT-001">
+                        <input name="certificate_number" placeholder="e.g., 01BV220426, 107BV210426">
+                        <div class="example">Format: 01BV220426 (BV=Port Vila, date)</div>
                     </div>
                     <div>
                         <label>Non-Compliance Cases:</label>
@@ -155,7 +159,7 @@
             <div class="section">
                 <h3>📝 Comments & Analysis</h3>
                 <label>Inspector Notes:</label>
-                <textarea name="inspector_notes" rows="3" placeholder="Enter your analysis comments here..."></textarea>
+                <textarea name="inspector_notes" rows="3" placeholder="e.g., Complete sample test, Kava is a noble variety..."></textarea>
             </div>
             
             <!-- Timesheet Integration -->
@@ -285,6 +289,7 @@
                     document.querySelector('input[name="lab_tests_conducted"]').value = 1;
                     document.querySelector('input[name="non_compliance_cases"]').value = 0;
                     document.querySelector('input[name="tasks_completed"]').value = 1;
+                    document.querySelector('select[name="reagent_status"]').value = 'Good';
                 } else {
                     const error = await response.text();
                     alert('❌ Error: ' + error);
