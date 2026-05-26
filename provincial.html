@@ -4,104 +4,257 @@
     <title>VBS - Provincial Report</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 500px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        body { font-family: Arial, sans-serif; max-width: 550px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
         .container { background: white; padding: 20px; border-radius: 10px; }
         h1 { color: #2c7a4d; }
-        label { display: block; margin-top: 15px; font-weight: bold; }
-        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; }
-        button { width: 100%; padding: 12px; margin-top: 20px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        h3 { color: #1a5a3a; margin-bottom: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        label { display: block; margin-top: 12px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        textarea { min-height: 60px; }
+        button { width: 100%; padding: 12px; margin-top: 20px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .section { margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px; }
+        .row { display: flex; gap: 15px; flex-wrap: wrap; }
+        .row > div { flex: 1; min-width: 150px; }
+        small { color: #666; font-size: 11px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🌾 Provincial Division</h1>
-        <p>Daily Inspection Report</p>
+        <p>Daily Inspection Report - Sanma, Malampa, Shefa, Tafea, Penama, Torba</p>
+        
         <form id="reportForm">
-            <label>Officer Name:</label>
-            <input name="officer_name" required>
+            <!-- Basic Info -->
+            <div class="section">
+                <h3>📋 Basic Information</h3>
+                <div class="row">
+                    <div>
+                        <label>Officer Name:</label>
+                        <input name="officer_name" required>
+                    </div>
+                    <div>
+                        <label>Report Date:</label>
+                        <input name="report_date" type="date" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label>Province:</label>
+                        <select name="province" required>
+                            <option value="Sanma">Sanma</option>
+                            <option value="Malampa">Malampa</option>
+                            <option value="Shefa">Shefa</option>
+                            <option value="Tafea">Tafea</option>
+                            <option value="Penama">Penama</option>
+                            <option value="Torba">Torba</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Location:</label>
+                        <input name="location" placeholder="e.g., Luganville Market, Lakatoro">
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label>Type of Inspection:</label>
+                        <select name="inspection_type" required>
+                            <option value="">-- Select Type --</option>
+                            <option value="Market Surveillance">🏪 Market Surveillance</option>
+                            <option value="Retail Store Check">🛒 Retail Store Check</option>
+                            <option value="Farm Inspection">🌱 Farm Inspection</option>
+                            <option value="Packhouse Inspection">📦 Packhouse Inspection</option>
+                            <option value="Warehouse Check">🏭 Warehouse Check</option>
+                            <option value="Import Check">🚢 Import Check</option>
+                            <option value="Export Verification">📤 Export Verification</option>
+                            <option value="Food Safety Inspection">🍽️ Food Safety Inspection</option>
+                            <option value="Weights & Measures">⚖️ Weights & Measures</option>
+                            <option value="Other">📋 Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Other Inspection Type (if Other):</label>
+                        <input name="other_inspection_type" placeholder="Specify other type">
+                    </div>
+                </div>
+            </div>
             
-            <label>Report Date:</label>
-            <input name="report_date" type="date" required>
+            <!-- Inspection Results -->
+            <div class="section">
+                <h3>📊 Inspection Results</h3>
+                <div class="row">
+                    <div>
+                        <label>Inspection Result:</label>
+                        <select name="inspection_result">
+                            <option value="Pass">✅ Pass - Compliant</option>
+                            <option value="Fail">❌ Fail - Non-Compliant</option>
+                            <option value="Partial">⚠️ Partial - Warning Issued</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Violation Type:</label>
+                        <input name="violation_type" placeholder="e.g., Labeling, Expiry, Storage">
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label>Inspections Conducted:</label>
+                        <input name="inspections_conducted" type="number" value="0" min="0">
+                    </div>
+                    <div>
+                        <label>Non-Compliance Cases:</label>
+                        <input name="non_compliance_cases" type="number" value="0" min="0">
+                    </div>
+                    <div>
+                        <label>Enforcement Actions:</label>
+                        <input name="enforcement_actions" type="number" value="0" min="0">
+                    </div>
+                </div>
+            </div>
             
-            <label>Province:</label>
-            <select name="province">
-                <option>Sanma</option><option>Malampa</option><option>Shefa</option>
-                <option>Tafea</option><option>Penama</option><option>Torba</option>
-            </select>
+            <!-- Farms & Outreach -->
+            <div class="section">
+                <h3>🌱 Farms & Outreach</h3>
+                <div class="row">
+                    <div>
+                        <label>Farms Visited:</label>
+                        <input name="farms_visited" type="number" value="0" min="0">
+                    </div>
+                    <div>
+                        <label>Farmers Engaged:</label>
+                        <input name="farmers_engaged" type="number" value="0" min="0">
+                    </div>
+                    <div>
+                        <label>Samples Collected:</label>
+                        <input name="samples_collected" type="number" value="0" min="0">
+                    </div>
+                </div>
+            </div>
             
-            <label>Location:</label>
-            <input name="location">
+            <!-- Follow-up -->
+            <div class="section">
+                <h3>📅 Follow-up</h3>
+                <div class="row">
+                    <div>
+                        <label>Follow-up Required?</label>
+                        <select name="follow_up_required">
+                            <option value="false">No</option>
+                            <option value="true">Yes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Follow-up Date:</label>
+                        <input name="follow_up_date" type="date">
+                    </div>
+                </div>
+            </div>
             
-            <label>GPS Coordinates:</label>
-            <input name="gps_coordinates">
+            <!-- Working Hours -->
+            <div class="section">
+                <h3>⏰ Working Hours</h3>
+                <div class="row">
+                    <div>
+                        <label>Hours Worked:</label>
+                        <input name="hours_worked" type="number" step="0.5" value="8">
+                    </div>
+                    <div>
+                        <label>Tasks Completed:</label>
+                        <input name="tasks_completed" type="number" value="1" min="1">
+                    </div>
+                </div>
+            </div>
             
-            <label>Inspection Result:</label>
-            <select name="inspection_result">
-                <option>Pass</option><option>Fail</option><option>Partial</option>
-            </select>
+            <!-- Notes -->
+            <div class="section">
+                <h3>📝 Inspector Notes</h3>
+                <textarea name="inspector_notes" rows="3" placeholder="Any additional observations or comments..."></textarea>
+            </div>
             
-            <label>Violation Type:</label>
-            <input name="violation_type">
-            
-            <label>Inspections Conducted:</label>
-            <input name="inspections_conducted" type="number" value="0">
-            
-            <label>Non-Compliance Cases:</label>
-            <input name="non_compliance_cases" type="number" value="0">
-            
-            <label>Enforcement Actions:</label>
-            <input name="enforcement_actions" type="number" value="0">
-            
-            <label>Farms Visited:</label>
-            <input name="farms_visited" type="number" value="0">
-            
-            <label>Farmers Engaged:</label>
-            <input name="farmers_engaged" type="number" value="0">
-            
-            <label>Samples Collected:</label>
-            <input name="samples_collected" type="number" value="0">
-            
-            <label>Follow-up Required?</label>
-            <select name="follow_up_required">
-                <option value="false">No</option><option value="true">Yes</option>
-            </select>
-            
-            <label>Follow-up Date:</label>
-            <input name="follow_up_date" type="date">
-            
-            <label>Hours Worked:</label>
-            <input name="hours_worked" type="number" step="0.5" value="8">
-            
-            <label>Tasks Completed:</label>
-            <input name="tasks_completed" type="number" value="0">
-            
-            <label>Inspector Notes:</label>
-            <textarea name="inspector_notes"></textarea>
-            
-            <button type="submit">Submit Report</button>
+            <button type="submit">Submit Provincial Report</button>
         </form>
     </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
         
+        // Set default date
+        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+        
+        // Form submission
         document.getElementById('reportForm').onsubmit = async (e) => {
             e.preventDefault();
+            
             const formData = new FormData(e.target);
             const data = {};
-            formData.forEach((v,k) => { if(v) data[k] = v; });
-            data.status = 'PENDING';
-            if(data.follow_up_required === 'true') data.follow_up_required = true;
-            if(data.follow_up_required === 'false') data.follow_up_required = false;
             
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/provincial_reports`, {
-                method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            alert(response.ok ? '✅ Report submitted!' : '❌ Error');
-            if(response.ok) e.target.reset();
+            for (let [key, value] of formData.entries()) {
+                if (value !== null && value !== '') {
+                    // Handle numeric fields
+                    if (key === 'inspections_conducted' || key === 'non_compliance_cases' || 
+                        key === 'enforcement_actions' || key === 'farms_visited' || 
+                        key === 'farmers_engaged' || key === 'samples_collected' || 
+                        key === 'tasks_completed') {
+                        data[key] = parseInt(value) || 0;
+                    } else if (key === 'hours_worked') {
+                        data[key] = parseFloat(value) || 0;
+                    } else if (key === 'follow_up_required') {
+                        data[key] = value === 'true';
+                    } else {
+                        data[key] = value;
+                    }
+                }
+            }
+            
+            // Handle "Other" inspection type
+            if (data.inspection_type === 'Other' && data.other_inspection_type) {
+                data.inspection_type = data.other_inspection_type;
+            }
+            delete data.other_inspection_type;
+            
+            data.status = 'PENDING';
+            data.created_at = new Date().toISOString();
+            
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            try {
+                const token = localStorage.getItem('vbs_token');
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/provincial_reports`, {
+                    method: 'POST',
+                    headers: { 
+                        'apikey': SUPABASE_KEY, 
+                        'Authorization': token ? `Bearer ${token}` : `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    alert('✅ Provincial report submitted! Manager will review.');
+                    document.getElementById('reportForm').reset();
+                    document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+                    document.querySelector('input[name="hours_worked"]').value = 8;
+                    document.querySelector('input[name="inspections_conducted"]').value = 0;
+                    document.querySelector('input[name="non_compliance_cases"]').value = 0;
+                    document.querySelector('input[name="enforcement_actions"]').value = 0;
+                    document.querySelector('input[name="farms_visited"]').value = 0;
+                    document.querySelector('input[name="farmers_engaged"]').value = 0;
+                    document.querySelector('input[name="samples_collected"]').value = 0;
+                    document.querySelector('input[name="tasks_completed"]').value = 1;
+                } else {
+                    const error = await response.text();
+                    alert('❌ Error: ' + error);
+                }
+            } catch (error) {
+                alert('❌ Connection error: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
         };
-        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
     </script>
 </body>
 </html>
