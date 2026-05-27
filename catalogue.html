@@ -18,7 +18,6 @@
             line-height: 1.5;
         }
 
-        /* Top navigation back to VBS hub */
         .top-nav {
             background: #1a5a3a;
             padding: 12px 24px;
@@ -39,6 +38,42 @@
         }
         .top-nav a:hover {
             background: white;
+        }
+
+        .floating-buttons {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000;
+        }
+        .floating-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+            font-size: 28px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+        }
+        .floating-btn:hover {
+            transform: scale(1.08);
+        }
+        .whatsapp-btn {
+            background: #25D366;
+            color: white;
+        }
+        .pdf-btn {
+            background: #dc3545;
+            color: white;
         }
 
         .catalogue {
@@ -64,7 +99,7 @@
             body {
                 background: white;
             }
-            .top-nav {
+            .top-nav, .floating-buttons {
                 display: none;
             }
         }
@@ -97,43 +132,6 @@
             margin: 1rem 0 2rem;
         }
 
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 24px;
-            margin: 32px 0;
-        }
-
-        .product-card {
-            background: #fefaf5;
-            border-radius: 24px;
-            padding: 20px;
-            border: 1px solid #e6dacf;
-            transition: all 0.2s;
-            cursor: pointer;
-            text-decoration: none;
-            display: block;
-            color: inherit;
-        }
-
-        .product-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.05);
-        }
-
-        .product-name {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #1e3a1e;
-            margin-bottom: 8px;
-        }
-
-        .scientific {
-            font-style: italic;
-            color: #6b7c4e;
-            font-size: 0.9rem;
-        }
-
         .spec-table {
             width: 100%;
             border-collapse: collapse;
@@ -155,7 +153,7 @@
 
         .bodies-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
             margin: 32px 0;
         }
@@ -165,12 +163,26 @@
             border-left: 4px solid #7f8c2e;
             padding: 16px 20px;
             border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-
+        .body-logo {
+            width: 45px;
+            height: 45px;
+            object-fit: contain;
+        }
+        .body-info {
+            flex: 1;
+        }
         .body-title {
             font-weight: 700;
-            font-size: 1.2rem;
+            font-size: 0.95rem;
             color: #2b4f2b;
+        }
+        .body-role {
+            font-size: 0.75rem;
+            color: #6b6b6b;
         }
 
         .signature-area {
@@ -196,7 +208,7 @@
 
         .product-image {
             width: 100%;
-            max-height: 300px;
+            max-height: 350px;
             object-fit: cover;
             border-radius: 20px;
             margin: 20px 0;
@@ -213,12 +225,13 @@
         }
 
         .ceo-photo {
-            width: 120px;
-            height: 120px;
+            width: 150px;
+            height: 150px;
             border-radius: 50%;
             object-fit: cover;
             margin-top: 20px;
-            border: 3px solid #7f8c2e;
+            border: 4px solid #7f8c2e;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .two-column {
@@ -226,6 +239,19 @@
             grid-template-columns: 1fr 1fr;
             gap: 32px;
             align-items: start;
+        }
+
+        .logo-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 25px;
+            margin: 40px 0;
+            align-items: center;
+        }
+        .logo-row img {
+            height: 50px;
+            object-fit: contain;
         }
 
         .nav-buttons {
@@ -252,7 +278,10 @@
                 padding: 32px 20px;
             }
             h1 {
-                font-size: 2.5rem;
+                font-size: 2rem;
+            }
+            h2 {
+                font-size: 1.5rem;
             }
             .two-column {
                 grid-template-columns: 1fr;
@@ -261,11 +290,22 @@
     </style>
 </head>
 <body>
-    <!-- Navigation back to VBS hub + jump links -->
     <div class="top-nav">
         <a href="https://Man-Blaze.github.io/vbs-report/">← Back to VBS Digital Shield</a>
     </div>
     
+    <div class="floating-buttons">
+        <a href="https://wa.me/67812345678?text=Hello%21%20I%27m%20interested%20in%20your%20Vanuatu%20fresh%20produce%20catalogue.%20Please%20send%20me%20more%20information%20about%20pricing%20and%20availability." 
+           class="floating-btn whatsapp-btn" 
+           target="_blank"
+           title="WhatsApp Order">
+            💬
+        </a>
+        <button class="floating-btn pdf-btn" onclick="window.print();" title="Save as PDF">
+            📄
+        </button>
+    </div>
+
     <div class="nav-buttons">
         <a href="#cover" class="nav-btn">Cover</a>
         <a href="#ceo" class="nav-btn">CEO Message</a>
@@ -282,9 +322,11 @@
 
     <!-- PAGE 1: COVER -->
     <section class="page" id="cover">
-        <div class="brand">VANU · TASTE OF VANUATU</div>
+        <div class="logo-row">
+            <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/vanu.png" alt="Vanu Trademark" style="height: 80px;">
+        </div>
         <h1>FRESH MARKET STANDARDS<br>CATALOGUE</h1>
-        <div class="tagline">From Vanuatu Organic Farms To National and International Markets – Global Edition</div>
+        <div class="tagline">From Packhouse to Shelf – Global Edition</div>
         <div style="margin: 32px 0 24px;">
             <span style="background: #1e3a1e; color: white; padding: 6px 18px; border-radius: 40px; font-size: 0.9rem;">Taro</span>
             <span style="background: #1e3a1e; color: white; padding: 6px 18px; border-radius: 40px; font-size: 0.9rem; margin-left: 12px;">Yam</span>
@@ -294,13 +336,12 @@
         </div>
         <p style="font-size: 1.2rem; max-width: 80%; margin: 32px 0;"><strong>Vanuatu's Highest Standard.<br>Your Healthy Choice.</strong></p>
         
-        <!-- COVER IMAGE - REPLACE URL -->
-        <img class="cover-image" src="https://placehold.co/1000x400?text=Vanuatu+Organic+Farm+%7C+Replace+with+your+photo" alt="Vanuatu organic farm">
+        <img class="cover-image" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/front%20page.jpg" alt="Vanuatu organic farm">
         
         <div class="footer-note">PRODUCE OF VANUATU</div>
     </section>
 
-    <!-- PAGE 2: CEO MESSAGE + SIGNATURE -->
+    <!-- PAGE 2: CEO MESSAGE + SIGNATURE with CEO PHOTO -->
     <section class="page" id="ceo">
         <div class="two-column">
             <div>
@@ -309,43 +350,49 @@
                 <p style="font-size: 1.05rem; line-height: 1.6; margin: 20px 0;">From farm traceability, standards, biosecurity, customs, and cold-chain logistics to final market presentation in Melbourne, this achievement demonstrates that Vanuatu can now deliver high-quality products through a fully coordinated international export system – opening a new era of sustainable trade, farmer income, and economic transformation for the nation.</p>
             </div>
             
-            <!-- CEO PHOTO - REPLACE URL -->
+            <!-- CEO PHOTO - CORRECTED URL -->
             <div style="text-align: center;">
-                <img class="ceo-photo" src="https://placehold.co/200x200?text=CEO+Photo" alt="CEO WBT">
-                <div class="sign-line" style="margin-top: 20px;"></div>
+                <img class="ceo-photo" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/ceo.jpg" alt="CEO WBT">
+                <div class="sign-line" style="margin: 24px auto 12px; width: 200px;"></div>
                 <p><strong>CEO WBT</strong><br>World Best Trading</p>
                 <p style="color: #6b7c4e; font-size: 0.85rem;">📅 2026 · Santo, Vanuatu</p>
             </div>
         </div>
+        
+        <!-- LOGOS AFTER CEO MESSAGE -->
+        <div class="logo-row">
+            <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/vbs.png" alt="VBS">
+            <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/WBT.png" alt="WBT">
+            <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/QS.png" alt="Quality Solutions">
+            <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/custom.png" alt="Custom">
+            <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/biologo.png" alt="Biosecurity">
+            <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/doi.png" alt="DOI">
+            <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/Tourism.png" alt="Tourism">
+            <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/DARD.png" alt="DARD">
+            <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/VanIPO--Logo-Print.png" alt="VanIPO">
+        </div>
+        
         <div class="footer-note">PRODUCE OF VANUATU</div>
     </section>
 
     <!-- PAGE 3: BODIES INVOLVED -->
     <section class="page" id="bodies">
         <h2>The Bodies Involved</h2>
-        <p style="margin-bottom: 24px;">From farm to shelf — a fully coordinated national system.</p>
+        <p style="margin-bottom: 24px;">From Vanuatu Organic farm to National and International shelf — a fully coordinated national system.</p>
         
-        <div class="two-column">
-            <div>
-                <div class="bodies-grid" style="display: block;">
-                    <div class="body-card" style="margin-bottom: 12px;"><div class="body-title">Custom</div>Import/export clearance</div>
-                    <div class="body-card" style="margin-bottom: 12px;"><div class="body-title">VBS (Vanuatu Bureau of Standards)</div>Leading agency under Trade Ministry – lab testing, packhouse standards</div>
-                    <div class="body-card" style="margin-bottom: 12px;"><div class="body-title">Biosecurity Vanuatu</div>Phytosanitary certification</div>
-                    <div class="body-card" style="margin-bottom: 12px;"><div class="body-title">DOI (Department of Industry)</div>Trade & industry coordination</div>
-                    <div class="body-card" style="margin-bottom: 12px;"><div class="body-title">WBT (World Best Trading)</div>Commercial & logistics</div>
-                    <div class="body-card" style="margin-bottom: 12px;"><div class="body-title">Quality Solutions</div>HACCP, traceability, audit</div>
-                    <div class="body-card" style="margin-bottom: 12px;"><div class="body-title">Tourism</div>Brand & destination alignment</div>
-                    <div class="body-card" style="margin-bottom: 12px;"><div class="body-title">DARD (Department of Agriculture)</div>Farm extension & standards</div>
-                    <div class="body-card"><div class="body-title">Market Place Fresh</div>Packhouse operations & cold chain</div>
-                </div>
-            </div>
-            
-            <!-- GROUP PHOTO - REPLACE URL -->
-            <div>
-                <img class="cover-image" src="https://placehold.co/500x400?text=Team+Photo+%7C+First+Shipment" alt="Vanuatu export team">
-                <p style="font-size: 0.8rem; color: #7b6e5c; text-align: center; margin-top: 12px;">Historic first taro shipment – Melbourne arrival</p>
-            </div>
+        <div class="bodies-grid">
+             <div class="body-card"><img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/vbs.png" class="body-logo"><div class="body-info"><div class="body-title">VBS (Vanuatu Bureau of Standards)</div><div class="body-role">Leading agency under Trade Ministry – lab testing, packhouse standards</div></div></div>
+            <div class="body-card"><img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/custom.png" class="body-logo"><div class="body-info"><div class="body-title">Custom</div><div class="body-role">Import/export clearance</div></div></div>
+            <div class="body-card"><img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/biologo.png" class="body-logo"><div class="body-info"><div class="body-title">Biosecurity Vanuatu</div><div class="body-role">Phytosanitary certification</div></div></div>
+            <div class="body-card"><img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/doi.png" class="body-logo"><div class="body-info"><div class="body-title">DOI (Department of Industry)</div><div class="body-role">Trade & industry coordination</div></div></div>
+            <div class="body-card"><img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/WBT.png" class="body-logo"><div class="body-info"><div class="body-title">WBT (World Best Trading)</div><div class="body-role">Commercial & logistics</div></div></div>
+            <div class="body-card"><img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/QS.png" class="body-logo"><div class="body-info"><div class="body-title">Quality Solutions</div><div class="body-role">HACCP, traceability, audit</div></div></div>
+            <div class="body-card"><img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/Tourism.png" class="body-logo"><div class="body-info"><div class="body-title">Tourism</div><div class="body-role">Brand & destination alignment</div></div></div>
+            <div class="body-card"><img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/DARD.png" class="body-logo"><div class="body-info"><div class="body-title">DARD (Department of Agriculture)</div><div class="body-role">Farm extension & standards</div></div></div>
+            <div class="body-card"><div class="body-info"><div class="body-title">Market Place Fresh</div><div class="body-role">Packhouse operations & cold chain</div></div></div>
         </div>
+        
+        <img class="cover-image" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/packhouse%20workers%20in%20santo.jpg" alt="Packhouse workers">
         
         <div class="footer-note">Together, we delivered.</div>
     </section>
@@ -372,7 +419,8 @@
                 </table>
             </div>
             <div>
-                <img class="product-image" src="https://placehold.co/500x350?text=Taro+Photo" alt="Fresh Taro">
+                <img class="product-image" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/freshtaro.jpg" alt="Fresh Taro">
+                <img class="product-image" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/taro%20table%20cleaner.jpg" alt="Taro packing">
             </div>
         </div>
         <div class="footer-note">PRODUCE OF VANUATU</div>
@@ -399,7 +447,7 @@
                 </table>
             </div>
             <div>
-                <img class="product-image" src="https://placehold.co/500x350?text=Yam+Photo" alt="Fresh Yam">
+                <img class="product-image" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/yams.jpg" alt="Fresh Yam">
             </div>
         </div>
         <div class="footer-note">PRODUCE OF VANUATU</div>
@@ -426,7 +474,7 @@
                 </table>
             </div>
             <div>
-                <img class="product-image" src="https://placehold.co/500x350?text=Kumala+Photo" alt="Fresh Kumala">
+                <img class="product-image" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/Kumala-Food-Dine-Pacific-Island-Living-01.jpg" alt="Fresh Kumala">
             </div>
         </div>
         <div class="footer-note">PRODUCE OF VANUATU</div>
@@ -453,7 +501,7 @@
                 </table>
             </div>
             <div>
-                <img class="product-image" src="https://placehold.co/500x350?text=Ginger+Photo" alt="Fresh Ginger">
+                <img class="product-image" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/fresh_ginger.png" alt="Fresh Ginger">
             </div>
         </div>
         <div class="footer-note">PRODUCE OF VANUATU</div>
@@ -480,7 +528,7 @@
                 </table>
             </div>
             <div>
-                <img class="product-image" src="https://placehold.co/500x350?text=Dried+Coconut+Photo" alt="Dried Coconut">
+                <img class="product-image" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/coconut%20(1).PNG" alt="Dried Coconut">
             </div>
         </div>
         <div class="footer-note">PRODUCE OF VANUATU</div>
@@ -519,9 +567,9 @@
             </div>
         </div>
         
-        <img class="cover-image" src="https://placehold.co/1000x250?text=Packhouse+or+Shipping+Pallet" alt="Santo Packhouse">
+        <img class="cover-image" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/santo%20first%20container.jpg" alt="Santo first container shipment">
         
-        <p style="text-align: center; margin-top: 32px; font-size: 1.1rem;"><strong>From Vanuatu Organic farms to the world — your healthy choice, our national pride.</strong></p>
+        <p style="text-align: center; margin-top: 32px; font-size: 1.1rem;"><strong>From Vanuatu farms to the world — your healthy choice, our national pride.</strong></p>
         <div class="footer-note">PRODUCE OF VANUATU</div>
     </section>
 
