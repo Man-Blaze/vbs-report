@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>VBS - Lab Editor & Data Viewer | Secure Role Access</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VBS - Lab Editor & Data Viewer</title>
     <style>
         * {
             margin: 0;
@@ -12,726 +12,749 @@
         }
 
         body {
-            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: #f4f7fc;
-            padding: 24px 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
         }
 
         .container {
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
         .header {
-            background: linear-gradient(135deg, #0b3b2f, #1a5a3a);
+            background: linear-gradient(135deg, #1a5a3a 0%, #0d3b24 100%);
             color: white;
-            padding: 24px 28px;
-            border-radius: 28px;
-            margin-bottom: 24px;
-            box-shadow: 0 12px 20px -12px rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
         }
 
         .header h1 {
-            font-size: 1.9rem;
-            letter-spacing: -0.3px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .header p {
-            opacity: 0.85;
-            margin-top: 8px;
-            font-size: 0.95rem;
+            margin-bottom: 5px;
         }
 
         .role-badge {
-            background: #ffd966;
-            color: #2c3e2b;
-            padding: 6px 14px;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            font-weight: 600;
+            background: #ffc107;
+            color: #1a5a3a;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
             display: inline-block;
-            margin-left: 12px;
+            margin-left: 10px;
         }
 
-        .stats-grid {
+        .stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            gap: 12px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
         .stat-card {
             background: white;
-            padding: 12px 8px;
-            border-radius: 20px;
+            padding: 10px;
+            border-radius: 8px;
             text-align: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-            border: 1px solid #e9ecef;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .stat-number {
-            font-size: 26px;
-            font-weight: 800;
+            font-size: 20px;
+            font-weight: bold;
             color: #1a5a3a;
         }
 
         .stat-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #5f6c7a;
+            font-size: 10px;
+            color: #666;
         }
 
         .panel {
             background: white;
-            border-radius: 24px;
-            padding: 18px 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .flex-bar {
             display: flex;
             flex-wrap: wrap;
+            gap: 10px;
             align-items: center;
-            gap: 14px;
             justify-content: space-between;
         }
 
         select, input, button {
-            font-family: inherit;
-            border-radius: 60px;
-            border: 1px solid #cfdfe8;
-            padding: 10px 18px;
-            background: white;
-            font-size: 0.85rem;
-        }
-
-        select:focus, input:focus {
-            outline: none;
-            border-color: #1a5a3a;
-            box-shadow: 0 0 0 3px rgba(26,90,58,0.2);
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
         }
 
         button {
             background: #1a5a3a;
             color: white;
             border: none;
-            font-weight: 600;
             cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+            transition: all 0.2s;
         }
 
-        button.btn-outline {
+        button:hover {
+            background: #0e3d26;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
             background: white;
             color: #1a5a3a;
             border: 1px solid #1a5a3a;
         }
 
-        .edit-note {
-            background: #eef6ef;
-            border-left: 5px solid #2b7a4b;
-            padding: 12px 18px;
-            border-radius: 18px;
-            font-size: 0.85rem;
-            margin-top: 12px;
+        .btn-outline:hover {
+            background: #1a5a3a;
+            color: white;
         }
 
-        .table-wrapper {
-            overflow-x: auto;
-            border-radius: 20px;
+        .edit-note {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .table-container {
             background: white;
-            max-height: 65vh;
+            border-radius: 10px;
+            overflow-x: auto;
+            max-height: 600px;
             overflow-y: auto;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.8rem;
+            font-size: 13px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
         }
 
         th {
-            background: #1e3a2f;
+            background: #1a5a3a;
             color: white;
             position: sticky;
             top: 0;
-            padding: 14px 10px;
-            font-weight: 600;
             z-index: 10;
         }
 
-        td {
-            padding: 12px 10px;
-            border-bottom: 1px solid #eef2f5;
-            vertical-align: middle;
-        }
-
         tr:hover {
-            background: #f9fef9;
+            background: #f5f5f5;
         }
 
-        .edit-cell {
-            background: #fff6e0;
+        .editing-row {
+            background: #fff3e0 !important;
         }
 
-        .inline-editor {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .inline-editor input, .inline-editor select {
-            padding: 6px 10px;
-            font-size: 0.75rem;
-            border-radius: 40px;
-            background: white;
+        .edit-input {
             width: 100%;
-            min-width: 120px;
+            padding: 6px;
+            border: 2px solid #ffc107;
+            border-radius: 4px;
+            font-size: 12px;
         }
 
-        .save-btn-small {
-            background: #2b7a4b;
-            padding: 5px 12px;
-            font-size: 0.7rem;
-            border-radius: 40px;
-        }
-
-        .cancel-btn-small {
-            background: #9aaebf;
-        }
-
-        .edit-row-btn {
+        .btn-edit {
             background: #ffc107;
             color: #333;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-weight: bold;
+            padding: 5px 12px;
+            font-size: 12px;
         }
 
-        .edit-row-btn:hover {
+        .btn-edit:hover {
             background: #e0a800;
         }
 
+        .btn-save {
+            background: #28a745;
+            padding: 5px 12px;
+            font-size: 12px;
+        }
+
+        .btn-save:hover {
+            background: #218838;
+        }
+
+        .btn-cancel {
+            background: #dc3545;
+            padding: 5px 12px;
+            font-size: 12px;
+        }
+
+        .btn-cancel:hover {
+            background: #c82333;
+        }
+
         .badge {
-            background: #eef2fa;
-            padding: 4px 10px;
-            border-radius: 30px;
-            font-size: 0.7rem;
-            font-weight: 500;
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .badge-late {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-early {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-today {
+            background: #1a5a3a;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            color: red;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .summary-item {
+            font-size: 13px;
+        }
+
+        .summary-number {
+            font-weight: bold;
+            font-size: 18px;
+            color: #1a5a3a;
         }
 
         .footer {
+            margin-top: 20px;
             text-align: center;
-            font-size: 0.7rem;
-            margin-top: 30px;
-            color: #6c7a89;
-        }
-
-        @media (max-width: 680px) {
-            body { padding: 16px; }
-            .panel { padding: 14px; }
+            color: #666;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="header">
-        <h1>📋 VBS Supabase Portal 
-            <span class="role-badge">🔐 LABORATORY EDITOR ACCESS ONLY</span>
-        </h1>
-        <p>CEO View + Read-only for all tables | ✏️ Lab staff can edit & update their laboratory reports instantly</p>
-    </div>
+    <div class="container">
+        <div class="header">
+            <h1>📊 VBS Supabase Database Viewer 
+                <span class="role-badge">🔬 LABORATORY EDITOR ACCESS</span>
+            </h1>
+            <p>CEO View - Read Only for all tables | ✏️ Laboratory Reports are editable</p>
+        </div>
 
-    <div class="stats-grid" id="statsGrid"></div>
+        <div class="stats" id="stats"></div>
 
-    <div class="panel">
-        <div class="flex-bar">
-            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <select id="tableSelector">
-                    <option value="">📌 -- Choose Table --</option>
-                    <option value="timesheet">⏰ Timesheet</option>
-                    <option value="provincial_reports">🌾 Provincial Reports</option>
-                    <option value="laboratory_reports" selected>🔬 LABORATORY REPORTS (EDITABLE)</option>
-                    <option value="packhouse_reports">📦 Packhouse Reports</option>
-                    <option value="standards_reports">📜 Standards Reports</option>
-                    <option value="administration_reports">📋 Administration Reports</option>
-                    <option value="conformity_assessment">✅ Conformity Assessment</option>
-                    <option value="general_activity_log">📝 General Activity Log</option>
-                    <option value="leave_requests">📋 Leave Requests</option>
-                    <option value="staff_list">👥 Staff List</option>
-                    <option value="focal_points">⭐ Focal Points</option>
-                    <option value="lab_chemicals">🧪 Lab Chemicals</option>
-                    <option value="lab_glassware">🔍 Lab Glassware</option>
-                    <option value="lab_equipment">⚙️ Lab Equipment</option>
-                </select>
-                <button id="loadTableBtn">🔄 Load Data</button>
-                <button id="exportCsvBtn" class="btn-outline">📎 Export CSV</button>
+        <div class="panel">
+            <div class="flex-bar">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <select id="tableSelect">
+                        <option value="">-- Select Table --</option>
+                        <option value="timesheet">⏰ Timesheet</option>
+                        <option value="provincial_reports">🌾 Provincial Reports</option>
+                        <option value="laboratory_reports" selected>🔬 Laboratory Reports (EDITABLE)</option>
+                        <option value="packhouse_reports">📦 Packhouse Reports</option>
+                        <option value="standards_reports">📜 Standards Reports</option>
+                        <option value="administration_reports">📋 Administration Reports</option>
+                        <option value="conformity_assessment">✅ Conformity Assessment</option>
+                        <option value="general_activity_log">📝 General Activity Log</option>
+                        <option value="leave_requests">📋 Leave Requests</option>
+                        <option value="staff_list">👥 Staff List</option>
+                        <option value="focal_points">⭐ Focal Points</option>
+                        <option value="lab_chemicals">🧪 Lab Chemicals</option>
+                        <option value="lab_glassware">🔍 Lab Glassware</option>
+                        <option value="lab_equipment">⚙️ Lab Equipment</option>
+                    </select>
+                    <button id="loadBtn">🔄 Load Table</button>
+                    <button id="exportBtn" class="btn-outline">📎 Export CSV</button>
+                </div>
+            </div>
+            <div id="editMsg" class="edit-note">
+                💡 <strong>Editing Available:</strong> Only the <strong>Laboratory Reports</strong> table has edit buttons. Click EDIT on any row to modify values, then SAVE to update Supabase.
             </div>
         </div>
 
-        <div id="editCapabilityMsg" class="edit-note" style="margin-top: 18px;">
-            💡 <strong>Editing rules:</strong> Only <strong>Laboratory Reports</strong> table allows inline editing (click EDIT on any row). All other tables are strictly read-only.
+        <div id="timesheetFilters" class="panel" style="display: none;">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <label>📅 Start Date:</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div>
+                    <label>📅 End Date:</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div>
+                    <label>⏰ Status:</label>
+                    <select id="statusFilter">
+                        <option value="all">All</option>
+                        <option value="today">Today Only</option>
+                        <option value="late">Late Arrivals</option>
+                        <option value="early">Early Departures</option>
+                        <option value="normal">Normal</option>
+                    </select>
+                </div>
+                <div>
+                    <label>👤 Staff:</label>
+                    <input type="text" id="staffFilter" placeholder="Search...">
+                </div>
+                <button id="applyFiltersBtn" style="margin-top: 22px;">Apply Filters</button>
+                <button id="clearFiltersBtn" class="btn-outline" style="margin-top: 22px;">Clear</button>
+            </div>
+            <div id="timesheetSummary" class="summary"></div>
+        </div>
+
+        <div class="table-container" id="tableContainer">
+            <div class="loading">Select a table and click Load Table</div>
+        </div>
+
+        <div class="footer">
+            <p>© 2026 Vanuatu Bureau of Standards • Data from Supabase • Laboratory Reports are editable</p>
         </div>
     </div>
 
-    <div id="timesheetFilterPanel" class="panel" style="display: none;">
-        <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;">
-            <div><label>📅 Start Date</label><br><input type="date" id="filterStart"></div>
-            <div><label>📅 End Date</label><br><input type="date" id="filterEnd"></div>
-            <div><label>⏰ Status</label><br><select id="statusSelect"><option value="all">All</option><option value="today">Today</option><option value="late">Late arrival</option><option value="early">Early departure</option><option value="pending">Pending</option><option value="approved">Approved</option></select></div>
-            <div><label>👤 Staff name</label><br><input type="text" id="staffFilter" placeholder="search..."></div>
-            <button id="applyTimesheetBtn" style="margin-top: 4px;">Apply filters</button>
-            <button id="clearTimesheetBtn" class="btn-outline">Clear</button>
-        </div>
-        <div id="timesheetSummaryArea" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 18px;"></div>
-    </div>
-
-    <div class="panel" id="infoPanel">
-        <div id="tableStatus"><strong>⚡ Select 'Laboratory Reports' and click Load → then click EDIT to modify any field</strong></div>
-    </div>
-
-    <div class="table-wrapper" id="tableContainer">
-        <div style="padding: 40px; text-align: center; color: #68839b;">📭 Choose a table and press "Load Data"</div>
-    </div>
-    <div class="footer">
-        <p>Vanuatu Bureau of Standards — secure integration | Edits only allowed on Laboratory Reports (real-time update via Supabase)</p>
-    </div>
-</div>
-
-<script>
-    const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-    
-    let currentTable = '';
-    let originalDataset = [];
-    let displayData = [];
-    let editingRowId = null;
-    let tempEditValues = {};
-    
-    function getPrimaryKey(dataSample) {
-        if (!dataSample || dataSample.length === 0) return 'id';
-        if (dataSample[0].hasOwnProperty('id')) return 'id';
-        const keys = Object.keys(dataSample[0]);
-        return keys[0];
-    }
-    
-    function isLate(timeIn) { 
-        if (!timeIn) return false; 
-        let [h,m] = timeIn.split(':'); 
-        let hour = parseInt(h); 
-        let min = parseInt(m||0); 
-        return hour > 8 || (hour === 8 && min > 15); 
-    }
-    
-    function isEarly(timeOut) { 
-        if (!timeOut) return false; 
-        let [h] = timeOut.split(':'); 
-        return parseInt(h) < 17; 
-    }
-    
-    function isToday(dateStr) { 
-        return dateStr === new Date().toISOString().split('T')[0]; 
-    }
-    
-    async function fetchTableData(tableName) {
-        let url = `${SUPABASE_URL}/rest/v1/${tableName}?limit=2000`;
-        if (tableName === 'timesheet') url += `&order=report_date.desc`;
-        const resp = await fetch(url, { headers: { 'apikey': SUPABASE_KEY } });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        return await resp.json();
-    }
-    
-    async function updateLaboratoryRecord(primaryKeyCol, primaryKeyValue, updatedFields) {
-        if (currentTable !== 'laboratory_reports') {
-            throw new Error("Edit allowed only for Laboratory Reports");
-        }
-        const filter = `${primaryKeyCol}=eq.${encodeURIComponent(primaryKeyValue)}`;
-        const url = `${SUPABASE_URL}/rest/v1/laboratory_reports?${filter}`;
-        const response = await fetch(url, {
-            method: 'PATCH',
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(updatedFields)
-        });
-        if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`Update failed: ${response.status} ${errText}`);
-        }
-        return await response.json();
-    }
-    
-    function renderTable() {
-        if (!displayData || displayData.length === 0) {
-            document.getElementById('tableContainer').innerHTML = '<div style="padding: 40px; text-align:center;">📭 No records found</div>';
-            return;
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        
+        let currentData = [];
+        let currentTableName = '';
+        let editingState = {}; // { rowId: { isEditing: true, tempData: {} } }
+        
+        function isLate(timeIn) {
+            if (!timeIn) return false;
+            const [hours, minutes] = timeIn.split(':');
+            const hour = parseInt(hours);
+            const minute = parseInt(minutes) || 0;
+            return hour > 8 || (hour === 8 && minute > 15);
         }
         
-        const columns = Object.keys(displayData[0]);
-        const isEditable = (currentTable === 'laboratory_reports');
-        const primaryKey = getPrimaryKey(displayData);
+        function isEarly(timeOut) {
+            if (!timeOut) return false;
+            const [hours] = timeOut.split(':');
+            return parseInt(hours) < 17;
+        }
         
-        let html = '<table><thead><tr>';
-        columns.forEach(col => { html += `<th>${col}</th>`; });
-        if (isEditable) html += `<th style="width:100px">Action</th>`;
-        html += '</tr></thead><tbody>';
+        function isToday(dateStr) {
+            const today = new Date().toISOString().split('T')[0];
+            return dateStr === today;
+        }
         
-        for (let row of displayData) {
-            const rowIdVal = row[primaryKey];
-            const isEditing = (editingRowId === rowIdVal && isEditable);
-            html += '<tr>';
+        async function loadStats() {
+            const tables = ['timesheet', 'provincial_reports', 'laboratory_reports', 'packhouse_reports', 
+                           'standards_reports', 'administration_reports', 'conformity_assessment', 'general_activity_log'];
             
-            for (let col of columns) {
-                let value = row[col];
-                if (value === null || value === undefined) value = '';
-                if (typeof value === 'object') value = JSON.stringify(value);
-                
-                if (isEditing) {
-                    const currentValue = (tempEditValues[col] !== undefined) ? tempEditValues[col] : (value || '');
-                    html += `<td class="edit-cell">
-                        <input type="text" class="edit-input-${col.replace(/[^a-zA-Z0-9]/g, '_')}" 
-                               data-col="${col}" value="${escapeHtml(String(currentValue))}" 
-                               style="width:100%; padding:6px; border-radius:6px; border:1px solid #ccc;">
-                    </td>`;
-                } else {
-                    let displayValue = value;
-                    if (typeof displayValue === 'string' && displayValue.length > 50) {
-                        displayValue = displayValue.substring(0, 50) + '...';
-                    }
-                    let badgeHtml = '';
-                    if (currentTable === 'timesheet') {
-                        if (col === 'time_in' && isLate(row.time_in)) badgeHtml = `<span class="badge" style="background:#fff0cc;">⚠️ LATE</span>`;
-                        else if (col === 'time_out' && isEarly(row.time_out)) badgeHtml = `<span class="badge" style="background:#fff0cc;">⚠️ EARLY</span>`;
-                        else if (col === 'report_date' && isToday(row.report_date)) badgeHtml = `<span class="badge" style="background:#1a5a3a;color:white;">📅 TODAY</span>`;
-                    }
-                    html += `<td>${escapeHtml(displayValue)} ${badgeHtml}</td>`;
-                }
-            }
-            
-            if (isEditable) {
-                html += '<td>';
-                if (isEditing) {
-                    html += `<button class="save-btn" data-rowid="${rowIdVal}" data-pk="${primaryKey}" style="background:#2b7a4b; color:white; border:none; padding:5px 12px; border-radius:20px; margin-right:5px; cursor:pointer;">💾 Save</button>
-                            <button class="cancel-btn" data-rowid="${rowIdVal}" style="background:#9aaebf; color:white; border:none; padding:5px 12px; border-radius:20px; cursor:pointer;">✖ Cancel</button>`;
-                } else {
-                    html += `<button class="edit-btn" data-rowid="${rowIdVal}" style="background:#ffc107; color:#333; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-weight:bold;">✏️ EDIT</button>`;
-                }
-                html += '</td>';
-            }
-            html += '</tr>';
-        }
-        html += '</tbody></table>';
-        document.getElementById('tableContainer').innerHTML = html;
-        
-        // Attach event listeners
-        if (isEditable) {
-            document.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const rowId = btn.getAttribute('data-rowid');
-                    startEditing(rowId, primaryKey);
-                });
-            });
-            
-            document.querySelectorAll('.save-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const rowId = btn.getAttribute('data-rowid');
-                    const pkCol = btn.getAttribute('data-pk');
-                    await saveEdit(rowId, pkCol);
-                });
-            });
-            
-            document.querySelectorAll('.cancel-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    editingRowId = null;
-                    tempEditValues = {};
-                    renderTable();
-                });
-            });
-        }
-    }
-    
-    function startEditing(rowId, pkCol) {
-        const originalRow = displayData.find(r => r[pkCol] == rowId);
-        if (!originalRow) return;
-        
-        editingRowId = rowId;
-        tempEditValues = {};
-        
-        Object.keys(originalRow).forEach(col => {
-            tempEditValues[col] = (originalRow[col] !== null && originalRow[col] !== undefined) ? originalRow[col] : '';
-        });
-        
-        renderTable();
-        
-        // Attach input listeners after render
-        setTimeout(() => {
-            Object.keys(tempEditValues).forEach(col => {
-                const safeCol = col.replace(/[^a-zA-Z0-9]/g, '_');
-                const input = document.querySelector(`.edit-input-${safeCol}`);
-                if (input) {
-                    input.addEventListener('input', (e) => {
-                        tempEditValues[col] = e.target.value;
+            let statsHtml = '';
+            for (let table of tables) {
+                try {
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id&limit=1`, {
+                        headers: { 'apikey': SUPABASE_KEY }
                     });
+                    const count = response.headers.get('content-range');
+                    let rowCount = 0;
+                    if (count) {
+                        const match = count.match(/\/(\d+)/);
+                        if (match) rowCount = parseInt(match[1]);
+                    }
+                    const displayName = table.replace('_reports', '').replace('_', ' ');
+                    statsHtml += `<div class="stat-card"><div class="stat-number">${rowCount}</div><div class="stat-label">${displayName}</div></div>`;
+                } catch(e) {
+                    statsHtml += `<div class="stat-card"><div class="stat-number">0</div><div class="stat-label">${table}</div></div>`;
                 }
-            });
-        }, 50);
-    }
-    
-    async function saveEdit(rowId, pkCol) {
-        if (currentTable !== 'laboratory_reports') {
-            alert("Editing only permitted for Laboratory Reports");
-            return;
-        }
-        
-        const originalRow = displayData.find(r => r[pkCol] == rowId);
-        if (!originalRow) return;
-        
-        const updatedFields = {};
-        for (let [col, newVal] of Object.entries(tempEditValues)) {
-            let oldVal = originalRow[col] !== undefined && originalRow[col] !== null ? originalRow[col] : '';
-            if (String(newVal) !== String(oldVal)) {
-                updatedFields[col] = newVal;
             }
+            document.getElementById('stats').innerHTML = statsHtml;
         }
         
-        if (Object.keys(updatedFields).length === 0) {
-            alert("No changes detected");
-            editingRowId = null;
-            renderTable();
-            return;
-        }
-        
-        try {
-            await updateLaboratoryRecord(pkCol, rowId, updatedFields);
-            alert("✅ Laboratory report updated successfully!");
-            editingRowId = null;
-            tempEditValues = {};
-            await refreshData();
-        } catch (err) {
-            alert("❌ Update failed: " + err.message);
-            console.error(err);
-        }
-    }
-    
-    async function refreshData() {
-        if (!currentTable) return;
-        try {
-            const data = await fetchTableData(currentTable);
-            originalDataset = data;
-            applyFilters();
-        } catch (err) {
-            document.getElementById('tableContainer').innerHTML = `<div style="color:red; padding:20px;">⚠️ Error: ${err.message}</div>`;
-        }
-    }
-    
-    function applyFilters() {
-        if (currentTable === 'timesheet') {
-            applyTimesheetFilters();
-        } else {
-            displayData = [...originalDataset];
-            renderTable();
-            updateInfo(displayData.length);
-        }
-    }
-    
-    function applyTimesheetFilters() {
-        if (currentTable !== 'timesheet') return;
-        
-        let filtered = [...originalDataset];
-        const start = document.getElementById('filterStart').value;
-        const end = document.getElementById('filterEnd').value;
-        const status = document.getElementById('statusSelect').value;
-        const staff = document.getElementById('staffFilter').value.toLowerCase();
-        
-        if (start) filtered = filtered.filter(r => r.report_date >= start);
-        if (end) filtered = filtered.filter(r => r.report_date <= end);
-        if (staff) filtered = filtered.filter(r => (r.officer_name || '').toLowerCase().includes(staff));
-        
-        if (status === 'today') {
-            const todayStr = new Date().toISOString().split('T')[0];
-            filtered = filtered.filter(r => r.report_date === todayStr);
-        } else if (status === 'late') {
-            filtered = filtered.filter(r => isLate(r.time_in));
-        } else if (status === 'early') {
-            filtered = filtered.filter(r => isEarly(r.time_out));
-        } else if (status === 'normal') {
-            filtered = filtered.filter(r => !isLate(r.time_in) && !isEarly(r.time_out));
-        } else if (status === 'pending') {
-            filtered = filtered.filter(r => (r.status || '').toUpperCase() === 'PENDING');
-        } else if (status === 'approved') {
-            filtered = filtered.filter(r => (r.status || '').toUpperCase() === 'APPROVED');
-        }
-        
-        filtered.sort((a,b) => (b.report_date || '').localeCompare(a.report_date || ''));
-        displayData = filtered;
-        renderTable();
-        
-        const lateCnt = filtered.filter(r => isLate(r.time_in)).length;
-        const earlyCnt = filtered.filter(r => isEarly(r.time_out)).length;
-        const pendingCnt = filtered.filter(r => (r.status || '').toUpperCase() === 'PENDING').length;
-        const totalHrs = filtered.reduce((s,r) => s + (parseFloat(r.hours_worked)||0), 0);
-        
-        document.getElementById('timesheetSummaryArea').innerHTML = `
-            <div><strong>📋 Records:</strong> ${filtered.length}</div>
-            <div><strong>⚠️ Late:</strong> ${lateCnt}</div>
-            <div><strong>🏃 Early:</strong> ${earlyCnt}</div>
-            <div><strong>⏳ Pending:</strong> ${pendingCnt}</div>
-            <div><strong>⏱️ Hours:</strong> ${totalHrs.toFixed(1)}</div>
-        `;
-        updateInfo(filtered.length);
-    }
-    
-    function updateInfo(count) {
-        const isLab = (currentTable === 'laboratory_reports');
-        const msg = document.getElementById('tableStatus');
-        if (currentTable) {
-            msg.innerHTML = `<strong>📌 ${currentTable.replace(/_/g,' ').toUpperCase()}</strong> — ${count} records ${isLab ? '✏️ <span style="background:#e1f5e8; padding:2px 8px; border-radius:30px;">EDIT MODE ACTIVE (click EDIT on any row)</span>' : '🔒 Read-only mode'}`;
-        }
-        
-        const capMsg = document.getElementById('editCapabilityMsg');
-        if (currentTable === 'laboratory_reports') {
-            capMsg.innerHTML = '✏️ <strong>EDITING ACTIVE:</strong> You can modify any field inside Laboratory Reports. Click the EDIT button on any row, change values, then click SAVE. Changes sync directly to Supabase.';
-            capMsg.style.background = "#e0f2e9";
-        } else {
-            capMsg.innerHTML = '🔒 <strong>Read-only mode:</strong> Only the "Laboratory Reports" table allows editing (click EDIT button). All other tables are view-only.';
-            capMsg.style.background = "#eef6ef";
-        }
-    }
-    
-    async function loadCurrentTable() {
-        const tableName = document.getElementById('tableSelector').value;
-        if (!tableName) {
-            alert("Please select a table");
-            return;
-        }
-        
-        currentTable = tableName;
-        editingRowId = null;
-        tempEditValues = {};
-        
-        document.getElementById('tableContainer').innerHTML = '<div style="padding:40px;text-align:center;">⏳ Loading data...</div>';
-        
-        try {
-            const data = await fetchTableData(tableName);
-            originalDataset = data;
+        async function loadTableData() {
+            const tableName = document.getElementById('tableSelect').value;
+            if (!tableName) {
+                alert('Please select a table');
+                return;
+            }
             
-            const timesheetPanel = document.getElementById('timesheetFilterPanel');
-            if (tableName === 'timesheet') {
-                timesheetPanel.style.display = 'block';
-                const todayDate = new Date().toISOString().split('T')[0];
-                const weekStart = new Date();
-                weekStart.setDate(new Date().getDate() - new Date().getDay() + 1);
-                if (!document.getElementById('filterStart').value) {
-                    document.getElementById('filterStart').value = weekStart.toISOString().split('T')[0];
-                    document.getElementById('filterEnd').value = todayDate;
-                }
-                applyTimesheetFilters();
-            } else {
-                timesheetPanel.style.display = 'none';
-                displayData = [...originalDataset];
-                renderTable();
-                updateInfo(displayData.length);
-            }
-        } catch (err) {
-            document.getElementById('tableContainer').innerHTML = `<div style="color:#c7362b; padding:30px;">❌ Failed to load: ${err.message}</div>`;
-        }
-    }
-    
-    function exportCSV() {
-        const dataToExport = displayData.length ? displayData : originalDataset;
-        if (!dataToExport.length || !currentTable) {
-            alert("No data to export");
-            return;
-        }
-        
-        const cols = Object.keys(dataToExport[0]);
-        let csv = cols.join(',') + "\n";
-        for (let row of dataToExport) {
-            let line = cols.map(c => {
-                let val = row[c] === null || row[c] === undefined ? '' : row[c];
-                if (typeof val === 'object') val = JSON.stringify(val);
-                return `"${String(val).replace(/"/g, '""')}"`;
-            }).join(',');
-            csv += line + "\n";
-        }
-        
-        const blob = new Blob([csv], {type: 'text/csv'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${currentTable}_export_${new Date().toISOString().slice(0,19)}.csv`;
-        a.click();
-        URL.revokeObjectURL(a.href);
-    }
-    
-    async function loadStats() {
-        const tables = ['timesheet', 'provincial_reports', 'laboratory_reports', 'packhouse_reports', 
-                       'standards_reports', 'administration_reports', 'conformity_assessment', 'general_activity_log'];
-        
-        let html = '';
-        for (let table of tables) {
+            currentTableName = tableName;
+            editingState = {};
+            
+            document.getElementById('tableContainer').innerHTML = '<div class="loading">Loading data...</div>';
+            
             try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id&limit=1`, {
+                let url = `${SUPABASE_URL}/rest/v1/${tableName}?limit=2000`;
+                if (tableName === 'timesheet') {
+                    url += `&order=report_date.desc`;
+                }
+                
+                const response = await fetch(url, {
                     headers: { 'apikey': SUPABASE_KEY }
                 });
-                const range = res.headers.get('content-range');
-                let count = 0;
-                if (range) {
-                    const match = range.match(/\/(\d+)/);
-                    if (match) count = parseInt(match[1]);
+                const data = await response.json();
+                currentData = data;
+                
+                // Show/hide timesheet filters
+                const filtersDiv = document.getElementById('timesheetFilters');
+                if (tableName === 'timesheet') {
+                    filtersDiv.style.display = 'block';
+                    applyTimesheetFilters();
                 } else {
-                    const data = await res.json();
-                    count = data.length;
+                    filtersDiv.style.display = 'none';
+                    renderTable(currentData);
                 }
-                const displayName = table.replace('_reports', '').replace('_', ' ');
-                html += `<div class="stat-card"><div class="stat-number">${count}</div><div class="stat-label">${displayName}</div></div>`;
-            } catch(e) {
-                html += `<div class="stat-card"><div class="stat-number">-</div><div class="stat-label">${table}</div></div>`;
+                
+            } catch (error) {
+                document.getElementById('tableContainer').innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
             }
         }
-        document.getElementById('statsGrid').innerHTML = html;
-    }
-    
-    function escapeHtml(str) {
-        return String(str).replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
-    
-    document.getElementById('loadTableBtn').addEventListener('click', loadCurrentTable);
-    document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
-    document.getElementById('applyTimesheetBtn').addEventListener('click', () => {
-        if (currentTable === 'timesheet') applyTimesheetFilters();
-    });
-    document.getElementById('clearTimesheetBtn').addEventListener('click', () => {
-        if (currentTable === 'timesheet') {
-            document.getElementById('filterStart').value = '';
-            document.getElementById('filterEnd').value = '';
-            document.getElementById('statusSelect').value = 'all';
+        
+        function renderTable(data) {
+            if (!data || data.length === 0) {
+                document.getElementById('tableContainer').innerHTML = '<div class="loading">📭 No records found</div>';
+                return;
+            }
+            
+            const columns = Object.keys(data[0]);
+            const isEditable = (currentTableName === 'laboratory_reports');
+            
+            let html = '<table><thead><tr>';
+            for (let col of columns) {
+                html += `<th>${col}</th>`;
+            }
+            if (isEditable) html += `<th style="width: 100px;">Action</th>`;
+            html += '</thead><tbody>';
+            
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                const rowId = row.id || i;
+                const isEditing = editingState[rowId]?.isEditing || false;
+                const editData = editingState[rowId]?.tempData || {};
+                
+                const rowClass = isEditing ? 'editing-row' : '';
+                html += `<tr class="${rowClass}" data-row-id="${rowId}">`;
+                
+                for (let col of columns) {
+                    let value = row[col];
+                    if (value === null || value === undefined) value = '';
+                    if (typeof value === 'object') value = JSON.stringify(value);
+                    
+                    if (isEditing && isEditable) {
+                        const editValue = editData[col] !== undefined ? editData[col] : value;
+                        html += `<td>
+                            <input type="text" class="edit-input" data-col="${col}" value="${escapeHtml(String(editValue))}">
+                        </td>`;
+                    } else {
+                        let displayValue = value;
+                        if (typeof displayValue === 'string' && displayValue.length > 50) {
+                            displayValue = displayValue.substring(0, 50) + '...';
+                        }
+                        
+                        let badgeHtml = '';
+                        if (currentTableName === 'timesheet') {
+                            if (col === 'time_in' && isLate(row.time_in)) {
+                                badgeHtml = `<span class="badge badge-late">⚠️ LATE</span>`;
+                            } else if (col === 'time_out' && isEarly(row.time_out)) {
+                                badgeHtml = `<span class="badge badge-early">⚠️ EARLY</span>`;
+                            } else if (col === 'report_date' && isToday(row.report_date)) {
+                                badgeHtml = `<span class="badge badge-today">📅 TODAY</span>`;
+                            }
+                        }
+                        
+                        html += `<td>${escapeHtml(displayValue)} ${badgeHtml}</td>`;
+                    }
+                }
+                
+                if (isEditable) {
+                    html += '<td>';
+                    if (isEditing) {
+                        html += `<button class="save-btn" data-row-id="${rowId}" style="background:#28a745; color:white; border:none; padding:5px 10px; border-radius:5px; margin-right:5px; cursor:pointer;">💾 Save</button>`;
+                        html += `<button class="cancel-btn" data-row-id="${rowId}" style="background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">✖ Cancel</button>`;
+                    } else {
+                        html += `<button class="edit-btn" data-row-id="${rowId}" style="background:#ffc107; color:#333; border:none; padding:5px 15px; border-radius:5px; cursor:pointer; font-weight:bold;">✏️ EDIT</button>`;
+                    }
+                    html += '</td>';
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            
+            document.getElementById('tableContainer').innerHTML = html;
+            
+            // Attach event listeners using event delegation on the container
+            const container = document.getElementById('tableContainer');
+            
+            // Remove old listeners to avoid duplicates
+            container.removeEventListener('click', handleContainerClick);
+            container.removeEventListener('input', handleContainerInput);
+            
+            // Add new listeners
+            container.addEventListener('click', handleContainerClick);
+            container.addEventListener('input', handleContainerInput);
+        }
+        
+        function handleContainerClick(e) {
+            const target = e.target;
+            
+            if (target.classList.contains('edit-btn')) {
+                const rowId = target.getAttribute('data-row-id');
+                startEditing(rowId);
+            }
+            else if (target.classList.contains('save-btn')) {
+                const rowId = target.getAttribute('data-row-id');
+                saveEditing(rowId);
+            }
+            else if (target.classList.contains('cancel-btn')) {
+                const rowId = target.getAttribute('data-row-id');
+                cancelEditing(rowId);
+            }
+        }
+        
+        function handleContainerInput(e) {
+            if (e.target.classList.contains('edit-input')) {
+                const rowId = e.target.closest('tr')?.getAttribute('data-row-id');
+                const col = e.target.getAttribute('data-col');
+                const value = e.target.value;
+                
+                if (rowId && editingState[rowId]) {
+                    if (!editingState[rowId].tempData) {
+                        editingState[rowId].tempData = {};
+                    }
+                    editingState[rowId].tempData[col] = value;
+                }
+            }
+        }
+        
+        function startEditing(rowId) {
+            // Find the row data
+            const rowIndex = currentData.findIndex(row => (row.id || rowIndex) == rowId);
+            if (rowIndex === -1) return;
+            
+            const originalRow = currentData[rowIndex];
+            
+            editingState[rowId] = {
+                isEditing: true,
+                tempData: { ...originalRow }
+            };
+            
+            renderTable(currentData);
+        }
+        
+        function cancelEditing(rowId) {
+            delete editingState[rowId];
+            renderTable(currentData);
+        }
+        
+        async function saveEditing(rowId) {
+            if (currentTableName !== 'laboratory_reports') {
+                alert('Editing is only allowed for Laboratory Reports');
+                return;
+            }
+            
+            const editInfo = editingState[rowId];
+            if (!editInfo) return;
+            
+            // Find the original row to get the ID field
+            const rowIndex = currentData.findIndex(row => (row.id || rowIndex) == rowId);
+            if (rowIndex === -1) return;
+            
+            const originalRow = currentData[rowIndex];
+            const updatedData = editInfo.tempData;
+            
+            // Find what changed
+            const changes = {};
+            for (let key in updatedData) {
+                if (updatedData[key] !== originalRow[key]) {
+                    changes[key] = updatedData[key];
+                }
+            }
+            
+            if (Object.keys(changes).length === 0) {
+                alert('No changes detected');
+                delete editingState[rowId];
+                renderTable(currentData);
+                return;
+            }
+            
+            // Get the primary key (assuming 'id' or use the first column)
+            const primaryKey = originalRow.id ? 'id' : Object.keys(originalRow)[0];
+            const primaryValue = originalRow[primaryKey];
+            
+            try {
+                const filter = `${primaryKey}=eq.${encodeURIComponent(primaryValue)}`;
+                const url = `${SUPABASE_URL}/rest/v1/${currentTableName}?${filter}`;
+                
+                const response = await fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(changes)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+                
+                alert('✅ Record updated successfully!');
+                
+                // Reload data to refresh
+                await loadTableData();
+                
+            } catch (error) {
+                alert(`❌ Update failed: ${error.message}`);
+                console.error(error);
+            }
+        }
+        
+        function applyTimesheetFilters() {
+            if (currentTableName !== 'timesheet') return;
+            
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const staffName = document.getElementById('staffFilter').value.toLowerCase();
+            
+            let filtered = [...currentData];
+            
+            if (startDate) {
+                filtered = filtered.filter(row => row.report_date >= startDate);
+            }
+            if (endDate) {
+                filtered = filtered.filter(row => row.report_date <= endDate);
+            }
+            if (staffName) {
+                filtered = filtered.filter(row => (row.officer_name || '').toLowerCase().includes(staffName));
+            }
+            if (statusFilter === 'today') {
+                const today = new Date().toISOString().split('T')[0];
+                filtered = filtered.filter(row => row.report_date === today);
+            } else if (statusFilter === 'late') {
+                filtered = filtered.filter(row => isLate(row.time_in));
+            } else if (statusFilter === 'early') {
+                filtered = filtered.filter(row => isEarly(row.time_out));
+            } else if (statusFilter === 'normal') {
+                filtered = filtered.filter(row => !isLate(row.time_in) && !isEarly(row.time_out));
+            }
+            
+            filtered.sort((a, b) => (b.report_date || '').localeCompare(a.report_date || ''));
+            
+            renderTable(filtered);
+            
+            // Update summary
+            const lateCount = filtered.filter(row => isLate(row.time_in)).length;
+            const earlyCount = filtered.filter(row => isEarly(row.time_out)).length;
+            const normalCount = filtered.filter(row => !isLate(row.time_in) && !isEarly(row.time_out));
+            const todayCount = filtered.filter(row => isToday(row.report_date)).length;
+            const totalHours = filtered.reduce((sum, row) => sum + (parseFloat(row.hours_worked) || 0), 0);
+            
+            document.getElementById('timesheetSummary').innerHTML = `
+                <div class="summary-item"><span class="summary-number">${filtered.length}</span><br>Total Records</div>
+                <div class="summary-item"><span class="summary-number" style="color:#1a5a3a;">${todayCount}</span><br>📅 Today</div>
+                <div class="summary-item"><span class="summary-number" style="color:#856404;">${lateCount}</span><br>⚠️ Late</div>
+                <div class="summary-item"><span class="summary-number" style="color:#856404;">${earlyCount}</span><br>⚠️ Early</div>
+                <div class="summary-item"><span class="summary-number" style="color:#155724;">${normalCount.length}</span><br>✅ Normal</div>
+                <div class="summary-item"><span class="summary-number">${totalHours.toFixed(1)}</span><br>Total Hours</div>
+            `;
+        }
+        
+        function clearTimesheetFilters() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('statusFilter').value = 'all';
             document.getElementById('staffFilter').value = '';
             applyTimesheetFilters();
         }
-    });
-    
-    loadStats();
-    document.getElementById('tableSelector').value = 'laboratory_reports';
-    setTimeout(() => loadCurrentTable(), 100);
-</script>
+        
+        function exportToCSV() {
+            if (!currentData.length) {
+                alert('No data to export');
+                return;
+            }
+            
+            const dataToExport = currentData;
+            const columns = Object.keys(dataToExport[0]);
+            let csv = columns.join(',') + '\n';
+            
+            for (let row of dataToExport) {
+                const rowData = columns.map(col => {
+                    let value = row[col];
+                    if (value === null || value === undefined) value = '';
+                    if (typeof value === 'object') value = JSON.stringify(value);
+                    if (typeof value === 'string') value = value.replace(/"/g, '""');
+                    return `"${value}"`;
+                }).join(',');
+                csv += rowData + '\n';
+            }
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentTableName}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // Set up event listeners
+        document.getElementById('loadBtn').addEventListener('click', loadTableData);
+        document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+        document.getElementById('applyFiltersBtn').addEventListener('click', applyTimesheetFilters);
+        document.getElementById('clearFiltersBtn').addEventListener('click', clearTimesheetFilters);
+        
+        // Set default dates for timesheet
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+        document.getElementById('startDate').value = startOfWeek.toISOString().split('T')[0];
+        document.getElementById('endDate').value = today.toISOString().split('T')[0];
+        
+        // Load stats and initial data
+        loadStats();
+        
+        // Automatically load laboratory reports on page load
+        setTimeout(() => {
+            document.getElementById('tableSelect').value = 'laboratory_reports';
+            loadTableData();
+        }, 500);
+    </script>
 </body>
 </html>
