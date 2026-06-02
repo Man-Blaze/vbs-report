@@ -1,408 +1,700 @@
+Here is an HTML document that creates a secure data viewer for Supabase, with specific edit access granted only for laboratory reports.
+```html
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>VBS - Supabase Tables Viewer</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>VBS - Lab Editor & Data Viewer | Secure Role Access</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .header { background: linear-gradient(135deg, #1a5a3a 0%, #0d3b24 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
-        .header h1 { margin-bottom: 5px; }
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .stat-card { background: white; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .stat-number { font-size: 20px; font-weight: bold; color: #1a5a3a; }
-        .stat-label { font-size: 10px; color: #666; }
-        .table-selector { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-        select { padding: 10px 20px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; min-width: 200px; }
-        button { padding: 10px 20px; background: #1a5a3a; color: white; border: none; border-radius: 8px; cursor: pointer; }
-        button:hover { background: #0e3d26; }
-        .refresh-btn { background: #17a2b8; }
-        .export-btn { background: #28a745; }
-        .filter-section { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
-        .filter-section label { font-weight: bold; }
-        .filter-section input, .filter-section select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; }
-        .filter-section button { background: #ffc107; color: #333; padding: 8px 16px; }
-        .summary { background: #e8f5e9; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
-        .summary-item { font-size: 14px; }
-        .summary-number { font-weight: bold; font-size: 20px; color: #1a5a3a; }
-        .table-container { background: white; border-radius: 10px; overflow-x: auto; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-height: 600px; overflow-y: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background: #1a5a3a; color: white; position: sticky; top: 0; z-index: 10; }
-        tr:nth-child(even) { background: #f8f9fa; }
-        .late-row { background: #fff3cd !important; }
-        .early-row { background: #fff3cd !important; }
-        .today-row { background: #e8f5e9 !important; font-weight: bold; }
-        .loading { text-align: center; padding: 40px; color: #666; }
-        .error { color: red; padding: 20px; text-align: center; }
-        .info { background: #cce5ff; padding: 10px; border-radius: 8px; margin-bottom: 15px; color: #004085; }
-        .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
-        .badge-late { background: #fff3cd; color: #856404; }
-        .badge-early { background: #fff3cd; color: #856404; }
-        .badge-normal { background: #d4edda; color: #155724; }
-        .badge-today { background: #1a5a3a; color: white; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f4f7fc;
+            padding: 24px 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header & Cards */
+        .header {
+            background: linear-gradient(135deg, #0b3b2f, #1a5a3a);
+            color: white;
+            padding: 24px 28px;
+            border-radius: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 12px 20px -12px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            font-size: 1.9rem;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .header p {
+            opacity: 0.85;
+            margin-top: 8px;
+            font-size: 0.95rem;
+        }
+
+        .role-badge {
+            background: #ffd966;
+            color: #2c3e2b;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-left: 12px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 12px 8px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            transition: 0.2s;
+            border: 1px solid #e9ecef;
+        }
+
+        .stat-number {
+            font-size: 26px;
+            font-weight: 800;
+            color: #1a5a3a;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #5f6c7a;
+        }
+
+        /* Panels */
+        .panel {
+            background: white;
+            border-radius: 24px;
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+
+        .flex-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 14px;
+            justify-content: space-between;
+        }
+
+        select, input, button {
+            font-family: inherit;
+            border-radius: 60px;
+            border: 1px solid #cfdfe8;
+            padding: 10px 18px;
+            background: white;
+            font-size: 0.85rem;
+            transition: 0.2s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #1a5a3a;
+            box-shadow: 0 0 0 3px rgba(26,90,58,0.2);
+        }
+
+        button {
+            background: #1a5a3a;
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button.btn-secondary {
+            background: #4361ee;
+        }
+
+        button.btn-outline {
+            background: white;
+            color: #1a5a3a;
+            border: 1px solid #1a5a3a;
+        }
+
+        button.btn-warning {
+            background: #e9b35f;
+            color: #2d3e2b;
+        }
+
+        button:active {
+            transform: scale(0.97);
+        }
+
+        .edit-note {
+            background: #eef6ef;
+            border-left: 5px solid #2b7a4b;
+            padding: 12px 18px;
+            border-radius: 18px;
+            font-size: 0.85rem;
+            margin-top: 12px;
+        }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 20px;
+            background: white;
+            max-height: 65vh;
+            overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        th {
+            background: #1e3a2f;
+            color: white;
+            position: sticky;
+            top: 0;
+            padding: 14px 10px;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eef2f5;
+            vertical-align: middle;
+        }
+
+        tr:hover {
+            background: #f9fef9;
+        }
+
+        .edit-cell {
+            background: #fff6e0;
+            position: relative;
+        }
+
+        .inline-editor {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .inline-editor input, .inline-editor select {
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            border-radius: 40px;
+            background: white;
+        }
+
+        .save-btn-small {
+            background: #2b7a4b;
+            padding: 5px 12px;
+            font-size: 0.7rem;
+            border-radius: 40px;
+        }
+
+        .cancel-btn-small {
+            background: #9aaebf;
+        }
+
+        .action-icon {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 40px;
+        }
+
+        .badge {
+            background: #eef2fa;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .badge-editable {
+            background: #d9f0e3;
+            color: #116b46;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 0.7rem;
+            margin-top: 30px;
+            color: #6c7a89;
+        }
+
+        @media (max-width: 680px) {
+            body { padding: 16px; }
+            .panel { padding: 14px; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📊 VBS Supabase Database Viewer</h1>
-            <p>CEO View - All tables and data (Read Only)</p>
-        </div>
-        
-        <div class="stats" id="stats"></div>
-        
-        <div class="table-selector">
-            <select id="tableSelect" onchange="toggleFilters()">
-                <option value="">-- Select Table --</option>
-                <option value="timesheet">⏰ Timesheet</option>
-                <option value="provincial_reports">🌾 Provincial Reports</option>
-                <option value="laboratory_reports">🔬 Laboratory Reports</option>
-                <option value="packhouse_reports">📦 Packhouse Reports</option>
-                <option value="standards_reports">📜 Standards Reports</option>
-                <option value="administration_reports">📋 Administration Reports</option>
-                <option value="conformity_assessment">✅ Conformity Assessment</option>
-                <option value="general_activity_log">📝 General Activity Log</option>
-                <option value="leave_requests">📋 Leave Requests</option>
-                <option value="staff_list">👥 Staff List</option>
-                <option value="focal_points">⭐ Focal Points</option>
-                <option value="lab_chemicals">🧪 Lab Chemicals</option>
-                <option value="lab_glassware">🔍 Lab Glassware</option>
-                <option value="lab_equipment">⚙️ Lab Equipment</option>
-            </select>
-            <button class="refresh-btn" onclick="loadTable()">🔄 Load Table</button>
-            <button class="export-btn" onclick="exportToCSV()">📎 Export CSV</button>
-        </div>
-        
-        <!-- Timesheet Filters (only visible when timesheet selected) -->
-        <div id="timesheetFilters" class="filter-section" style="display:none;">
-            <div>
-                <label>📅 Start Date:</label>
-                <input type="date" id="startDate">
-            </div>
-            <div>
-                <label>📅 End Date:</label>
-                <input type="date" id="endDate">
-            </div>
-            <div>
-                <label>⏰ Filter by:</label>
-                <select id="statusFilter">
-                    <option value="all">All</option>
-                    <option value="today">📅 Today Only</option>
-                    <option value="late">⚠️ Late Arrivals Only</option>
-                    <option value="early">⚠️ Early Departures Only</option>
-                    <option value="normal">✅ Normal (On Time)</option>
-                    <option value="pending">⏳ Pending Approval</option>
-                    <option value="approved">✅ Approved</option>
+<div class="container">
+    <div class="header">
+        <h1>📋 VBS Supabase Portal 
+            <span class="role-badge">🔐 LABORATORY EDITOR ACCESS ONLY</span>
+        </h1>
+        <p>CEO View + Read-only for all tables | ✏️ Lab staff can edit & update their laboratory reports instantly</p>
+    </div>
+
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <div class="panel">
+        <div class="flex-bar">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <select id="tableSelector">
+                    <option value="">📌 -- Choose Table --</option>
+                    <option value="timesheet">⏰ Timesheet</option>
+                    <option value="provincial_reports">🌾 Provincial Reports</option>
+                    <option value="laboratory_reports" selected>🔬 LABORATORY REPORTS (EDITABLE)</option>
+                    <option value="packhouse_reports">📦 Packhouse Reports</option>
+                    <option value="standards_reports">📜 Standards Reports</option>
+                    <option value="administration_reports">📋 Administration Reports</option>
+                    <option value="conformity_assessment">✅ Conformity Assessment</option>
+                    <option value="general_activity_log">📝 General Activity Log</option>
+                    <option value="leave_requests">📋 Leave Requests</option>
+                    <option value="staff_list">👥 Staff List</option>
+                    <option value="focal_points">⭐ Focal Points</option>
+                    <option value="lab_chemicals">🧪 Lab Chemicals</option>
+                    <option value="lab_glassware">🔍 Lab Glassware</option>
+                    <option value="lab_equipment">⚙️ Lab Equipment</option>
                 </select>
+                <button id="loadTableBtn">🔄 Load Data</button>
+                <button id="exportCsvBtn" class="btn-outline">📎 Export CSV</button>
             </div>
-            <div>
-                <label>👤 Staff Name:</label>
-                <input type="text" id="staffNameFilter" placeholder="Search staff...">
-            </div>
-            <button onclick="applyTimesheetFilters()">🔍 Apply Filters</button>
-            <button onclick="clearTimesheetFilters()">🗑️ Clear</button>
         </div>
-        
-        <div class="info" id="tableInfo"></div>
-        
-        <!-- Timesheet Summary (only visible when timesheet selected) -->
-        <div id="timesheetSummary" class="summary" style="display:none;"></div>
-        
-        <div class="table-container" id="tableContainer">
-            <div class="loading">Select a table to view data</div>
-        </div>
-        
-        <div class="footer">
-            <p>© 2026 Vanuatu Bureau of Standards • Data from Supabase • Read Only View</p>
+
+        <!-- inline info + editor hint for lab reports -->
+        <div id="editCapabilityMsg" class="edit-note" style="margin-top: 18px;">
+            💡 <strong>Editing rules:</strong> Only <strong>Laboratory Reports</strong> table allows inline editing (edit icon on each row). All other tables are strictly read-only.
         </div>
     </div>
+
+    <!-- timesheet filters (only when timesheet active) -->
+    <div id="timesheetFilterPanel" class="panel" style="display: none;">
+        <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;">
+            <div><label>📅 Start Date</label><br><input type="date" id="filterStart"></div>
+            <div><label>📅 End Date</label><br><input type="date" id="filterEnd"></div>
+            <div><label>⏰ Status</label><br><select id="statusSelect"><option value="all">All</option><option value="today">Today</option><option value="late">Late arrival</option><option value="early">Early departure</option><option value="pending">Pending</option><option value="approved">Approved</option></select></div>
+            <div><label>👤 Staff name</label><br><input type="text" id="staffFilter" placeholder="search..."></div>
+            <button id="applyTimesheetBtn" style="margin-top: 4px;">Apply filters</button>
+            <button id="clearTimesheetBtn" class="btn-outline">Clear</button>
+        </div>
+        <div id="timesheetSummaryArea" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 18px;"></div>
+    </div>
+
+    <div class="panel" id="infoPanel">
+        <div id="tableStatus"><strong>⚡ Select 'Laboratory Reports' and click Load → then use ✏️ to edit any field</strong></div>
+    </div>
+
+    <div class="table-wrapper" id="tableContainer">
+        <div style="padding: 40px; text-align: center; color: #68839b;">📭 Choose a table and press "Load Data"</div>
+    </div>
+    <div class="footer">
+        <p>Vanuatu Bureau of Standards — secure integration | Edits only allowed on Laboratory Reports (real-time update via Supabase)</p>
+    </div>
+</div>
+
+<script>
+    // ======================== SUPABASE CREDENTIALS ========================
+    const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
     
-    <script>
-        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-        
-        let fullData = [];
-        let currentTableName = '';
-        let filteredData = [];
-        
-        function isLate(timeIn) {
-            if (!timeIn) return false;
-            const [hours, minutes] = timeIn.split(':');
-            const hour = parseInt(hours);
-            const minute = parseInt(minutes) || 0;
-            return hour > 8 || (hour === 8 && minute > 15);
+    // Global state
+    let currentTable = '';          // currently loaded table name
+    let originalDataset = [];       // full dataset from DB
+    let displayData = [];           // filtered data for rendering
+    let editingRowId = null;        // track which row is in edit mode (for lab_reports, we store primary key)
+    let tempEditValues = {};        // temporary edited values
+    
+    // Helper: detect primary key column (use 'id' if exists, fallback to first column)
+    function getPrimaryKeyField(dataSample) {
+        if (!dataSample || dataSample.length === 0) return 'id';
+        if (dataSample[0].hasOwnProperty('id')) return 'id';
+        const keys = Object.keys(dataSample[0]);
+        return keys[0];   // fallback to first column as identifier
+    }
+    
+    // Helper functions for timesheet (unchanged core)
+    function isLate(timeIn) { if (!timeIn) return false; let [h,m] = timeIn.split(':'); let hour = parseInt(h); let min = parseInt(m||0); return hour > 8 || (hour === 8 && min > 15); }
+    function isEarly(timeOut) { if (!timeOut) return false; let [h] = timeOut.split(':'); return parseInt(h) < 17; }
+    function isToday(dateStr) { return dateStr === new Date().toISOString().split('T')[0]; }
+    
+    // Generic fetch with error handling
+    async function fetchTableData(tableName, orderBy = null) {
+        let url = `${SUPABASE_URL}/rest/v1/${tableName}?limit=2000`;
+        if (tableName === 'timesheet') url += `&order=report_date.desc`;
+        else if (orderBy) url += `&order=${orderBy}.desc`;
+        const resp = await fetch(url, { headers: { 'apikey': SUPABASE_KEY } });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return await resp.json();
+    }
+    
+    // update single record in laboratory_reports ONLY
+    async function updateLaboratoryRecord(primaryKeyCol, primaryKeyValue, updatedFields) {
+        if (currentTable !== 'laboratory_reports') {
+            throw new Error("Edit allowed only for Laboratory Reports");
         }
-        
-        function isEarly(timeOut) {
-            if (!timeOut) return false;
-            const [hours] = timeOut.split(':');
-            return parseInt(hours) < 17;
+        // perform patch request
+        const filter = `${primaryKeyCol}=eq.${encodeURIComponent(primaryKeyValue)}`;
+        const url = `${SUPABASE_URL}/rest/v1/laboratory_reports?${filter}`;
+        const response = await fetch(url, {
+            method: 'PATCH',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(updatedFields)
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Update failed: ${response.status} ${errText}`);
         }
-        
-        function isToday(dateStr) {
-            const today = new Date().toISOString().split('T')[0];
-            return dateStr === today;
+        const updatedData = await response.json();
+        return updatedData[0];
+    }
+    
+    // Render table with edit capability only for laboratory_reports
+    function renderDataTable(records, tableName) {
+        if (!records || records.length === 0) {
+            document.getElementById('tableContainer').innerHTML = '<div style="padding: 40px; text-align:center;">✨ No records found or no data matching filters</div>';
+            return;
         }
+        const columns = Object.keys(records[0]);
+        const isEditable = (tableName === 'laboratory_reports');
+        const primaryKey = getPrimaryKeyField(records);
         
-        function toggleFilters() {
-            const tableName = document.getElementById('tableSelect').value;
-            const filtersDiv = document.getElementById('timesheetFilters');
-            const summaryDiv = document.getElementById('timesheetSummary');
-            
-            if (tableName === 'timesheet') {
-                filtersDiv.style.display = 'flex';
-                summaryDiv.style.display = 'flex';
-                // Set default dates to this week
-                const today = new Date();
-                const startOfWeek = new Date(today);
-                startOfWeek.setDate(today.getDate() - today.getDay() + 1);
-                document.getElementById('startDate').value = startOfWeek.toISOString().split('T')[0];
-                document.getElementById('endDate').value = today.toISOString().split('T')[0];
-            } else {
-                filtersDiv.style.display = 'none';
-                summaryDiv.style.display = 'none';
-            }
-        }
+        let html = '<table><thead><tr>';
+        columns.forEach(col => { html += `<th>${col}</th>`; });
+        if (isEditable) html += `<th style="width:70px">✏️ Action</th>`;
+        html += '</tr></thead><tbody>';
         
-        async function loadStats() {
-            const tables = ['timesheet', 'provincial_reports', 'laboratory_reports', 'packhouse_reports', 
-                           'standards_reports', 'administration_reports', 'conformity_assessment', 
-                           'general_activity_log', 'leave_requests', 'staff_list', 'focal_points'];
-            
-            let statsHtml = '';
-            for (let table of tables) {
-                try {
-                    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id&limit=1`, {
-                        headers: { 'apikey': SUPABASE_KEY }
-                    });
-                    const count = response.headers.get('content-range');
-                    let rowCount = 0;
-                    if (count) {
-                        const match = count.match(/\/(\d+)/);
-                        if (match) rowCount = parseInt(match[1]);
-                    } else {
-                        const data = await response.json();
-                        rowCount = data.length;
-                    }
-                    const displayName = table.replace('_', ' ').replace('reports', '');
-                    statsHtml += `<div class="stat-card"><div class="stat-number">${rowCount}</div><div class="stat-label">${displayName}</div></div>`;
-                } catch(e) {
-                    statsHtml += `<div class="stat-card"><div class="stat-number">0</div><div class="stat-label">${table}</div></div>`;
-                }
-            }
-            document.getElementById('stats').innerHTML = statsHtml;
-        }
-        
-        async function loadTable() {
-            const tableName = document.getElementById('tableSelect').value;
-            if (!tableName) return;
-            
-            currentTableName = tableName;
-            const container = document.getElementById('tableContainer');
-            const infoDiv = document.getElementById('tableInfo');
-            
-            container.innerHTML = '<div class="loading">Loading data...</div>';
-            infoDiv.innerHTML = '';
-            
-            try {
-                // Sort by date descending (latest first) for timesheet
-                let url = `${SUPABASE_URL}/rest/v1/${tableName}?limit=1000`;
-                if (tableName === 'timesheet') {
-                    url += `&order=report_date.desc`;
-                }
-                
-                const response = await fetch(url, {
-                    headers: { 'apikey': SUPABASE_KEY }
-                });
-                const data = await response.json();
-                fullData = data;
-                filteredData = data;
-                
-                if (data.length === 0) {
-                    container.innerHTML = '<div class="loading">📭 No data in this table</div>';
-                    infoDiv.innerHTML = `<strong>${tableName.replace('_', ' ').toUpperCase()}</strong> - 0 records`;
-                    return;
-                }
-                
-                if (tableName === 'timesheet') {
-                    applyTimesheetFilters();
-                } else {
-                    renderTable(data);
-                    infoDiv.innerHTML = `<strong>${tableName.replace('_', ' ').toUpperCase()}</strong> - ${data.length} records found`;
-                }
-                
-            } catch (error) {
-                container.innerHTML = `<div class="error">❌ Error loading table: ${error.message}</div>`;
-            }
-        }
-        
-        function renderTable(data) {
-            if (data.length === 0) {
-                document.getElementById('tableContainer').innerHTML = '<div class="loading">📭 No records match your filters</div>';
-                return;
-            }
-            
-            const columns = Object.keys(data[0]);
-            let html = '<table><thead><tr>';
+        for (let row of records) {
+            const rowIdVal = row[primaryKey];
+            const isEditing = (editingRowId === rowIdVal && isEditable);
+            html += '<tr>';
             for (let col of columns) {
-                html += `<th>${col}</th>`;
-            }
-            html += '</tr></thead><tbody>';
-            
-            for (let row of data) {
-                let rowClass = '';
-                if (currentTableName === 'timesheet') {
-                    const isLateArrival = isLate(row.time_in);
-                    const isEarlyDeparture = isEarly(row.time_out);
-                    const isTodayRecord = isToday(row.report_date);
-                    
-                    if (isTodayRecord) rowClass = 'today-row';
-                    else if (isLateArrival) rowClass = 'late-row';
-                    else if (isEarlyDeparture) rowClass = 'early-row';
-                }
-                html += `<tr class="${rowClass}">`;
-                for (let col of columns) {
-                    let value = row[col];
-                    if (value === null || value === undefined) value = '-';
-                    if (typeof value === 'object') value = JSON.stringify(value);
-                    if (typeof value === 'string' && value.length > 50) value = value.substring(0, 50) + '...';
-                    
-                    // Add badges for late/early status
-                    if (col === 'time_in' && isLate(value) && currentTableName === 'timesheet') {
-                        html += `<td>${value} <span class="badge badge-late">⚠️ LATE</span></td>`;
-                    } else if (col === 'time_out' && isEarly(value) && currentTableName === 'timesheet') {
-                        html += `<td>${value} <span class="badge badge-early">⚠️ EARLY</span></td>`;
-                    } else if (col === 'report_date' && isToday(value) && currentTableName === 'timesheet') {
-                        html += `<td>${value} <span class="badge badge-today">📅 TODAY</span></td>`;
+                let value = row[col];
+                if (value === null || value === undefined) value = '-';
+                if (typeof value === 'object') value = JSON.stringify(value);
+                let displayValue = value;
+                if (typeof displayValue === 'string' && displayValue.length > 40) displayValue = displayValue.substring(0,40)+'...';
+                
+                // if editing mode and editable table, show inline input
+                if (isEditing && isEditable) {
+                    const currentEditValue = (tempEditValues[col] !== undefined) ? tempEditValues[col] : (row[col] !== undefined && row[col] !== null ? row[col] : '');
+                    let inputHtml = '';
+                    // detect text or number
+                    if (typeof row[col] === 'number' || (typeof row[col] === 'string' && !isNaN(parseFloat(row[col])) && col.toLowerCase().includes('hour'))) {
+                        inputHtml = `<input type="text" class="edit-field" data-col="${col}" value="${escapeHtml(String(currentEditValue))}" style="width:100%;min-width:80px;">`;
                     } else {
-                        html += `<td>${value}</td>`;
+                        inputHtml = `<input type="text" class="edit-field" data-col="${col}" value="${escapeHtml(String(currentEditValue))}" style="width:100%;">`;
                     }
+                    html += `<td class="edit-cell">${inputHtml}</td>`;
+                } else {
+                    // optional badges for timesheet
+                    let badgeHtml = '';
+                    if (tableName === 'timesheet') {
+                        if (col === 'time_in' && isLate(row.time_in)) badgeHtml = `<span class="badge" style="background:#fff0cc;">⚠️ LATE</span>`;
+                        else if (col === 'time_out' && isEarly(row.time_out)) badgeHtml = `<span class="badge" style="background:#fff0cc;">⚠️ EARLY</span>`;
+                        else if (col === 'report_date' && isToday(row.report_date)) badgeHtml = `<span class="badge" style="background:#1a5a3a;color:white;">📅 TODAY</span>`;
+                    }
+                    html += `<td>${escapeHtml(displayValue)} ${badgeHtml}</td>`;
                 }
-                html += '</tr>';
             }
-            html += '</tbody></table>';
-            document.getElementById('tableContainer').innerHTML = html;
+            // Action column for laboratory_reports
+            if (isEditable) {
+                html += '<td>';
+                if (isEditing) {
+                    html += `<div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <button class="save-btn-small" data-rowid="${rowIdVal}" data-pk="${primaryKey}">💾 Save</button>
+                                <button class="cancel-btn-small cancel-edit" data-rowid="${rowIdVal}">✖ Cancel</button>
+                             </div>`;
+                } else {
+                    html += `<button class="action-icon edit-row-btn" data-rowid="${rowIdVal}" title="Edit this laboratory report">✏️ Edit</button>`;
+                }
+                html += '</td>';
+            }
+            html += '</tr>';
         }
+        html += '</tbody></table>';
+        document.getElementById('tableContainer').innerHTML = html;
         
-        function applyTimesheetFilters() {
-            if (currentTableName !== 'timesheet') return;
-            
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const statusFilter = document.getElementById('statusFilter').value;
-            const staffName = document.getElementById('staffNameFilter').value.toLowerCase();
-            
-            let filtered = [...fullData];
-            
-            // Date filter
-            if (startDate) {
-                filtered = filtered.filter(row => row.report_date >= startDate);
-            }
-            if (endDate) {
-                filtered = filtered.filter(row => row.report_date <= endDate);
-            }
-            
-            // Staff name filter
-            if (staffName) {
-                filtered = filtered.filter(row => (row.officer_name || '').toLowerCase().includes(staffName));
-            }
-            
-            // Status filter
-            if (statusFilter === 'today') {
-                const today = new Date().toISOString().split('T')[0];
-                filtered = filtered.filter(row => row.report_date === today);
-            } else if (statusFilter === 'late') {
-                filtered = filtered.filter(row => isLate(row.time_in));
-            } else if (statusFilter === 'early') {
-                filtered = filtered.filter(row => isEarly(row.time_out));
-            } else if (statusFilter === 'normal') {
-                filtered = filtered.filter(row => !isLate(row.time_in) && !isEarly(row.time_out));
-            } else if (statusFilter === 'pending') {
-                filtered = filtered.filter(row => row.status === 'PENDING');
-            } else if (statusFilter === 'approved') {
-                filtered = filtered.filter(row => row.status === 'APPROVED');
-            }
-            
-            // Sort by date descending (latest first)
-            filtered.sort((a, b) => (b.report_date || '').localeCompare(a.report_date || ''));
-            
-            filteredData = filtered;
-            renderTable(filtered);
-            
-            // Update summary
-            const today = new Date().toISOString().split('T')[0];
-            const lateCount = filtered.filter(row => isLate(row.time_in)).length;
-            const earlyCount = filtered.filter(row => isEarly(row.time_out)).length;
-            const normalCount = filtered.filter(row => !isLate(row.time_in) && !isEarly(row.time_out));
-            const pendingCount = filtered.filter(row => row.status === 'PENDING').length;
-            const todayCount = filtered.filter(row => row.report_date === today).length;
-            const totalHours = filtered.reduce((sum, row) => sum + (parseFloat(row.hours_worked) || 0), 0);
-            
-            document.getElementById('timesheetSummary').innerHTML = `
-                <div class="summary-item"><span class="summary-number">${filtered.length}</span><br>Total Records</div>
-                <div class="summary-item"><span class="summary-number" style="color:#1a5a3a;">${todayCount}</span><br>📅 Today</div>
-                <div class="summary-item"><span class="summary-number" style="color:#856404;">${lateCount}</span><br>⚠️ Late Arrivals</div>
-                <div class="summary-item"><span class="summary-number" style="color:#856404;">${earlyCount}</span><br>⚠️ Early Departures</div>
-                <div class="summary-item"><span class="summary-number" style="color:#155724;">${normalCount.length}</span><br>✅ Normal</div>
-                <div class="summary-item"><span class="summary-number" style="color:#856404;">${pendingCount}</span><br>⏳ Pending</div>
-                <div class="summary-item"><span class="summary-number">${totalHours.toFixed(1)}</span><br>Total Hours</div>
-            `;
-            
-            document.getElementById('tableInfo').innerHTML = `<strong>TIMESHEET</strong> - ${filtered.length} records found (latest first)`;
+        // attach event listeners for edit/save/cancel
+        if (isEditable) {
+            document.querySelectorAll('.edit-row-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const rowId = btn.getAttribute('data-rowid');
+                    enableEditMode(rowId, records, primaryKey);
+                });
+            });
+            document.querySelectorAll('.save-btn-small').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const rowId = btn.getAttribute('data-rowid');
+                    const pkCol = btn.getAttribute('data-pk');
+                    await saveEditedRow(rowId, pkCol, records);
+                });
+            });
+            document.querySelectorAll('.cancel-edit').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    editingRowId = null;
+                    tempEditValues = {};
+                    renderDataTable(displayData, currentTable);
+                });
+            });
         }
-        
-        function clearTimesheetFilters() {
-            const today = new Date();
-            const startOfWeek = new Date(today);
-            startOfWeek.setDate(today.getDate() - today.getDay() + 1);
-            document.getElementById('startDate').value = startOfWeek.toISOString().split('T')[0];
-            document.getElementById('endDate').value = today.toISOString().split('T')[0];
-            document.getElementById('statusFilter').value = 'all';
-            document.getElementById('staffNameFilter').value = '';
-            applyTimesheetFilters();
+    }
+    
+    function enableEditMode(rowId, fullRecords, pkCol) {
+        if (currentTable !== 'laboratory_reports') return;
+        const originalRow = fullRecords.find(r => r[pkCol] == rowId);
+        if (!originalRow) return;
+        editingRowId = rowId;
+        tempEditValues = {};
+        // initialize temp values with current row values
+        Object.keys(originalRow).forEach(col => {
+            tempEditValues[col] = (originalRow[col] !== null && originalRow[col] !== undefined) ? originalRow[col] : '';
+        });
+        renderDataTable(displayData, currentTable);
+        // attach live update listeners for inputs
+        setTimeout(() => {
+            document.querySelectorAll('.edit-field').forEach(input => {
+                const colName = input.getAttribute('data-col');
+                input.addEventListener('input', (e) => {
+                    tempEditValues[colName] = e.target.value;
+                });
+            });
+        }, 20);
+    }
+    
+    async function saveEditedRow(rowId, pkCol, currentRecords) {
+        if (currentTable !== 'laboratory_reports') {
+            alert("Editing only permitted for Laboratory Reports");
+            return;
         }
-        
-        function exportToCSV() {
-            const dataToExport = filteredData.length > 0 ? filteredData : fullData;
-            if (dataToExport.length === 0) {
-                alert('No data to export');
-                return;
+        const originalRow = currentRecords.find(r => r[pkCol] == rowId);
+        if (!originalRow) return;
+        // build updated fields (only changed values)
+        const updatedFields = {};
+        for (let [col, newVal] of Object.entries(tempEditValues)) {
+            let oldVal = originalRow[col] !== undefined && originalRow[col] !== null ? originalRow[col] : '';
+            if (String(newVal) !== String(oldVal)) {
+                updatedFields[col] = newVal;
             }
-            
-            const columns = Object.keys(dataToExport[0]);
-            let csv = columns.join(',') + '\n';
-            
-            for (let row of dataToExport) {
-                const rowData = columns.map(col => {
-                    let value = row[col];
-                    if (value === null || value === undefined) value = '';
-                    if (typeof value === 'object') value = JSON.stringify(value);
-                    if (typeof value === 'string') value = value.replace(/"/g, '""');
-                    return `"${value}"`;
-                }).join(',');
-                csv += rowData + '\n';
-            }
-            
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${currentTableName}_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
         }
-        
-        // Set default dates
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay() + 1);
-        document.getElementById('startDate').value = startOfWeek.toISOString().split('T')[0];
-        document.getElementById('endDate').value = today.toISOString().split('T')[0];
-        
-        loadStats();
-    </script>
+        if (Object.keys(updatedFields).length === 0) {
+            alert("No changes detected");
+            editingRowId = null;
+            renderDataTable(displayData, currentTable);
+            return;
+        }
+        try {
+            // perform PATCH
+            const filterValue = rowId;
+            await updateLaboratoryRecord(pkCol, filterValue, updatedFields);
+            alert("✅ Laboratory report updated successfully!");
+            editingRowId = null;
+            tempEditValues = {};
+            // refresh data to show latest
+            await refreshCurrentTableData();
+        } catch (err) {
+            alert("❌ Update failed: " + err.message);
+            console.error(err);
+        }
+    }
+    
+    async function refreshCurrentTableData() {
+        if (!currentTable) return;
+        try {
+            const data = await fetchTableData(currentTable);
+            originalDataset = data;
+            applyFiltersAndRender();
+        } catch (err) {
+            document.getElementById('tableContainer').innerHTML = `<div style="color:red; padding:20px;">⚠️ Error reloading: ${err.message}</div>`;
+        }
+    }
+    
+    function applyFiltersAndRender() {
+        if (currentTable === 'timesheet') {
+            applyTimesheetFiltersInternal();
+        } else {
+            displayData = [...originalDataset];
+            renderDataTable(displayData, currentTable);
+            updateInfoPanel(displayData.length);
+        }
+    }
+    
+    // timesheet filtering logic mirror
+    function applyTimesheetFiltersInternal() {
+        if (currentTable !== 'timesheet') return;
+        let filtered = [...originalDataset];
+        const start = document.getElementById('filterStart').value;
+        const end = document.getElementById('filterEnd').value;
+        const status = document.getElementById('statusSelect').value;
+        const staff = document.getElementById('staffFilter').value.toLowerCase();
+        if (start) filtered = filtered.filter(r => r.report_date >= start);
+        if (end) filtered = filtered.filter(r => r.report_date <= end);
+        if (staff) filtered = filtered.filter(r => (r.officer_name || '').toLowerCase().includes(staff));
+        if (status === 'today') { const todayStr = new Date().toISOString().split('T')[0]; filtered = filtered.filter(r => r.report_date === todayStr); }
+        else if (status === 'late') filtered = filtered.filter(r => isLate(r.time_in));
+        else if (status === 'early') filtered = filtered.filter(r => isEarly(r.time_out));
+        else if (status === 'normal') filtered = filtered.filter(r => !isLate(r.time_in) && !isEarly(r.time_out));
+        else if (status === 'pending') filtered = filtered.filter(r => (r.status || '').toUpperCase() === 'PENDING');
+        else if (status === 'approved') filtered = filtered.filter(r => (r.status || '').toUpperCase() === 'APPROVED');
+        filtered.sort((a,b) => (b.report_date || '').localeCompare(a.report_date || ''));
+        displayData = filtered;
+        renderDataTable(displayData, currentTable);
+        const lateCnt = filtered.filter(r => isLate(r.time_in)).length;
+        const earlyCnt = filtered.filter(r => isEarly(r.time_out)).length;
+        const pendingCnt = filtered.filter(r => (r.status || '').toUpperCase() === 'PENDING').length;
+        const totalHrs = filtered.reduce((s,r)=> s + (parseFloat(r.hours_worked)||0),0);
+        document.getElementById('timesheetSummaryArea').innerHTML = `<div><strong>📋 Records:</strong> ${filtered.length}</div>
+        <div><strong>⚠️ Late:</strong> ${lateCnt}</div><div><strong>🏃 Early:</strong> ${earlyCnt}</div>
+        <div><strong>⏳ Pending:</strong> ${pendingCnt}</div><div><strong>⏱️ Hours:</strong> ${totalHrs.toFixed(1)}</div>`;
+        updateInfoPanel(filtered.length);
+    }
+    
+    function updateInfoPanel(count) {
+        const isLab = (currentTable === 'laboratory_reports');
+        const msg = document.getElementById('tableStatus');
+        if (currentTable) {
+            msg.innerHTML = `<strong>📌 ${currentTable.replace(/_/g,' ').toUpperCase()}</strong> — ${count} records ${isLab ? '✏️ <span style="background:#e1f5e8; padding:2px 8px; border-radius:30px;">EDIT MODE ACTIVE (click pencil to edit)</span>' : '🔒 Read-only mode'}`;
+        } else {
+            msg.innerHTML = `Select a table and load.`;
+        }
+        const capMsg = document.getElementById('editCapabilityMsg');
+        if (currentTable === 'laboratory_reports') {
+            capMsg.innerHTML = '✏️ <strong>EDITING ACTIVE:</strong> You can modify any field inside Laboratory Reports. Click ✏️ on any row, change values, then SAVE. Changes sync directly to Supabase. Other tables remain read-only.';
+            capMsg.style.background = "#e0f2e9";
+        } else {
+            capMsg.innerHTML = '🔒 <strong>Read-only mode:</strong> Only the "Laboratory Reports" table allows inline editing (click pencil icon). All other tables are view-only for CEO and staff.';
+            capMsg.style.background = "#eef6ef";
+        }
+    }
+    
+    async function loadCurrentTable() {
+        const tableName = document.getElementById('tableSelector').value;
+        if (!tableName) { alert("Please select a table"); return; }
+        currentTable = tableName;
+        editingRowId = null;
+        tempEditValues = {};
+        document.getElementById('tableContainer').innerHTML = '<div style="padding:40px;text-align:center;">⏳ Loading ...</div>';
+        try {
+            const data = await fetchTableData(tableName);
+            originalDataset = data;
+            // handle timesheet filters UI
+            const timesheetPanel = document.getElementById('timesheetFilterPanel');
+            if (tableName === 'timesheet') {
+                timesheetPanel.style.display = 'block';
+                if (!document.getElementById('filterStart').value) {
+                    const todayDate = new Date().toISOString().split('T')[0];
+                    const weekStart = new Date(); weekStart.setDate(new Date().getDate() - new Date().getDay() + 1);
+                    document.getElementById('filterStart').value = weekStart.toISOString().split('T')[0];
+                    document.getElementById('filterEnd').value = todayDate;
+                }
+                applyTimesheetFiltersInternal();
+            } else {
+                timesheetPanel.style.display = 'none';
+                displayData = [...originalDataset];
+                renderDataTable(displayData, currentTable);
+                updateInfoPanel(displayData.length);
+            }
+        } catch (err) {
+            document.getElementById('tableContainer').innerHTML = `<div style="color:#c7362b; padding:30px;">❌ Failed to load: ${err.message}</div>`;
+        }
+    }
+    
+    function exportCSV() {
+        const dataToExport = displayData.length ? displayData : originalDataset;
+        if (!dataToExport.length || !currentTable) { alert("No data to export"); return; }
+        const cols = Object.keys(dataToExport[0]);
+        let csv = cols.join(',') + "\n";
+        for (let row of dataToExport) {
+            let line = cols.map(c => {
+                let val = row[c] === null || row[c] === undefined ? '' : row[c];
+                if (typeof val === 'object') val = JSON.stringify(val);
+                return `"${String(val).replace(/"/g, '""')}"`;
+            }).join(',');
+            csv += line + "\n";
+        }
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `${currentTable}_export_${new Date().toISOString().slice(0,19)}.csv`;
+        a.click(); URL.revokeObjectURL(a.href);
+    }
+    
+    function loadStatsOverview() {
+        const tables = ['timesheet','provincial_reports','laboratory_reports','packhouse_reports','standards_reports','administration_reports','conformity_assessment','general_activity_log','leave_requests','staff_list','focal_points'];
+        (async () => {
+            let html = '';
+            for (let tbl of tables.slice(0,8)) {
+                try{
+                    const res = await fetch(`${SUPABASE_URL}/rest/v1/${tbl}?select=id&limit=1`,{headers:{'apikey':SUPABASE_KEY}});
+                    const range = res.headers.get('content-range');
+                    let cnt = 0;
+                    if(range) { let m = range.match(/\/(\d+)/); if(m) cnt = parseInt(m[1]); }
+                    else { let d=await res.json(); cnt=d.length; }
+                    html += `<div class="stat-card"><div class="stat-number">${cnt}</div><div class="stat-label">${tbl.replace('_reports','')}</div></div>`;
+                } catch(e){ html += `<div class="stat-card"><div class="stat-number">-</div><div class="stat-label">${tbl}</div></div>`;}
+            }
+            document.getElementById('statsGrid').innerHTML = html;
+        })();
+    }
+    
+    // event binding
+    document.getElementById('loadTableBtn').addEventListener('click', loadCurrentTable);
+    document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
+    document.getElementById('applyTimesheetBtn').addEventListener('click', () => { if(currentTable==='timesheet') applyTimesheetFiltersInternal(); });
+    document.getElementById('clearTimesheetBtn').addEventListener('click', () => {
+        if(currentTable==='timesheet') {
+            document.getElementById('filterStart').value = ''; document.getElementById('filterEnd').value = '';
+            document.getElementById('statusSelect').value = 'all'; document.getElementById('staffFilter').value = '';
+            applyTimesheetFiltersInternal();
+        }
+    });
+    window.addEventListener('load', () => {
+        loadStatsOverview();
+        document.getElementById('tableSelector').value = 'laboratory_reports';
+        loadCurrentTable();
+    });
+    function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;});}
+</script>
 </body>
 </html>
