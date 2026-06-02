@@ -1,5 +1,3 @@
-Here is an HTML document that creates a secure data viewer for Supabase, with specific edit access granted only for laboratory reports.
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,7 +22,6 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             margin: 0 auto;
         }
 
-        /* Header & Cards */
         .header {
             background: linear-gradient(135deg, #0b3b2f, #1a5a3a);
             color: white;
@@ -73,7 +70,6 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             border-radius: 20px;
             text-align: center;
             box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-            transition: 0.2s;
             border: 1px solid #e9ecef;
         }
 
@@ -90,14 +86,12 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             color: #5f6c7a;
         }
 
-        /* Panels */
         .panel {
             background: white;
             border-radius: 24px;
             padding: 18px 24px;
             margin-bottom: 24px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            transition: all 0.2s;
         }
 
         .flex-bar {
@@ -115,7 +109,6 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             padding: 10px 18px;
             background: white;
             font-size: 0.85rem;
-            transition: 0.2s;
         }
 
         select:focus, input:focus {
@@ -135,23 +128,10 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             gap: 8px;
         }
 
-        button.btn-secondary {
-            background: #4361ee;
-        }
-
         button.btn-outline {
             background: white;
             color: #1a5a3a;
             border: 1px solid #1a5a3a;
-        }
-
-        button.btn-warning {
-            background: #e9b35f;
-            color: #2d3e2b;
-        }
-
-        button:active {
-            transform: scale(0.97);
         }
 
         .edit-note {
@@ -163,7 +143,6 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             margin-top: 12px;
         }
 
-        /* Table */
         .table-wrapper {
             overflow-x: auto;
             border-radius: 20px;
@@ -201,7 +180,6 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
 
         .edit-cell {
             background: #fff6e0;
-            position: relative;
         }
 
         .inline-editor {
@@ -216,6 +194,8 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             font-size: 0.75rem;
             border-radius: 40px;
             background: white;
+            width: 100%;
+            min-width: 120px;
         }
 
         .save-btn-small {
@@ -229,13 +209,19 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             background: #9aaebf;
         }
 
-        .action-icon {
-            background: none;
+        .edit-row-btn {
+            background: #ffc107;
+            color: #333;
             border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 4px 8px;
+            padding: 6px 12px;
             border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .edit-row-btn:hover {
+            background: #e0a800;
         }
 
         .badge {
@@ -244,11 +230,6 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             border-radius: 30px;
             font-size: 0.7rem;
             font-weight: 500;
-        }
-
-        .badge-editable {
-            background: #d9f0e3;
-            color: #116b46;
         }
 
         .footer {
@@ -300,13 +281,11 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             </div>
         </div>
 
-        <!-- inline info + editor hint for lab reports -->
         <div id="editCapabilityMsg" class="edit-note" style="margin-top: 18px;">
-            💡 <strong>Editing rules:</strong> Only <strong>Laboratory Reports</strong> table allows inline editing (edit icon on each row). All other tables are strictly read-only.
+            💡 <strong>Editing rules:</strong> Only <strong>Laboratory Reports</strong> table allows inline editing (click EDIT on any row). All other tables are strictly read-only.
         </div>
     </div>
 
-    <!-- timesheet filters (only when timesheet active) -->
     <div id="timesheetFilterPanel" class="panel" style="display: none;">
         <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;">
             <div><label>📅 Start Date</label><br><input type="date" id="filterStart"></div>
@@ -320,7 +299,7 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
     </div>
 
     <div class="panel" id="infoPanel">
-        <div id="tableStatus"><strong>⚡ Select 'Laboratory Reports' and click Load → then use ✏️ to edit any field</strong></div>
+        <div id="tableStatus"><strong>⚡ Select 'Laboratory Reports' and click Load → then click EDIT to modify any field</strong></div>
     </div>
 
     <div class="table-wrapper" id="tableContainer">
@@ -332,46 +311,52 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
 </div>
 
 <script>
-    // ======================== SUPABASE CREDENTIALS ========================
     const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
     
-    // Global state
-    let currentTable = '';          // currently loaded table name
-    let originalDataset = [];       // full dataset from DB
-    let displayData = [];           // filtered data for rendering
-    let editingRowId = null;        // track which row is in edit mode (for lab_reports, we store primary key)
-    let tempEditValues = {};        // temporary edited values
+    let currentTable = '';
+    let originalDataset = [];
+    let displayData = [];
+    let editingRowId = null;
+    let tempEditValues = {};
     
-    // Helper: detect primary key column (use 'id' if exists, fallback to first column)
-    function getPrimaryKeyField(dataSample) {
+    function getPrimaryKey(dataSample) {
         if (!dataSample || dataSample.length === 0) return 'id';
         if (dataSample[0].hasOwnProperty('id')) return 'id';
         const keys = Object.keys(dataSample[0]);
-        return keys[0];   // fallback to first column as identifier
+        return keys[0];
     }
     
-    // Helper functions for timesheet (unchanged core)
-    function isLate(timeIn) { if (!timeIn) return false; let [h,m] = timeIn.split(':'); let hour = parseInt(h); let min = parseInt(m||0); return hour > 8 || (hour === 8 && min > 15); }
-    function isEarly(timeOut) { if (!timeOut) return false; let [h] = timeOut.split(':'); return parseInt(h) < 17; }
-    function isToday(dateStr) { return dateStr === new Date().toISOString().split('T')[0]; }
+    function isLate(timeIn) { 
+        if (!timeIn) return false; 
+        let [h,m] = timeIn.split(':'); 
+        let hour = parseInt(h); 
+        let min = parseInt(m||0); 
+        return hour > 8 || (hour === 8 && min > 15); 
+    }
     
-    // Generic fetch with error handling
-    async function fetchTableData(tableName, orderBy = null) {
+    function isEarly(timeOut) { 
+        if (!timeOut) return false; 
+        let [h] = timeOut.split(':'); 
+        return parseInt(h) < 17; 
+    }
+    
+    function isToday(dateStr) { 
+        return dateStr === new Date().toISOString().split('T')[0]; 
+    }
+    
+    async function fetchTableData(tableName) {
         let url = `${SUPABASE_URL}/rest/v1/${tableName}?limit=2000`;
         if (tableName === 'timesheet') url += `&order=report_date.desc`;
-        else if (orderBy) url += `&order=${orderBy}.desc`;
         const resp = await fetch(url, { headers: { 'apikey': SUPABASE_KEY } });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         return await resp.json();
     }
     
-    // update single record in laboratory_reports ONLY
     async function updateLaboratoryRecord(primaryKeyCol, primaryKeyValue, updatedFields) {
         if (currentTable !== 'laboratory_reports') {
             throw new Error("Edit allowed only for Laboratory Reports");
         }
-        // perform patch request
         const filter = `${primaryKeyCol}=eq.${encodeURIComponent(primaryKeyValue)}`;
         const url = `${SUPABASE_URL}/rest/v1/laboratory_reports?${filter}`;
         const response = await fetch(url, {
@@ -387,51 +372,48 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             const errText = await response.text();
             throw new Error(`Update failed: ${response.status} ${errText}`);
         }
-        const updatedData = await response.json();
-        return updatedData[0];
+        return await response.json();
     }
     
-    // Render table with edit capability only for laboratory_reports
-    function renderDataTable(records, tableName) {
-        if (!records || records.length === 0) {
-            document.getElementById('tableContainer').innerHTML = '<div style="padding: 40px; text-align:center;">✨ No records found or no data matching filters</div>';
+    function renderTable() {
+        if (!displayData || displayData.length === 0) {
+            document.getElementById('tableContainer').innerHTML = '<div style="padding: 40px; text-align:center;">📭 No records found</div>';
             return;
         }
-        const columns = Object.keys(records[0]);
-        const isEditable = (tableName === 'laboratory_reports');
-        const primaryKey = getPrimaryKeyField(records);
+        
+        const columns = Object.keys(displayData[0]);
+        const isEditable = (currentTable === 'laboratory_reports');
+        const primaryKey = getPrimaryKey(displayData);
         
         let html = '<table><thead><tr>';
         columns.forEach(col => { html += `<th>${col}</th>`; });
-        if (isEditable) html += `<th style="width:70px">✏️ Action</th>`;
+        if (isEditable) html += `<th style="width:100px">Action</th>`;
         html += '</tr></thead><tbody>';
         
-        for (let row of records) {
+        for (let row of displayData) {
             const rowIdVal = row[primaryKey];
             const isEditing = (editingRowId === rowIdVal && isEditable);
             html += '<tr>';
+            
             for (let col of columns) {
                 let value = row[col];
-                if (value === null || value === undefined) value = '-';
+                if (value === null || value === undefined) value = '';
                 if (typeof value === 'object') value = JSON.stringify(value);
-                let displayValue = value;
-                if (typeof displayValue === 'string' && displayValue.length > 40) displayValue = displayValue.substring(0,40)+'...';
                 
-                // if editing mode and editable table, show inline input
-                if (isEditing && isEditable) {
-                    const currentEditValue = (tempEditValues[col] !== undefined) ? tempEditValues[col] : (row[col] !== undefined && row[col] !== null ? row[col] : '');
-                    let inputHtml = '';
-                    // detect text or number
-                    if (typeof row[col] === 'number' || (typeof row[col] === 'string' && !isNaN(parseFloat(row[col])) && col.toLowerCase().includes('hour'))) {
-                        inputHtml = `<input type="text" class="edit-field" data-col="${col}" value="${escapeHtml(String(currentEditValue))}" style="width:100%;min-width:80px;">`;
-                    } else {
-                        inputHtml = `<input type="text" class="edit-field" data-col="${col}" value="${escapeHtml(String(currentEditValue))}" style="width:100%;">`;
-                    }
-                    html += `<td class="edit-cell">${inputHtml}</td>`;
+                if (isEditing) {
+                    const currentValue = (tempEditValues[col] !== undefined) ? tempEditValues[col] : (value || '');
+                    html += `<td class="edit-cell">
+                        <input type="text" class="edit-input-${col.replace(/[^a-zA-Z0-9]/g, '_')}" 
+                               data-col="${col}" value="${escapeHtml(String(currentValue))}" 
+                               style="width:100%; padding:6px; border-radius:6px; border:1px solid #ccc;">
+                    </td>`;
                 } else {
-                    // optional badges for timesheet
+                    let displayValue = value;
+                    if (typeof displayValue === 'string' && displayValue.length > 50) {
+                        displayValue = displayValue.substring(0, 50) + '...';
+                    }
                     let badgeHtml = '';
-                    if (tableName === 'timesheet') {
+                    if (currentTable === 'timesheet') {
                         if (col === 'time_in' && isLate(row.time_in)) badgeHtml = `<span class="badge" style="background:#fff0cc;">⚠️ LATE</span>`;
                         else if (col === 'time_out' && isEarly(row.time_out)) badgeHtml = `<span class="badge" style="background:#fff0cc;">⚠️ EARLY</span>`;
                         else if (col === 'report_date' && isToday(row.report_date)) badgeHtml = `<span class="badge" style="background:#1a5a3a;color:white;">📅 TODAY</span>`;
@@ -439,16 +421,14 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
                     html += `<td>${escapeHtml(displayValue)} ${badgeHtml}</td>`;
                 }
             }
-            // Action column for laboratory_reports
+            
             if (isEditable) {
                 html += '<td>';
                 if (isEditing) {
-                    html += `<div style="display:flex; gap:6px; flex-wrap:wrap;">
-                                <button class="save-btn-small" data-rowid="${rowIdVal}" data-pk="${primaryKey}">💾 Save</button>
-                                <button class="cancel-btn-small cancel-edit" data-rowid="${rowIdVal}">✖ Cancel</button>
-                             </div>`;
+                    html += `<button class="save-btn" data-rowid="${rowIdVal}" data-pk="${primaryKey}" style="background:#2b7a4b; color:white; border:none; padding:5px 12px; border-radius:20px; margin-right:5px; cursor:pointer;">💾 Save</button>
+                            <button class="cancel-btn" data-rowid="${rowIdVal}" style="background:#9aaebf; color:white; border:none; padding:5px 12px; border-radius:20px; cursor:pointer;">✖ Cancel</button>`;
                 } else {
-                    html += `<button class="action-icon edit-row-btn" data-rowid="${rowIdVal}" title="Edit this laboratory report">✏️ Edit</button>`;
+                    html += `<button class="edit-btn" data-rowid="${rowIdVal}" style="background:#ffc107; color:#333; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-weight:bold;">✏️ EDIT</button>`;
                 }
                 html += '</td>';
             }
@@ -457,61 +437,69 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
         html += '</tbody></table>';
         document.getElementById('tableContainer').innerHTML = html;
         
-        // attach event listeners for edit/save/cancel
+        // Attach event listeners
         if (isEditable) {
-            document.querySelectorAll('.edit-row-btn').forEach(btn => {
+            document.querySelectorAll('.edit-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const rowId = btn.getAttribute('data-rowid');
-                    enableEditMode(rowId, records, primaryKey);
+                    startEditing(rowId, primaryKey);
                 });
             });
-            document.querySelectorAll('.save-btn-small').forEach(btn => {
+            
+            document.querySelectorAll('.save-btn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const rowId = btn.getAttribute('data-rowid');
                     const pkCol = btn.getAttribute('data-pk');
-                    await saveEditedRow(rowId, pkCol, records);
+                    await saveEdit(rowId, pkCol);
                 });
             });
-            document.querySelectorAll('.cancel-edit').forEach(btn => {
+            
+            document.querySelectorAll('.cancel-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     editingRowId = null;
                     tempEditValues = {};
-                    renderDataTable(displayData, currentTable);
+                    renderTable();
                 });
             });
         }
     }
     
-    function enableEditMode(rowId, fullRecords, pkCol) {
-        if (currentTable !== 'laboratory_reports') return;
-        const originalRow = fullRecords.find(r => r[pkCol] == rowId);
+    function startEditing(rowId, pkCol) {
+        const originalRow = displayData.find(r => r[pkCol] == rowId);
         if (!originalRow) return;
+        
         editingRowId = rowId;
         tempEditValues = {};
-        // initialize temp values with current row values
+        
         Object.keys(originalRow).forEach(col => {
             tempEditValues[col] = (originalRow[col] !== null && originalRow[col] !== undefined) ? originalRow[col] : '';
         });
-        renderDataTable(displayData, currentTable);
-        // attach live update listeners for inputs
+        
+        renderTable();
+        
+        // Attach input listeners after render
         setTimeout(() => {
-            document.querySelectorAll('.edit-field').forEach(input => {
-                const colName = input.getAttribute('data-col');
-                input.addEventListener('input', (e) => {
-                    tempEditValues[colName] = e.target.value;
-                });
+            Object.keys(tempEditValues).forEach(col => {
+                const safeCol = col.replace(/[^a-zA-Z0-9]/g, '_');
+                const input = document.querySelector(`.edit-input-${safeCol}`);
+                if (input) {
+                    input.addEventListener('input', (e) => {
+                        tempEditValues[col] = e.target.value;
+                    });
+                }
             });
-        }, 20);
+        }, 50);
     }
     
-    async function saveEditedRow(rowId, pkCol, currentRecords) {
+    async function saveEdit(rowId, pkCol) {
         if (currentTable !== 'laboratory_reports') {
             alert("Editing only permitted for Laboratory Reports");
             return;
         }
-        const originalRow = currentRecords.find(r => r[pkCol] == rowId);
+        
+        const originalRow = displayData.find(r => r[pkCol] == rowId);
         if (!originalRow) return;
-        // build updated fields (only changed values)
+        
         const updatedFields = {};
         for (let [col, newVal] of Object.entries(tempEditValues)) {
             let oldVal = originalRow[col] !== undefined && originalRow[col] !== null ? originalRow[col] : '';
@@ -519,122 +507,144 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
                 updatedFields[col] = newVal;
             }
         }
+        
         if (Object.keys(updatedFields).length === 0) {
             alert("No changes detected");
             editingRowId = null;
-            renderDataTable(displayData, currentTable);
+            renderTable();
             return;
         }
+        
         try {
-            // perform PATCH
-            const filterValue = rowId;
-            await updateLaboratoryRecord(pkCol, filterValue, updatedFields);
+            await updateLaboratoryRecord(pkCol, rowId, updatedFields);
             alert("✅ Laboratory report updated successfully!");
             editingRowId = null;
             tempEditValues = {};
-            // refresh data to show latest
-            await refreshCurrentTableData();
+            await refreshData();
         } catch (err) {
             alert("❌ Update failed: " + err.message);
             console.error(err);
         }
     }
     
-    async function refreshCurrentTableData() {
+    async function refreshData() {
         if (!currentTable) return;
         try {
             const data = await fetchTableData(currentTable);
             originalDataset = data;
-            applyFiltersAndRender();
+            applyFilters();
         } catch (err) {
-            document.getElementById('tableContainer').innerHTML = `<div style="color:red; padding:20px;">⚠️ Error reloading: ${err.message}</div>`;
+            document.getElementById('tableContainer').innerHTML = `<div style="color:red; padding:20px;">⚠️ Error: ${err.message}</div>`;
         }
     }
     
-    function applyFiltersAndRender() {
+    function applyFilters() {
         if (currentTable === 'timesheet') {
-            applyTimesheetFiltersInternal();
+            applyTimesheetFilters();
         } else {
             displayData = [...originalDataset];
-            renderDataTable(displayData, currentTable);
-            updateInfoPanel(displayData.length);
+            renderTable();
+            updateInfo(displayData.length);
         }
     }
     
-    // timesheet filtering logic mirror
-    function applyTimesheetFiltersInternal() {
+    function applyTimesheetFilters() {
         if (currentTable !== 'timesheet') return;
+        
         let filtered = [...originalDataset];
         const start = document.getElementById('filterStart').value;
         const end = document.getElementById('filterEnd').value;
         const status = document.getElementById('statusSelect').value;
         const staff = document.getElementById('staffFilter').value.toLowerCase();
+        
         if (start) filtered = filtered.filter(r => r.report_date >= start);
         if (end) filtered = filtered.filter(r => r.report_date <= end);
         if (staff) filtered = filtered.filter(r => (r.officer_name || '').toLowerCase().includes(staff));
-        if (status === 'today') { const todayStr = new Date().toISOString().split('T')[0]; filtered = filtered.filter(r => r.report_date === todayStr); }
-        else if (status === 'late') filtered = filtered.filter(r => isLate(r.time_in));
-        else if (status === 'early') filtered = filtered.filter(r => isEarly(r.time_out));
-        else if (status === 'normal') filtered = filtered.filter(r => !isLate(r.time_in) && !isEarly(r.time_out));
-        else if (status === 'pending') filtered = filtered.filter(r => (r.status || '').toUpperCase() === 'PENDING');
-        else if (status === 'approved') filtered = filtered.filter(r => (r.status || '').toUpperCase() === 'APPROVED');
+        
+        if (status === 'today') {
+            const todayStr = new Date().toISOString().split('T')[0];
+            filtered = filtered.filter(r => r.report_date === todayStr);
+        } else if (status === 'late') {
+            filtered = filtered.filter(r => isLate(r.time_in));
+        } else if (status === 'early') {
+            filtered = filtered.filter(r => isEarly(r.time_out));
+        } else if (status === 'normal') {
+            filtered = filtered.filter(r => !isLate(r.time_in) && !isEarly(r.time_out));
+        } else if (status === 'pending') {
+            filtered = filtered.filter(r => (r.status || '').toUpperCase() === 'PENDING');
+        } else if (status === 'approved') {
+            filtered = filtered.filter(r => (r.status || '').toUpperCase() === 'APPROVED');
+        }
+        
         filtered.sort((a,b) => (b.report_date || '').localeCompare(a.report_date || ''));
         displayData = filtered;
-        renderDataTable(displayData, currentTable);
+        renderTable();
+        
         const lateCnt = filtered.filter(r => isLate(r.time_in)).length;
         const earlyCnt = filtered.filter(r => isEarly(r.time_out)).length;
         const pendingCnt = filtered.filter(r => (r.status || '').toUpperCase() === 'PENDING').length;
-        const totalHrs = filtered.reduce((s,r)=> s + (parseFloat(r.hours_worked)||0),0);
-        document.getElementById('timesheetSummaryArea').innerHTML = `<div><strong>📋 Records:</strong> ${filtered.length}</div>
-        <div><strong>⚠️ Late:</strong> ${lateCnt}</div><div><strong>🏃 Early:</strong> ${earlyCnt}</div>
-        <div><strong>⏳ Pending:</strong> ${pendingCnt}</div><div><strong>⏱️ Hours:</strong> ${totalHrs.toFixed(1)}</div>`;
-        updateInfoPanel(filtered.length);
+        const totalHrs = filtered.reduce((s,r) => s + (parseFloat(r.hours_worked)||0), 0);
+        
+        document.getElementById('timesheetSummaryArea').innerHTML = `
+            <div><strong>📋 Records:</strong> ${filtered.length}</div>
+            <div><strong>⚠️ Late:</strong> ${lateCnt}</div>
+            <div><strong>🏃 Early:</strong> ${earlyCnt}</div>
+            <div><strong>⏳ Pending:</strong> ${pendingCnt}</div>
+            <div><strong>⏱️ Hours:</strong> ${totalHrs.toFixed(1)}</div>
+        `;
+        updateInfo(filtered.length);
     }
     
-    function updateInfoPanel(count) {
+    function updateInfo(count) {
         const isLab = (currentTable === 'laboratory_reports');
         const msg = document.getElementById('tableStatus');
         if (currentTable) {
-            msg.innerHTML = `<strong>📌 ${currentTable.replace(/_/g,' ').toUpperCase()}</strong> — ${count} records ${isLab ? '✏️ <span style="background:#e1f5e8; padding:2px 8px; border-radius:30px;">EDIT MODE ACTIVE (click pencil to edit)</span>' : '🔒 Read-only mode'}`;
-        } else {
-            msg.innerHTML = `Select a table and load.`;
+            msg.innerHTML = `<strong>📌 ${currentTable.replace(/_/g,' ').toUpperCase()}</strong> — ${count} records ${isLab ? '✏️ <span style="background:#e1f5e8; padding:2px 8px; border-radius:30px;">EDIT MODE ACTIVE (click EDIT on any row)</span>' : '🔒 Read-only mode'}`;
         }
+        
         const capMsg = document.getElementById('editCapabilityMsg');
         if (currentTable === 'laboratory_reports') {
-            capMsg.innerHTML = '✏️ <strong>EDITING ACTIVE:</strong> You can modify any field inside Laboratory Reports. Click ✏️ on any row, change values, then SAVE. Changes sync directly to Supabase. Other tables remain read-only.';
+            capMsg.innerHTML = '✏️ <strong>EDITING ACTIVE:</strong> You can modify any field inside Laboratory Reports. Click the EDIT button on any row, change values, then click SAVE. Changes sync directly to Supabase.';
             capMsg.style.background = "#e0f2e9";
         } else {
-            capMsg.innerHTML = '🔒 <strong>Read-only mode:</strong> Only the "Laboratory Reports" table allows inline editing (click pencil icon). All other tables are view-only for CEO and staff.';
+            capMsg.innerHTML = '🔒 <strong>Read-only mode:</strong> Only the "Laboratory Reports" table allows editing (click EDIT button). All other tables are view-only.';
             capMsg.style.background = "#eef6ef";
         }
     }
     
     async function loadCurrentTable() {
         const tableName = document.getElementById('tableSelector').value;
-        if (!tableName) { alert("Please select a table"); return; }
+        if (!tableName) {
+            alert("Please select a table");
+            return;
+        }
+        
         currentTable = tableName;
         editingRowId = null;
         tempEditValues = {};
-        document.getElementById('tableContainer').innerHTML = '<div style="padding:40px;text-align:center;">⏳ Loading ...</div>';
+        
+        document.getElementById('tableContainer').innerHTML = '<div style="padding:40px;text-align:center;">⏳ Loading data...</div>';
+        
         try {
             const data = await fetchTableData(tableName);
             originalDataset = data;
-            // handle timesheet filters UI
+            
             const timesheetPanel = document.getElementById('timesheetFilterPanel');
             if (tableName === 'timesheet') {
                 timesheetPanel.style.display = 'block';
+                const todayDate = new Date().toISOString().split('T')[0];
+                const weekStart = new Date();
+                weekStart.setDate(new Date().getDate() - new Date().getDay() + 1);
                 if (!document.getElementById('filterStart').value) {
-                    const todayDate = new Date().toISOString().split('T')[0];
-                    const weekStart = new Date(); weekStart.setDate(new Date().getDate() - new Date().getDay() + 1);
                     document.getElementById('filterStart').value = weekStart.toISOString().split('T')[0];
                     document.getElementById('filterEnd').value = todayDate;
                 }
-                applyTimesheetFiltersInternal();
+                applyTimesheetFilters();
             } else {
                 timesheetPanel.style.display = 'none';
                 displayData = [...originalDataset];
-                renderDataTable(displayData, currentTable);
-                updateInfoPanel(displayData.length);
+                renderTable();
+                updateInfo(displayData.length);
             }
         } catch (err) {
             document.getElementById('tableContainer').innerHTML = `<div style="color:#c7362b; padding:30px;">❌ Failed to load: ${err.message}</div>`;
@@ -643,7 +653,11 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
     
     function exportCSV() {
         const dataToExport = displayData.length ? displayData : originalDataset;
-        if (!dataToExport.length || !currentTable) { alert("No data to export"); return; }
+        if (!dataToExport.length || !currentTable) {
+            alert("No data to export");
+            return;
+        }
+        
         const cols = Object.keys(dataToExport[0]);
         let csv = cols.join(',') + "\n";
         for (let row of dataToExport) {
@@ -654,47 +668,70 @@ Here is an HTML document that creates a secure data viewer for Supabase, with sp
             }).join(',');
             csv += line + "\n";
         }
+        
         const blob = new Blob([csv], {type: 'text/csv'});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
         a.download = `${currentTable}_export_${new Date().toISOString().slice(0,19)}.csv`;
-        a.click(); URL.revokeObjectURL(a.href);
+        a.click();
+        URL.revokeObjectURL(a.href);
     }
     
-    function loadStatsOverview() {
-        const tables = ['timesheet','provincial_reports','laboratory_reports','packhouse_reports','standards_reports','administration_reports','conformity_assessment','general_activity_log','leave_requests','staff_list','focal_points'];
-        (async () => {
-            let html = '';
-            for (let tbl of tables.slice(0,8)) {
-                try{
-                    const res = await fetch(`${SUPABASE_URL}/rest/v1/${tbl}?select=id&limit=1`,{headers:{'apikey':SUPABASE_KEY}});
-                    const range = res.headers.get('content-range');
-                    let cnt = 0;
-                    if(range) { let m = range.match(/\/(\d+)/); if(m) cnt = parseInt(m[1]); }
-                    else { let d=await res.json(); cnt=d.length; }
-                    html += `<div class="stat-card"><div class="stat-number">${cnt}</div><div class="stat-label">${tbl.replace('_reports','')}</div></div>`;
-                } catch(e){ html += `<div class="stat-card"><div class="stat-number">-</div><div class="stat-label">${tbl}</div></div>`;}
+    async function loadStats() {
+        const tables = ['timesheet', 'provincial_reports', 'laboratory_reports', 'packhouse_reports', 
+                       'standards_reports', 'administration_reports', 'conformity_assessment', 'general_activity_log'];
+        
+        let html = '';
+        for (let table of tables) {
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id&limit=1`, {
+                    headers: { 'apikey': SUPABASE_KEY }
+                });
+                const range = res.headers.get('content-range');
+                let count = 0;
+                if (range) {
+                    const match = range.match(/\/(\d+)/);
+                    if (match) count = parseInt(match[1]);
+                } else {
+                    const data = await res.json();
+                    count = data.length;
+                }
+                const displayName = table.replace('_reports', '').replace('_', ' ');
+                html += `<div class="stat-card"><div class="stat-number">${count}</div><div class="stat-label">${displayName}</div></div>`;
+            } catch(e) {
+                html += `<div class="stat-card"><div class="stat-number">-</div><div class="stat-label">${table}</div></div>`;
             }
-            document.getElementById('statsGrid').innerHTML = html;
-        })();
+        }
+        document.getElementById('statsGrid').innerHTML = html;
     }
     
-    // event binding
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
     document.getElementById('loadTableBtn').addEventListener('click', loadCurrentTable);
     document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
-    document.getElementById('applyTimesheetBtn').addEventListener('click', () => { if(currentTable==='timesheet') applyTimesheetFiltersInternal(); });
+    document.getElementById('applyTimesheetBtn').addEventListener('click', () => {
+        if (currentTable === 'timesheet') applyTimesheetFilters();
+    });
     document.getElementById('clearTimesheetBtn').addEventListener('click', () => {
-        if(currentTable==='timesheet') {
-            document.getElementById('filterStart').value = ''; document.getElementById('filterEnd').value = '';
-            document.getElementById('statusSelect').value = 'all'; document.getElementById('staffFilter').value = '';
-            applyTimesheetFiltersInternal();
+        if (currentTable === 'timesheet') {
+            document.getElementById('filterStart').value = '';
+            document.getElementById('filterEnd').value = '';
+            document.getElementById('statusSelect').value = 'all';
+            document.getElementById('staffFilter').value = '';
+            applyTimesheetFilters();
         }
     });
-    window.addEventListener('load', () => {
-        loadStatsOverview();
-        document.getElementById('tableSelector').value = 'laboratory_reports';
-        loadCurrentTable();
-    });
-    function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;});}
+    
+    loadStats();
+    document.getElementById('tableSelector').value = 'laboratory_reports';
+    setTimeout(() => loadCurrentTable(), 100);
 </script>
 </body>
 </html>
