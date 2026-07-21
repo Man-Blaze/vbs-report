@@ -616,7 +616,7 @@
             }
             
             progressDiv.innerHTML = 'Uploading ' + files.length + ' file(s)...';
-            var uploadedUrls = [];
+            progressDiv.style.color = '#2c7a4d';
             
             for (var i = 0; i < files.length; i++) {
                 var file = files[i];
@@ -634,7 +634,6 @@
                         .from('evidence')
                         .getPublicUrl(filePath);
                     
-                    uploadedUrls.push(urlData.publicUrl);
                     uploadedFiles[formNum].push(urlData.publicUrl);
                     
                     // Update display
@@ -648,11 +647,17 @@
                 } catch (err) {
                     console.error('Upload error:', err);
                     progressDiv.innerHTML = 'Error uploading ' + file.name;
+                    progressDiv.style.color = '#b91c1c';
                 }
             }
             
+            // IMPORTANT: Store the URLs as a JSON string in the hidden input
             evidenceUrlsInput.value = JSON.stringify(uploadedFiles[formNum]);
+            console.log('Files uploaded:', uploadedFiles[formNum]);
+            console.log('Evidence URLs value:', evidenceUrlsInput.value);
+            
             progressDiv.innerHTML = '✅ ' + uploadedFiles[formNum].length + ' file(s) uploaded';
+            progressDiv.style.color = '#2c7a4d';
             fileInput.value = '';
         });
     }
@@ -668,6 +673,7 @@
             fileListDiv.innerHTML += '<span class="file-item"><i class="fas fa-file"></i> ' + fileNameShort.substring(0, 30) + '... <i class="fas fa-trash" onclick="removeFile(' + formNum + ', ' + idx + ')"></i></span>';
         });
         evidenceUrlsInput.value = JSON.stringify(uploadedFiles[formNum]);
+        console.log('Updated evidence URLs:', evidenceUrlsInput.value);
     }
     
     // Initialize all file uploads
@@ -688,11 +694,23 @@
     function submitForm(formElement, tableName, successMsg, msgDivId, formNum) {
         var formData = new FormData(formElement);
         var rawData = {};
-        formData.forEach(function(value, key) { rawData[key] = value; });
         
-        // Add file URLs to form data
-        if (uploadedFiles[formNum] && uploadedFiles[formNum].length > 0) {
+        // Get all form data
+        formData.forEach(function(value, key) { 
+            rawData[key] = value; 
+        });
+        
+        // IMPORTANT: Get the evidence URLs from the hidden input
+        var evidenceUrlsInput = document.getElementById('evidenceUrls' + formNum);
+        if (evidenceUrlsInput && evidenceUrlsInput.value) {
+            rawData.evidence_urls = evidenceUrlsInput.value;
+            console.log('Submitting evidence URLs:', rawData.evidence_urls);
+        } else if (uploadedFiles[formNum] && uploadedFiles[formNum].length > 0) {
+            // Fallback: use the uploadedFiles array
             rawData.evidence_urls = JSON.stringify(uploadedFiles[formNum]);
+            console.log('Fallback evidence URLs:', rawData.evidence_urls);
+        } else {
+            rawData.evidence_urls = null;
         }
         
         // Process checkbox groups for NSC Updates
@@ -755,6 +773,8 @@
         
         rawData.created_at = new Date().toISOString();
         
+        console.log('Submitting data:', rawData);
+        
         supabaseClient.from(tableName).insert([rawData]).then(function(result) {
             if (result.error) throw result.error;
             showMessage(msgDivId, successMsg + ' with ' + (uploadedFiles[formNum]?.length || 0) + ' attachment(s)', false);
@@ -775,7 +795,7 @@
                 }
             }
         }).catch(function(err) {
-            console.error(err);
+            console.error('Submit error:', err);
             showMessage(msgDivId, 'Error: ' + err.message, true);
         });
     }
@@ -847,6 +867,8 @@
     
     // Make removeFile available globally
     window.removeFile = removeFile;
+    
+    console.log('Form initialized. Uploaded files will be stored in evidence_urls column.');
 </script>
 </body>
 </html>
