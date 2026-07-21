@@ -226,6 +226,16 @@
             color: white;
         }
 
+        .badge-file {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-no-file {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
@@ -264,6 +274,24 @@
             color: #666;
             font-size: 12px;
         }
+
+        .file-link {
+            color: #1a5a3a;
+            text-decoration: none;
+            word-break: break-all;
+            font-size: 11px;
+        }
+
+        .file-link:hover {
+            text-decoration: underline;
+        }
+
+        .evidence-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -286,7 +314,12 @@
                         <option value="provincial_reports">🌾 Provincial Reports</option>
                         <option value="laboratory_reports" selected>🔬 Laboratory Reports (EDITABLE)</option>
                         <option value="packhouse_reports">📦 Packhouse Reports</option>
+                        <!-- STANDARDS TABLES -->
                         <option value="standards_reports">📜 Standards Reports</option>
+                        <option value="nsc_updates">📊 NSC Updates</option>
+                        <option value="sales_distribution">💳 Sales Distribution</option>
+                        <option value="international_engagement">🌍 International Engagement</option>
+                        <option value="standards_development">🔧 Standards Development</option>
                         <option value="administration_reports">📋 Administration Reports</option>
                         <option value="conformity_assessment">✅ Conformity Assessment</option>
                         <option value="general_activity_log">📝 General Activity Log</option>
@@ -353,6 +386,10 @@
         let currentTableName = '';
         let editingState = {}; // { rowId: { isEditing: true, tempData: {} } }
         
+        // Tables that should show evidence URLs as clickable links
+        const evidenceTables = ['nsc_updates', 'sales_distribution', 'international_engagement', 'standards_development', 'standards_reports'];
+        const evidenceColumns = ['evidence_urls', 'evidence_pdf_urls', 'evidence_photo_urls'];
+        
         function isLate(timeIn) {
             if (!timeIn) return false;
             const [hours, minutes] = timeIn.split(':');
@@ -372,9 +409,55 @@
             return dateStr === today;
         }
         
+        // Check if a column is an evidence URL column
+        function isEvidenceColumn(colName) {
+            return evidenceColumns.includes(colName) || colName.includes('evidence') || colName.includes('url');
+        }
+        
+        // Parse and display evidence URLs
+        function renderEvidenceUrls(value) {
+            if (!value) return '<span class="badge badge-no-file">No files</span>';
+            
+            try {
+                let urls = [];
+                if (typeof value === 'string') {
+                    if (value.startsWith('[')) {
+                        urls = JSON.parse(value);
+                    } else {
+                        urls = [value];
+                    }
+                } else if (Array.isArray(value)) {
+                    urls = value;
+                } else {
+                    return String(value);
+                }
+                
+                if (urls.length === 0) {
+                    return '<span class="badge badge-no-file">No files</span>';
+                }
+                
+                let html = '';
+                urls.forEach((url, index) => {
+                    const fileName = url.split('/').pop() || 'file';
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                    const icon = isImage ? '🖼️' : '📄';
+                    html += `<div style="margin: 2px 0;">
+                        <a href="${url}" target="_blank" class="file-link" title="${url}">
+                            ${icon} ${fileName.substring(0, 30)}${fileName.length > 30 ? '...' : ''}
+                        </a>
+                    </div>`;
+                });
+                return `<span class="badge badge-file">${urls.length} file(s)</span><br>${html}`;
+            } catch(e) {
+                return String(value);
+            }
+        }
+        
         async function loadStats() {
             const tables = ['timesheet', 'provincial_reports', 'laboratory_reports', 'packhouse_reports', 
-                           'standards_reports', 'administration_reports', 'conformity_assessment', 'general_activity_log'];
+                           'standards_reports', 'nsc_updates', 'sales_distribution', 'international_engagement', 
+                           'standards_development', 'administration_reports', 'conformity_assessment', 
+                           'general_activity_log'];
             
             let statsHtml = '';
             for (let table of tables) {
@@ -388,7 +471,7 @@
                         const match = count.match(/\/(\d+)/);
                         if (match) rowCount = parseInt(match[1]);
                     }
-                    const displayName = table.replace('_reports', '').replace('_', ' ');
+                    const displayName = table.replace(/_/g, ' ').replace(/(^\w|\s\w)/g, m => m.toUpperCase());
                     statsHtml += `<div class="stat-card"><div class="stat-number">${rowCount}</div><div class="stat-label">${displayName}</div></div>`;
                 } catch(e) {
                     statsHtml += `<div class="stat-card"><div class="stat-number">0</div><div class="stat-label">${table}</div></div>`;
@@ -413,6 +496,8 @@
                 let url = `${SUPABASE_URL}/rest/v1/${tableName}?limit=2000`;
                 if (tableName === 'timesheet') {
                     url += `&order=report_date.desc`;
+                } else if (evidenceTables.includes(tableName)) {
+                    url += `&order=created_at.desc`;
                 }
                 
                 const response = await fetch(url, {
@@ -444,10 +529,15 @@
             
             const columns = Object.keys(data[0]);
             const isEditable = (currentTableName === 'laboratory_reports');
+            const isEvidenceTable = evidenceTables.includes(currentTableName);
             
             let html = '<table><thead><tr>';
             for (let col of columns) {
-                html += `<th>${col}</th>`;
+                let displayCol = col;
+                if (col === 'evidence_urls' || col === 'evidence_pdf_urls' || col === 'evidence_photo_urls') {
+                    displayCol = '📎 ' + col;
+                }
+                html += `<th>${displayCol}</th>`;
             }
             if (isEditable) html += `<th style="width: 100px;">Action</th>`;
             html += '</thead><tbody>';
@@ -464,7 +554,9 @@
                 for (let col of columns) {
                     let value = row[col];
                     if (value === null || value === undefined) value = '';
-                    if (typeof value === 'object') value = JSON.stringify(value);
+                    
+                    // Handle evidence columns specially
+                    const isEvidenceCol = isEvidenceColumn(col);
                     
                     if (isEditing && isEditable) {
                         const editValue = editData[col] !== undefined ? editData[col] : value;
@@ -473,7 +565,18 @@
                         </td>`;
                     } else {
                         let displayValue = value;
-                        if (typeof displayValue === 'string' && displayValue.length > 50) {
+                        
+                        // For evidence columns, render as clickable links
+                        if (isEvidenceCol && isEvidenceTable && value) {
+                            html += `<td class="evidence-cell">${renderEvidenceUrls(value)}</td>`;
+                            continue;
+                        }
+                        
+                        if (typeof displayValue === 'object') {
+                            displayValue = JSON.stringify(displayValue);
+                        }
+                        
+                        if (typeof displayValue === 'string' && displayValue.length > 50 && !isEvidenceCol) {
                             displayValue = displayValue.substring(0, 50) + '...';
                         }
                         
@@ -488,7 +591,7 @@
                             }
                         }
                         
-                        html += `<td>${escapeHtml(displayValue)} ${badgeHtml}</td>`;
+                        html += `<td>${escapeHtml(String(displayValue))} ${badgeHtml}</td>`;
                     }
                 }
                 
