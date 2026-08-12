@@ -146,6 +146,54 @@
         .ceo-card .card-desc {
             color: #ccc;
         }
+
+        /* ===== SUPPLY CHAIN CARD - SPECIAL STYLING ===== */
+        .supply-chain-card {
+            background: linear-gradient(135deg, #1a3a2a 0%, #2a5a3a 100%);
+            color: white;
+            border: 2px solid #ffc107;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .supply-chain-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 193, 7, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .supply-chain-card .card-title {
+            color: #ffc107;
+        }
+
+        .supply-chain-card .card-desc {
+            color: #c0d0c0;
+        }
+
+        .supply-chain-card .card-badge {
+            background: #ffc107;
+            color: #1a3a2a;
+        }
+
+        .supply-chain-card .live-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+            margin-right: 6px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
         
         .footer {
             text-align: center;
@@ -160,10 +208,45 @@
             height: 1px;
             background: rgba(255,255,255,0.2);
         }
+
+        /* ===== STATS BANNER ===== */
+        .stats-banner {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .stats-banner .stat-item {
+            text-align: center;
+            color: white;
+        }
+
+        .stats-banner .stat-item .number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ffc107;
+        }
+
+        .stats-banner .stat-item .label {
+            font-size: 11px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stats-banner .stat-item .number.green { color: #4caf50; }
+        .stats-banner .stat-item .number.red { color: #f44336; }
+        .stats-banner .stat-item .number.blue { color: #42a5f5; }
         
         @media (max-width: 768px) {
             .header h1 { font-size: 28px; }
             .card-grid { grid-template-columns: 1fr; }
+            .stats-banner { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
@@ -173,6 +256,36 @@
             <h1>🛡️ VBS Digital Shield</h1>
             <p>Vanuatu Bureau of Standards - Digital Reporting System</p>
             <div class="badge">🔒 Sovereign Data • Real-time • Audit Ready</div>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- LIVE STATS BANNER -->
+        <!-- ======================================== -->
+        <div class="stats-banner" id="statsBanner">
+            <div class="stat-item">
+                <div class="number blue" id="statFarmers">--</div>
+                <div class="label">Registered Farmers</div>
+            </div>
+            <div class="stat-item">
+                <div class="number green" id="statCompliant">--</div>
+                <div class="label">Fully Compliant</div>
+            </div>
+            <div class="stat-item">
+                <div class="number red" id="statNonCompliant">--</div>
+                <div class="label">Non-Compliant</div>
+            </div>
+            <div class="stat-item">
+                <div class="number green" id="statExportReady">--</div>
+                <div class="label">Export Ready</div>
+            </div>
+            <div class="stat-item">
+                <div class="number blue" id="statCooperatives">--</div>
+                <div class="label">Cooperatives</div>
+            </div>
+            <div class="stat-item">
+                <div class="number" id="statPackhouseAccess" style="color:#ffc107;">--</div>
+                <div class="label">Packhouse Access</div>
+            </div>
         </div>
         
         <!-- ======================================== -->
@@ -203,7 +316,6 @@
                     <div class="card-badge">Santo Packhouse</div>
                 </a>
                 
-                <!-- FIXED: Standards & Certification - Now points to standards.html -->
                 <a href="https://Man-Blaze.github.io/vbs-report/standards.html" class="card">
                     <div class="card-icon">📜</div>
                     <div class="card-title">Standards & Certification</div>
@@ -233,7 +345,7 @@
                 </a>
 
                 <a href="https://Man-Blaze.github.io/vbs-report/lab_inventory.html" class="card">
-                    <div class="card-icon">🔬</div>
+                    <div class="card-icon">🧪</div>
                     <div class="card-title">Lab Inventory</div>
                     <div class="card-desc">Track chemicals, glassware, equipment, and stock levels</div>
                     <div class="card-badge">Focal Points Only</div>
@@ -246,7 +358,6 @@
                     <div class="card-badge">All Staff - Transparent</div>
                 </a>
 
-
                 <a href="https://Man-Blaze.github.io/vbs-report/admin_report.html" class="card">
                     <div class="card-icon">💰</div>
                     <div class="card-title">Admin Report</div>
@@ -254,15 +365,12 @@
                     <div class="card-badge">Administration Only</div>
                 </a>
 
-                <!-- TIMESHEET WITH LOGIN (ONLY ONE) -->
                 <a href="https://Man-Blaze.github.io/vbs-report/login.html" class="card">
                     <div class="card-icon">⏰</div>
                     <div class="card-title">Timesheet</div>
                     <div class="card-desc">Clock In / Clock Out - Kam In / Kam Out</div>
                     <div class="card-badge">Login Required</div>
                 </a>
-                
-
 
                 <a href="https://Man-Blaze.github.io/vbs-report/leave_application.html" class="card">
                     <div class="card-icon">📋</div>
@@ -294,11 +402,12 @@
         <hr>
         
         <!-- ======================================== -->
-        <!-- CEO SECTION (View Dashboard) -->
+        <!-- CEO & LEADERSHIP SECTION -->
         <!-- ======================================== -->
         <div class="role-section">
             <div class="role-title">👑 CEO & Leadership - Live Dashboard</div>
             <div class="card-grid">
+                
                 <a href="#" class="card ceo-card" id="powerBILink">
                     <div class="card-icon">📊</div>
                     <div class="card-title">Power BI Dashboard</div>
@@ -313,15 +422,139 @@
                     <div class="card-badge">CEO • Managers • Audit</div>
                 </a>
 
-                <a href="https://Man-Blaze.github.io/vbs-report/supabase_tables.html" class="card">
+                <a href="https://Man-Blaze.github.io/vbs-report/supabase_tables.html" class="card ceo-card">
                     <div class="card-icon">🗄️</div>
                     <div class="card-title">Database Viewer</div>
                     <div class="card-desc">View all tables and data in Supabase - CEO Read Only</div>
                     <div class="card-badge">CEO Only</div>
                 </a>
-                <a href="supply_chain_compliance.html" class="nav-link">
-                🏭 Supply Chain Compliance
+
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- ======================================== -->
+        <!-- SUPPLY CHAIN COMPLIANCE - NEW SECTION -->
+        <!-- ======================================== -->
+        <div class="role-section">
+            <div class="role-title">🏭 Supply Chain Compliance · DARD · Cooperative · Biosecurity</div>
+            <div class="card-grid">
+
+                <!-- MAIN SUPPLY CHAIN COMPLIANCE DASHBOARD -->
+                <a href="supply_chain_compliance.html" class="card supply-chain-card">
+                    <div class="card-icon">🌾</div>
+                    <div class="card-title">
+                        <span class="live-dot"></span> Supply Chain Compliance
+                    </div>
+                    <div class="card-desc">
+                        <strong>Farmer Registry · 4-Permit Check</strong><br>
+                        DARD Agriculture Permit · Industry License · Cooperative Membership · VanIPO GI<br><br>
+                        <span style="font-size:12px; opacity:0.8;">
+                            ✅ Track compliance · 🔬 Biosecurity SPS · 📦 Traceability · 📊 Reports
+                        </span>
+                    </div>
+                    <div class="card-badge">DARD • Coop • VanIPO • Biosecurity</div>
                 </a>
+
+                <!-- DARD AGRICULTURE PERMIT -->
+                <a href="supply_chain_compliance.html?tab=dard" class="card" style="border-left: 4px solid #4caf50;">
+                    <div class="card-icon">📜</div>
+                    <div class="card-title">DARD Agriculture Permit</div>
+                    <div class="card-desc">
+                        <strong>200+ permits issued (July 2026)</strong><br>
+                        Track permit status: Approved · In Readiness · Deferred · Not Applied<br>
+                        <span style="font-size:12px; color:#2c7a4d;">Sanma: 55 · Shefa: 117 · Malampa: 21</span>
+                    </div>
+                    <div class="card-badge">DARD · Centralized Database</div>
+                </a>
+
+                <!-- COOPERATIVE CONSOLIDATION -->
+                <a href="supply_chain_compliance.html?tab=cooperatives" class="card" style="border-left: 4px solid #ffc107;">
+                    <div class="card-icon">🤝</div>
+                    <div class="card-title">Cooperative Consolidation</div>
+                    <div class="card-desc">
+                        <strong>Member consolidation for packhouse volume</strong><br>
+                        Track cooperatives, member count, licensed farmers, consolidation volume<br>
+                        <span style="font-size:12px; color:#8d6e00;">Smallholder farmers → Packhouse-scale supply</span>
+                    </div>
+                    <div class="card-badge">Cooperative Dept · Ministry of Trade</div>
+                </a>
+
+                <!-- BIOSECURITY SPS -->
+                <a href="supply_chain_compliance.html?tab=biosecurity" class="card" style="border-left: 4px solid #42a5f5;">
+                    <div class="card-icon">🔬</div>
+                    <div class="card-title">Biosecurity · SPS Compliance</div>
+                    <div class="card-desc">
+                        <strong>Sanitary & Phytosanitary (SPS) tracking</strong><br>
+                        Quarantine clearance · Pest status · Treatment certification · Expiry monitoring<br>
+                        <span style="font-size:12px; color:#0d47a1;">VeSW Electronic Single Window integration</span>
+                    </div>
+                    <div class="card-badge">Biosecurity · Quarantine</div>
+                </a>
+
+                <!-- FARMER REGISTRY (Quick Access) -->
+                <a href="supply_chain_compliance.html?tab=farmers" class="card" style="border-left: 4px solid #9c27b0;">
+                    <div class="card-icon">👨‍🌾</div>
+                    <div class="card-title">Farmer Registry</div>
+                    <div class="card-desc">
+                        <strong>Complete farmer database</strong><br>
+                        Name · Cooperative · 4 Permits · Overall Status · Export Readiness<br>
+                        <span style="font-size:12px; color:#6a1b9a;">Packhouse access = All 4 permits approved</span>
+                    </div>
+                    <div class="card-badge">VBS · DARD · Cooperative</div>
+                </a>
+
+                <!-- COMPLIANCE MATRIX -->
+                <a href="supply_chain_compliance.html?tab=compliance" class="card" style="border-left: 4px solid #f44336;">
+                    <div class="card-icon">✅</div>
+                    <div class="card-title">Compliance Matrix</div>
+                    <div class="card-desc">
+                        <strong>4-Permit Check at a glance</strong><br>
+                        DARD ✅ · Industry ✅ · Cooperative ✅ · VanIPO ✅<br>
+                        <span style="font-size:12px; color:#b71c1c;">
+                            ⛔ Packhouse access denied if any permit missing
+                        </span>
+                    </div>
+                    <div class="card-badge">Enforcement · Gatekeeper</div>
+                </a>
+
+                <!-- TRACEABILITY -->
+                <a href="supply_chain_compliance.html?tab=traceability" class="card" style="border-left: 4px solid #ff9800;">
+                    <div class="card-icon">📦</div>
+                    <div class="card-title">Traceability</div>
+                    <div class="card-desc">
+                        <strong>Farm → Packhouse → Buyer</strong><br>
+                        Batch tracking · Grade · Certification · Destination · Status<br>
+                        <span style="font-size:12px; color:#e65100;">Export · Domestic · Institutional</span>
+                    </div>
+                    <div class="card-badge">Full Chain Traceability</div>
+                </a>
+
+                <!-- REPORTS -->
+                <a href="supply_chain_compliance.html?tab=reports" class="card" style="border-left: 4px solid #607d8b;">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">Compliance Reports</div>
+                    <div class="card-desc">
+                        <strong>Generate & Export</strong><br>
+                        Farmer Compliance · Cooperative Summary · Biosecurity Audit · Traceability<br>
+                        <span style="font-size:12px; color:#37474f;">CSV Export · Minister & Donor Ready</span>
+                    </div>
+                    <div class="card-badge">Reporting · Analytics</div>
+                </a>
+
+                <!-- SYNC WITH DARD -->
+                <a href="#" class="card" style="border-left: 4px solid #00bcd4;" id="syncDardBtn">
+                    <div class="card-icon">🔄</div>
+                    <div class="card-title">Sync with DARD Database</div>
+                    <div class="card-desc">
+                        <strong>Pull live permit data</strong><br>
+                        DARD Centralized Agriculture Database · Digital Farmer Registry (FAO/VPPA)<br>
+                        <span style="font-size:12px; color:#00695c;">Read-only access for compliance checks</span>
+                    </div>
+                    <div class="card-badge">Live Sync · Read-Only</div>
+                </a>
+
             </div>
         </div>
         
@@ -361,20 +594,132 @@
                         <strong>Email:</strong> pishmael@vanuatu.gov.vu
                     </div>
                 </div>
+
+                <div class="card" style="background: #e8f5e9; cursor: default; border-left: 4px solid #4caf50;">
+                    <div class="card-icon">🏭</div>
+                    <div class="card-title">Supply Chain Quick Stats</div>
+                    <div class="card-desc" id="quickStats">
+                        <strong>Loading stats...</strong>
+                    </div>
+                </div>
             </div>
         </div>
         
         <div class="footer">
             <p>© 2026 Vanuatu Bureau of Standards • Data stored in sovereign Supabase database • Audit ready</p>
-            <p style="margin-top: 10px;">Version 1.0 • Live since 22 April 2026</p>
+            <p style="margin-top: 10px;">Version 2.0 • Supply Chain Compliance Module Added • Live since 22 April 2026</p>
         </div>
     </div>
     
     <script>
+        // =============================================================
+        // Power BI Dashboard Link
+        // =============================================================
         document.getElementById('powerBILink').addEventListener('click', function(e) {
             e.preventDefault();
             alert('Power BI dashboard coming soon.\n\nConnect Power BI Desktop to:\nServer: db.pdwctzueksfuspwwumdy.supabase.co\nDatabase: postgres\nTable: Use vbs_approved_reports view');
         });
+
+        // =============================================================
+        // Sync with DARD Button
+        // =============================================================
+        document.getElementById('syncDardBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('🔄 Syncing with DARD Centralized Agriculture Database...\n\n' +
+                  'This will:\n' +
+                  '• Pull live Agriculture Business Permit data\n' +
+                  '• Update farmer compliance status\n' +
+                  '• Refresh the compliance matrix\n\n' +
+                  '📊 DARD Permit Statistics (June 2026):\n' +
+                  '• Total Approved: 200\n' +
+                  '• Shefa: 117 | Sanma: 55 | Malampa: 21\n' +
+                  '• Maewo: 6 | Ambae: 1\n\n' +
+                  '📋 Digital Farmer Registry (FAO/VPPA):\n' +
+                  '• Being rolled out across all provinces\n' +
+                  '• Read-only access requested for VBS');
+        });
+
+        // =============================================================
+        // LOAD STATS FROM LOCAL STORAGE OR SAMPLE DATA
+        // =============================================================
+        function loadStats() {
+            // Try to load from localStorage (set by supply_chain_compliance.html)
+            let stats = localStorage.getItem('vbsSupplyChainStats');
+            
+            if (stats) {
+                try {
+                    stats = JSON.parse(stats);
+                    updateStatsUI(stats);
+                    return;
+                } catch(e) {
+                    // Fall through to sample data
+                }
+            }
+
+            // Sample data (matches the sample data in supply_chain_compliance.html)
+            const sampleStats = {
+                farmers: 8,
+                compliant: 1,
+                nonCompliant: 2,
+                exportReady: 2,
+                cooperatives: 5,
+                packhouseAccess: 3
+            };
+            updateStatsUI(sampleStats);
+        }
+
+        function updateStatsUI(stats) {
+            document.getElementById('statFarmers').textContent = stats.farmers || 0;
+            document.getElementById('statCompliant').textContent = stats.compliant || 0;
+            document.getElementById('statNonCompliant').textContent = stats.nonCompliant || 0;
+            document.getElementById('statExportReady').textContent = stats.exportReady || 0;
+            document.getElementById('statCooperatives').textContent = stats.cooperatives || 0;
+            document.getElementById('statPackhouseAccess').textContent = stats.packhouseAccess || 0;
+
+            // Update quick stats in the reference card
+            const quickStats = document.getElementById('quickStats');
+            if (quickStats) {
+                quickStats.innerHTML = `
+                    <strong>Total Farmers:</strong> ${stats.farmers || 0}<br>
+                    <strong>✅ Compliant:</strong> ${stats.compliant || 0}<br>
+                    <strong>⛔ Non-Compliant:</strong> ${stats.nonCompliant || 0}<br>
+                    <strong>📦 Export Ready:</strong> ${stats.exportReady || 0}<br>
+                    <strong>🤝 Cooperatives:</strong> ${stats.cooperatives || 0}<br>
+                    <strong>🏭 Packhouse Access:</strong> ${stats.packhouseAccess || 0}
+                `;
+            }
+        }
+
+        // =============================================================
+        // LISTEN FOR STATS UPDATES FROM SUPPLY CHAIN PAGE
+        // =============================================================
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'vbsSupplyChainStats') {
+                try {
+                    const stats = JSON.parse(e.newValue);
+                    updateStatsUI(stats);
+                } catch(e) {
+                    // Ignore
+                }
+            }
+        });
+
+        // =============================================================
+        // INIT
+        // =============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+
+            // If the supply chain page sent stats via postMessage
+            window.addEventListener('message', function(e) {
+                if (e.data && e.data.type === 'vbsStatsUpdate') {
+                    updateStatsUI(e.data.stats);
+                }
+            });
+        });
+
+        console.log('🛡️ VBS Digital Shield - Central Hub loaded');
+        console.log('🏭 Supply Chain Compliance module integrated');
     </script>
 </body>
 </html>
