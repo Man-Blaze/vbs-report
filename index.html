@@ -501,32 +501,36 @@
     <!-- SUPPLY CHAIN COMPLIANCE SECTION -->
     <!-- ========================================================== -->
     <section class="role-section">
-        <div class="role-title">🏭 Supply Chain Compliance · DARD · Cooperative · Biosecurity</div>
+        <div class="role-title">🏭 Supply Chain · Farm to Institution</div>
         <div class="card-grid">
 
-            <a href="supply_chain_compliance.html" class="card card-supply">
+            <!-- MAIN SUPPLY CHAIN DASHBOARD -->
+            <a href="supplychain.html" class="card card-supply">
                 <div class="card-icon">🌾</div>
                 <div class="card-title">
-                    <span class="live-dot"></span> Supply Chain Compliance
+                    <span class="live-dot"></span> Farm to Institution Pipeline
                 </div>
                 <div class="card-desc">
-                    <strong>Farmer Registry · 4-Permit Check</strong><br>
-                    DARD · Industry · Cooperative · VanIPO
+                    <strong>DARD · Cooperative · Biosecurity → Packhouse → Inventory → Orders</strong><br>
+                    Full supply chain from farmer registration to institutional buyer fulfillment
                 </div>
-                <div class="card-badge">DARD · Coop · VanIPO · Biosecurity</div>
+                <div class="card-badge">Live · 4-Step Workflow</div>
             </a>
 
-            <a href="supply_chain_compliance.html?tab=dard" class="card" style="border-left: 3px solid #66bb6a;">
+            <!-- DARD PERMIT -->
+            <a href="supplychain.html#step1" class="card" style="border-left: 3px solid #66bb6a;">
                 <div class="card-icon">📜</div>
                 <div class="card-title">DARD Agriculture Permit</div>
                 <div class="card-desc">
                     <strong>200+ permits issued (July 2026)</strong><br>
-                    Approved · In Readiness · Deferred · Not Applied
+                    Approved · In Readiness · Deferred · Not Applied<br>
+                    <span style="font-size:12px; color:#8aa09a;">Sanma: 55 · Shefa: 117 · Malampa: 21</span>
                 </div>
                 <div class="card-badge">DARD</div>
             </a>
 
-            <a href="supply_chain_compliance.html?tab=cooperatives" class="card" style="border-left: 3px solid #ffc107;">
+            <!-- COOPERATIVE -->
+            <a href="supplychain.html#step1" class="card" style="border-left: 3px solid #ffc107;">
                 <div class="card-icon">🤝</div>
                 <div class="card-title">Cooperative Consolidation</div>
                 <div class="card-desc">
@@ -536,7 +540,8 @@
                 <div class="card-badge">Cooperative Dept</div>
             </a>
 
-            <a href="supply_chain_compliance.html?tab=biosecurity" class="card" style="border-left: 3px solid #42a5f5;">
+            <!-- BIOSECURITY -->
+            <a href="supplychain.html#step1" class="card" style="border-left: 3px solid #42a5f5;">
                 <div class="card-icon">🔬</div>
                 <div class="card-title">Biosecurity · SPS Compliance</div>
                 <div class="card-desc">
@@ -545,50 +550,47 @@
                 <div class="card-badge">Biosecurity</div>
             </a>
 
-            <a href="supply_chain_compliance.html?tab=farmers" class="card" style="border-left: 3px solid #ab47bc;">
-                <div class="card-icon">👨‍🌾</div>
-                <div class="card-title">Farmer Registry</div>
-                <div class="card-desc">
-                    Complete farmer database with all permits and status
-                </div>
-                <div class="card-badge">VBS · DARD</div>
-            </a>
-
-            <a href="supply_chain_compliance.html?tab=compliance" class="card" style="border-left: 3px solid #ef5350;">
-                <div class="card-icon">✅</div>
-                <div class="card-title">Compliance Matrix</div>
-                <div class="card-desc">
-                    <strong>4-Permit Check at a glance</strong><br>
-                    DARD · Industry · Cooperative · VanIPO
-                </div>
-                <div class="card-badge">Enforcement</div>
-            </a>
-
-            <a href="supply_chain_compliance.html?tab=traceability" class="card" style="border-left: 3px solid #ffa726;">
+            <!-- PACKHOUSE INTAKE -->
+            <a href="supplychain.html#step2" class="card" style="border-left: 3px solid #ffa726;">
                 <div class="card-icon">📦</div>
-                <div class="card-title">Traceability</div>
+                <div class="card-title">Packhouse Intake & Grading</div>
                 <div class="card-desc">
-                    Farm → Packhouse → Buyer · Batch tracking
+                    Receive produce · Grade A/B/C · Certification<br>
+                    <span style="font-size:12px; color:#8aa09a;">Export · Domestic · Institutional</span>
                 </div>
-                <div class="card-badge">Full Chain</div>
+                <div class="card-badge">VBS Packhouse</div>
             </a>
 
-            <a href="supply_chain_compliance.html?tab=reports" class="card" style="border-left: 3px solid #78909c;">
+            <!-- INVENTORY -->
+            <a href="supplychain.html#step3" class="card" style="border-left: 3px solid #4caf50;">
                 <div class="card-icon">📊</div>
-                <div class="card-title">Compliance Reports</div>
+                <div class="card-title">Live Inventory</div>
                 <div class="card-desc">
-                    Generate & Export: Farmer Compliance, Cooperative Summary, Biosecurity Audit, Traceability
+                    Available by grade · Certification · Volume tracking
                 </div>
-                <div class="card-badge">Reporting</div>
+                <div class="card-badge">Real-time</div>
             </a>
 
+            <!-- ORDERS -->
+            <a href="supplychain.html#step4" class="card" style="border-left: 3px solid #9c27b0;">
+                <div class="card-icon">🏨</div>
+                <div class="card-title">Orders & Fulfillment</div>
+                <div class="card-desc">
+                    Tourism · VTO · VCCI · VBS-Direct channels<br>
+                    <span style="font-size:12px; color:#8aa09a;">One-Off · Standing Orders</span>
+                </div>
+                <div class="card-badge">Institutional Buyers</div>
+            </a>
+
+            <!-- SYNC WITH DARD -->
             <a href="#" class="card" style="border-left: 3px solid #26c6da;" id="syncDardBtn">
                 <div class="card-icon">🔄</div>
                 <div class="card-title">Sync with DARD Database</div>
                 <div class="card-desc">
-                    Pull live permit data from DARD Centralized Database
+                    Pull live permit data from DARD Centralized Database<br>
+                    <span style="font-size:12px; color:#8aa09a;">Read-only · Compliance checks</span>
                 </div>
-                <div class="card-badge">Read-Only</div>
+                <div class="card-badge">Live Sync</div>
             </a>
 
         </div>
@@ -653,7 +655,7 @@
         <span>·</span>
         <span>📋 Audit Ready</span>
         <br>
-        <span style="font-size:11px; color:#3a5a4a;">Version 2.0 · Supply Chain Compliance Module · Live since 22 April 2026</span>
+        <span style="font-size:11px; color:#3a5a4a;">Version 2.0 · Farm to Institution Supply Chain · Live since 22 April 2026</span>
     </footer>
 
 </div>
@@ -762,7 +764,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         loadStats();
         console.log('🛡️ VBS Digital Shield · Central Hub loaded');
-        console.log('🏭 Supply Chain Compliance module integrated');
+        console.log('🏭 Farm to Institution Supply Chain module integrated');
     });
 </script>
 
