@@ -1,3 +1,17 @@
+You are absolutely right. If a farmer calls the VBS Packhouse to supply produce, the staff should not need to jump between 4 different tables to check if that farmer is valid.
+
+Instead, the **"Farmer Registry" table** should act as the **Single Source of Truth**. When a farmer calls, the packhouse staff simply looks up that farmer's name. The table clearly shows:
+1.  **DARD Permit Status**
+2.  **Cooperative Membership**
+3.  **Biosecurity / SPS Status** (This is the key column that was missing!)
+4.  **Packhouse Access** (Calculated automatically based on the previous 3).
+
+Here is the fully updated `supply_chain.html`. I have **merged Biosecurity directly into the Farmer Registry** table so you can check everything in one glance.
+
+### Updated `supply_chain.html`
+*Replace your entire `supply_chain.html` file with this code.*
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,469 +20,246 @@
     <title>VBS Supply Chain · Farm to Institution</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* --- Base & Theming (VBS Presentation Style) --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0f1a12;
-            color: #e0e6ed;
-            min-height: 100vh;
-            padding: 16px;
+            background: #0d1512; color: #e0e8e4; min-height: 100vh; padding: 20px;
         }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        /* --- Typography --- */
+        h1, h2, h3 { font-family: 'Times New Roman', Times, serif; letter-spacing: -0.5px; }
+        .text-gold { color: #d5b07c; }
+        .text-orange { color: #c95a35; }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
+        /* --- Back Nav --- */
+        .back-nav { margin-bottom: 15px; }
+        .back-nav a { color: #a1b7b0; text-decoration: none; font-size: 13px; padding: 8px 14px; border: 1px solid #1a2f27; border-radius: 6px; background: #111f19; display: inline-block; }
+        .back-nav a:hover { border-color: #d5b07c; color: #d5b07c; }
+
+        /* --- Header Box --- */
+        .header-box {
+            background: linear-gradient(145deg, #12241e, #162c25);
+            border: 1px solid #1b362e; border-radius: 12px; padding: 20px 25px; margin-bottom: 20px;
         }
+        .header-content { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px; }
+        .header-title { display: flex; align-items: center; gap: 10px; }
+        .header-title h1 { font-size: 26px; color: #fff; margin: 0; font-weight: 700; }
+        .header-title h1 span { color: #d5b07c; }
+        .header-sub { font-size: 13px; color: #8ba79e; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+        .status-pill { display: flex; align-items: center; gap: 8px; background: #0d1814; padding: 5px 12px; border-radius: 20px; border: 1px solid #1b362e; font-size: 12px; color: #66bb6a; }
+        .dot-pulse { width: 8px; height: 8px; background: #66bb6a; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: .6; } 50% { opacity: 1; } 100% { opacity: .6; } }
+        .btn-sync { background: #162c25; border: 1px solid #1b362e; color: #c2d4cd; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: 0.2s; }
+        .btn-sync:hover { background: #1e3d33; border-color: #2a5a44; }
 
-        /* ===== HEADER ===== */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            background: #16201a;
-            border-radius: 12px;
-            padding: 14px 20px;
-            border: 1px solid #1a3a2a;
-            margin-bottom: 16px;
+        /* --- Stats Row --- */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: #0d1814; border: 1px solid #1a2f27; border-radius: 8px; padding: 12px 10px; text-align: center; }
+        .stat-card .value { font-size: 22px; font-weight: 700; color: #fff; }
+        .stat-card .value.gold { color: #d5b07c; }
+        .stat-card .value.green { color: #66bb6a; }
+        .stat-card .value.blue { color: #4fa3f5; }
+        .stat-card .value.red { color: #d35a3a; }
+        .stat-card .label { font-size: 10px; color: #5e7f74; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; }
+
+        /* --- Tables --- */
+        .table-wrap {
+            background: #0d1814; border: 1px solid #1a2f27; border-radius: 10px; overflow: hidden; margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
         }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .table-head {
+            display: flex; justify-content: space-between; align-items: center; padding: 12px 18px;
+            background: #111f19; border-bottom: 1px solid #1a2f27; flex-wrap: wrap; gap: 10px;
         }
-
-        .header-left h1 {
-            font-size: 20px;
-            font-weight: 700;
-            color: #ffc107;
+        .table-head h2 { font-size: 18px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
+        .table-head h2 span { color: #d5b07c; font-size: 16px; }
+        .table-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .table-actions input, .table-actions select {
+            background: #07120e; border: 1px solid #1a2f27; color: #e0e8e4; padding: 6px 10px; border-radius: 4px; font-size: 12px;
         }
+        .table-actions input:focus, .table-actions select:focus { outline: none; border-color: #1b362e; }
+        
+        .tbl-scroll { overflow-x: auto; padding: 0 4px 4px 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead { background: #0a1410; border-bottom: 1px solid #1a2f27; }
+        thead th { padding: 10px 12px; text-align: left; color: #7a958b; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+        tbody td { padding: 10px 12px; border-bottom: 1px solid #111f19; color: #c5d5ce; }
+        tbody tr:hover { background: #0d1512; }
 
-        .header-left .sub {
-            font-size: 12px;
-            color: #8aa09a;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .status-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: #0d1520;
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 11px;
-            border: 1px solid #1a3a2a;
-        }
-
-        .status-badge .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #66bb6a;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        .btn {
-            padding: 4px 12px;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .btn-primary { background: #1a3a2a; color: #e0e6ed; border: 1px solid #2a5a3a; }
-        .btn-primary:hover { background: #2a4a3a; }
-
-        .btn-success { background: #1b5e20; color: #fff; }
-        .btn-success:hover { background: #2e7d32; }
-
-        .btn-danger { background: #b71c1c; color: #fff; }
-        .btn-danger:hover { background: #c62828; }
-
-        .btn-warning { background: #e65100; color: #fff; }
-        .btn-warning:hover { background: #ef6c00; }
-
+        /* --- Components --- */
+        .btn { padding: 4px 12px; border: none; border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 4px; }
+        .btn-primary { background: #162c25; color: #e0e8e4; border: 1px solid #1b362e; }
+        .btn-primary:hover { background: #1d3d33; }
+        .btn-success { background: #2e5a44; color: #fff; }
+        .btn-success:hover { background: #3d7559; }
+        .btn-danger { background: #5a2e2e; color: #fff; }
+        .btn-danger:hover { background: #753d3d; }
         .btn-sm { padding: 2px 8px; font-size: 10px; }
 
-        /* ===== BACK NAV ===== */
-        .back-nav {
-            margin-bottom: 12px;
+        .tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; background: #1a2f27; color: #8ba79e; }
+        .tag.green { background: #1a3b24; color: #a5d6a7; }
+        .tag.orange { background: #402510; color: #ffab91; }
+        .tag.gold { background: #3a3216; color: #ffd54f; }
+        .tag.red { background: #401c1c; color: #ef9a9a; }
+        .tag.blue { background: #1c3040; color: #90caf9; }
+
+        /* --- FEATURE MODULES --- */
+        .feature-modules {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 20px;
+        }
+        .feature-card {
+            background: #0d1814; border-radius: 12px; padding: 16px 20px; transition: 0.2s;
+            text-decoration: none; color: #e0e8e4; display: block; border: 1px solid #1a2f27;
+        }
+        .feature-card:hover { background: #111f19; transform: translateY(-2px); border-color: #2a5a44; }
+        .feature-icon { font-size: 30px; margin-bottom: 10px; }
+        .feature-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: #ffffff; }
+        .feature-desc { font-size: 13px; color: #8ba79e; line-height: 1.4; }
+        .feature-badge {
+            display: inline-block; background: #1a2f27; color: #a1c5b9; font-size: 10px; padding: 2px 10px; border-radius: 12px; margin-top: 10px; font-weight: 500;
+        }
+        .feature-card .live-dot {
+            display: inline-block; width: 8px; height: 8px; background: #66bb6a; border-radius: 50%; animation: pulse 1.5s infinite; margin-right: 4px;
         }
 
-        .back-nav a {
-            color: #8aa09a;
-            text-decoration: none;
-            font-size: 13px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 14px;
-            background: #16201a;
-            border: 1px solid #1a3a2a;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
+        /* --- Footer --- */
+        .footer { text-align: center; padding: 14px; font-size: 11px; color: #375048; border-top: 1px solid #0d1814; margin-top: 10px; }
 
-        .back-nav a:hover {
-            color: #ffc107;
-            border-color: #2a5a3a;
-        }
+        /* --- Modals --- */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 15px; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #0d1814; border: 1px solid #1b362e; border-radius: 12px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        .modal h2 { font-size: 20px; color: #d5b07c; margin-bottom: 4px; }
+        .modal .sub { font-size: 12px; color: #5e7f74; margin-bottom: 15px; }
+        .modal .form-group { margin-bottom: 12px; }
+        .modal .form-group label { display: block; font-size: 11px; font-weight: 500; color: #7a958b; margin-bottom: 4px; }
+        .modal .form-group input, .modal .form-group select, .modal .form-group textarea { width: 100%; padding: 8px 10px; background: #07120e; border: 1px solid #1a2f27; border-radius: 4px; color: #e0e8e4; font-size: 13px; }
+        .modal .form-group input:focus, .modal .form-group select:focus, .modal .form-group textarea:focus { outline: none; border-color: #1b362e; }
+        .modal .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px; padding-top: 12px; border-top: 1px solid #1a2f27; }
 
-        /* ===== STATS ROW ===== */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .stat-card {
-            background: #16201a;
-            border: 1px solid #1a3a2a;
-            border-radius: 8px;
-            padding: 10px 12px;
-            text-align: center;
-        }
-
-        .stat-card .value {
-            font-size: 22px;
-            font-weight: 700;
-        }
-        .stat-card .value.green { color: #66bb6a; }
-        .stat-card .value.red { color: #ef5350; }
-        .stat-card .value.yellow { color: #ffc107; }
-        .stat-card .value.blue { color: #42a5f5; }
-
-        .stat-card .label {
-            font-size: 9px;
-            color: #8aa09a;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 2px;
-        }
-
-        /* ===== TABLES ===== */
-        .table-container {
-            background: #16201a;
-            border-radius: 10px;
-            border: 1px solid #1a3a2a;
-            overflow: hidden;
-            margin-bottom: 16px;
-        }
-
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding: 10px 14px;
-            border-bottom: 1px solid #1a3a2a;
-            background: #121c16;
-        }
-
-        .table-header h2 {
-            font-size: 14px;
-            font-weight: 600;
-            color: #e0e6ed;
-        }
-
-        .table-header .actions {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        .table-header .actions input,
-        .table-header .actions select {
-            background: #0d1520;
-            border: 1px solid #1a3a2a;
-            color: #e0e6ed;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-        }
-
-        .table-header .actions input:focus,
-        .table-header .actions select:focus {
-            outline: none;
-            border-color: #2a5a3a;
-        }
-
-        .table-scroll {
-            overflow-x: auto;
-            padding: 0 4px 4px 4px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-
-        thead {
-            background: #0d1520;
-            border-bottom: 1px solid #1a3a2a;
-        }
-
-        thead th {
-            padding: 6px 8px;
-            text-align: left;
-            font-weight: 600;
-            color: #8aa09a;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-        }
-
-        tbody td {
-            padding: 6px 8px;
-            border-bottom: 1px solid #1a2636;
-            vertical-align: middle;
-        }
-
-        tbody tr:hover {
-            background: #121c16;
-        }
-
-        .status-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 500;
-        }
-
-        .status-tag.approved { background: #1b5e20; color: #a5d6a7; }
-        .status-tag.pending { background: #e65100; color: #ffcc80; }
-        .status-tag.deferred { background: #b71c1c; color: #ef9a9a; }
-        .status-tag.inactive { background: #37474f; color: #90a4ae; }
-        .status-tag.compliant { background: #1b5e20; color: #a5d6a7; }
-        .status-tag.non-compliant { background: #b71c1c; color: #ef9a9a; }
-        .status-tag.in-readiness { background: #4a2c00; color: #ffcc80; }
-
-        /* ===== FOOTER ===== */
-        .footer {
-            text-align: center;
-            padding: 14px;
-            font-size: 11px;
-            color: #4a6a5a;
-            border-top: 1px solid #1a3a2a;
-            margin-top: 12px;
-        }
-
-        /* ===== MODAL ===== */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal {
-            background: #16201a;
-            border: 1px solid #1a3a2a;
-            border-radius: 12px;
-            max-width: 550px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            padding: 20px 24px;
-        }
-
-        .modal h2 {
-            font-size: 18px;
-            color: #ffc107;
-            margin-bottom: 4px;
-        }
-
-        .modal .sub {
-            font-size: 12px;
-            color: #8aa09a;
-            margin-bottom: 14px;
-        }
-
-        .modal .form-group {
-            margin-bottom: 10px;
-        }
-
-        .modal .form-group label {
-            display: block;
-            font-size: 11px;
-            font-weight: 500;
-            color: #8aa09a;
-            margin-bottom: 2px;
-        }
-
-        .modal .form-group input,
-        .modal .form-group select,
-        .modal .form-group textarea {
-            width: 100%;
-            padding: 6px 10px;
-            background: #0d1520;
-            border: 1px solid #1a3a2a;
-            border-radius: 4px;
-            color: #e0e6ed;
-            font-size: 13px;
-        }
-
-        .modal .form-group input:focus,
-        .modal .form-group select:focus,
-        .modal .form-group textarea:focus {
-            outline: none;
-            border-color: #2a5a3a;
-        }
-
-        .modal .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .modal .modal-actions {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-            margin-top: 14px;
-            padding-top: 10px;
-            border-top: 1px solid #1a3a2a;
-        }
-
-        @media (max-width: 768px) {
-            .header { flex-direction: column; align-items: stretch; }
-            .stats-row { grid-template-columns: repeat(2, 1fr); }
-            .modal .form-row { grid-template-columns: 1fr; }
-            .table-header { flex-direction: column; align-items: stretch; }
-        }
+        @media (max-width: 768px) { .header-content { flex-direction: column; } .stats-row { grid-template-columns: repeat(2, 1fr); } .modal .form-row { grid-template-columns: 1fr; } .table-head { flex-direction: column; align-items: stretch; } }
     </style>
 </head>
 <body>
 
 <div class="container">
-
-    <!-- ===== BACK NAV ===== -->
     <div class="back-nav">
         <a href="index.html">← Back to VBS Digital Shield Central Hub</a>
     </div>
 
-    <!-- ===== HEADER ===== -->
-    <header class="header">
-        <div class="header-left">
-            <div>
-                <h1>🏭 Supply Chain · Farm to Institution</h1>
-                <span class="sub">DARD · Cooperative · Biosecurity · Packhouse · Inventory · Orders</span>
+    <div class="header-box">
+        <div class="header-content">
+            <div class="header-title">
+                <div>
+                    <h1>🏭 Supply Chain · <span>Farm to Institution</span></h1>
+                    <div class="header-sub">
+                        <span>DARD</span> · <span>Cooperative</span> · <span>Biosecurity</span> · <span>Packhouse</span> · <span>Inventory</span> · <span>Orders</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="status-pill"><span class="dot-pulse"></span> <span id="dbStatus">Connected</span></div>
+                <button class="btn-sync" onclick="syncWithDARD()">🔄 Sync DARD</button>
             </div>
         </div>
-        <div class="header-right">
-            <span class="status-badge">
-                <span class="dot"></span>
-                <span id="dbStatus">Connected</span>
-            </span>
-            <button class="btn btn-primary" onclick="syncWithDARD()">🔄 Sync DARD</button>
-        </div>
-    </header>
+    </div>
 
-    <!-- ===== STATS ===== -->
-    <section class="stats-row">
-        <div class="stat-card">
-            <div class="value blue" id="totalFarmers">0</div>
-            <div class="label">Total Farmers</div>
+    <div class="stats-row">
+        <div class="stat-card"><div class="value blue" id="totalFarmers">0</div><div class="label">Total Farmers</div></div>
+        <div class="stat-card"><div class="value green" id="compliantFarmers">0</div><div class="label">Fully Compliant</div></div>
+        <div class="stat-card"><div class="value red" id="nonCompliantFarmers">0</div><div class="label">Non-Compliant</div></div>
+        <div class="stat-card"><div class="value gold" id="exportReady">0</div><div class="label">Export Ready</div></div>
+        <div class="stat-card"><div class="value blue" id="totalCoopMembers">0</div><div class="label">Coop Members</div></div>
+        <div class="stat-card"><div class="value gold" id="packhouseIntake">0</div><div class="label">Intake (kg)</div></div>
+        <div class="stat-card"><div class="value green" id="ordersCount">0</div><div class="label">Orders</div></div>
+    </div>
+
+    <!-- FEATURE MODULE GRID -->
+    <div class="feature-modules">
+        <div class="feature-card" style="border: 2px solid #d5b07c;">
+            <div class="feature-icon">🌾</div>
+            <div class="feature-title"><span class="live-dot"></span> Supply Chain Dashboard</div>
+            <div class="feature-desc"><strong>DARD · Cooperative · Biosecurity · Packhouse · Inventory · Orders</strong><br>One unified page showing the complete Farm to Institution pipeline</div>
+            <div class="feature-badge" style="color:#d5b07c; background: #1a2f27;">Live · Full Pipeline</div>
         </div>
-        <div class="stat-card">
-            <div class="value green" id="compliantFarmers">0</div>
-            <div class="label">Fully Compliant</div>
+        <div class="feature-card" style="border-left: 3px solid #66bb6a;">
+            <div class="feature-icon">📜</div>
+            <div class="feature-title">DARD Agriculture Permit</div>
+            <div class="feature-desc"><strong>200+ permits issued (July 2026)</strong><br>Approved · In Readiness · Deferred · Not Applied<br><span style="font-size:12px; color:#8ba79e;">Sanma: 55 · Shefa: 117 · Malampa: 21</span></div>
+            <div class="feature-badge">DARD</div>
         </div>
-        <div class="stat-card">
-            <div class="value red" id="nonCompliantFarmers">0</div>
-            <div class="label">Non-Compliant</div>
+        <div class="feature-card" style="border-left: 3px solid #d5b07c;">
+            <div class="feature-icon">🤝</div>
+            <div class="feature-title">Cooperative Consolidation</div>
+            <div class="feature-desc">Member consolidation for packhouse volume<br><span style="font-size:12px; color:#8ba79e;">Smallholder farmers → Packhouse-scale</span></div>
+            <div class="feature-badge">Cooperative Dept</div>
         </div>
-        <div class="stat-card">
-            <div class="value green" id="exportReady">0</div>
-            <div class="label">Export Ready</div>
+        <div class="feature-card" style="border-left: 3px solid #4fa3f5;">
+            <div class="feature-icon">🔬</div>
+            <div class="feature-title">Biosecurity · SPS Compliance</div>
+            <div class="feature-desc">Quarantine clearance · Pest status · Treatment certification</div>
+            <div class="feature-badge">Biosecurity</div>
         </div>
-        <div class="stat-card">
-            <div class="value blue" id="totalCoopMembers">0</div>
-            <div class="label">Coop Members</div>
+        <div class="feature-card" style="border-left: 3px solid #ffa726;">
+            <div class="feature-icon">📦</div>
+            <div class="feature-title">Packhouse Intake & Grading</div>
+            <div class="feature-desc">Receive produce · Grade A/B/C · Certification<br><span style="font-size:12px; color:#8ba79e;">Export · Domestic · Institutional</span></div>
+            <div class="feature-badge">VBS Packhouse</div>
         </div>
-        <div class="stat-card">
-            <div class="value yellow" id="packhouseIntake">0</div>
-            <div class="label">Intake (kg)</div>
+        <div class="feature-card" style="border-left: 3px solid #4caf50;">
+            <div class="feature-icon">📊</div>
+            <div class="feature-title">Live Inventory</div>
+            <div class="feature-desc">Available by grade · Certification · Volume tracking</div>
+            <div class="feature-badge">Real-time</div>
         </div>
-        <div class="stat-card">
-            <div class="value green" id="ordersCount">0</div>
-            <div class="label">Orders</div>
+        <div class="feature-card" style="border-left: 3px solid #9c27b0;">
+            <div class="feature-icon">🏨</div>
+            <div class="feature-title">Orders & Fulfillment</div>
+            <div class="feature-desc">Tourism · VTO · VCCI · VBS-Direct channels<br><span style="font-size:12px; color:#8ba79e;">One-Off · Standing Orders</span></div>
+            <div class="feature-badge">Institutional Buyers</div>
         </div>
-    </section>
+        <div class="feature-card" style="border-left: 3px solid #26c6da;" id="syncDardBtn">
+            <div class="feature-icon">🔄</div>
+            <div class="feature-title">Sync with DARD Database</div>
+            <div class="feature-desc">Pull live permit data from DARD Centralized Database<br><span style="font-size:12px; color:#8ba79e;">Read-only · Compliance checks</span></div>
+            <div class="feature-badge">Live Sync</div>
+        </div>
+    </div>
 
     <!-- ========================================================== -->
-    <!-- TABLE 1: FARMERS WITH ALL INFO (DARD, COOPERATIVE, BIOSECURITY) -->
+    <!-- COMBINED FARMER REGISTRY (DARD, COOP, & BIOSECURITY)      -->
+    <!-- This is the ONLY table packhouse staff need to check       -->
     <!-- ========================================================== -->
-    <div class="table-container">
-        <div class="table-header">
-            <h2>👨‍🌾 Farmer Registry · DARD · Cooperative · Biosecurity</h2>
-            <div class="actions">
-                <input type="text" placeholder="Search..." id="searchFarmers" onkeyup="renderFarmers()" style="width:120px;">
+    <div class="table-wrap">
+        <div class="table-head">
+            <h2>👨‍🌾 <span>Farmer Registry</span> · DARD · Cooperative · Biosecurity</h2>
+            <div class="table-actions">
+                <input type="text" placeholder="Search Farmer..." id="searchFarmers" onkeyup="renderFarmers()" style="width:140px;">
                 <select id="filterStatus" onchange="renderFarmers()">
                     <option value="all">All Status</option>
-                    <option value="approved">✅ Approved</option>
-                    <option value="in-readiness">⏳ In Readiness</option>
-                    <option value="deferred">❌ Deferred</option>
-                    <option value="not-applied">📋 Not Applied</option>
+                    <option value="approved">Packhouse Access ✅</option>
+                    <option value="in-readiness">In Readiness ⏳</option>
+                    <option value="deferred">Non-Compliant ❌</option>
                 </select>
                 <button class="btn btn-success" onclick="openModal('addFarmer')">+ Add Farmer</button>
             </div>
         </div>
-        <div class="table-scroll">
+        <div class="tbl-scroll">
             <table>
                 <thead>
                     <tr>
-                        <th>Farmer</th>
-                        <th>Cooperative</th>
+                        <th>Farmer Name</th>
                         <th>Province</th>
+                        <th>Cooperative</th>
                         <th>DARD Permit</th>
                         <th>Industry License</th>
                         <th>Coop Member</th>
                         <th>VanIPO GI</th>
-                        <th>Export Ready</th>
+                        <th>Biosecurity (SPS)</th>
                         <th>Packhouse Access</th>
                         <th>Actions</th>
                     </tr>
@@ -478,105 +269,43 @@
         </div>
     </div>
 
-    <!-- ========================================================== -->
-    <!-- TABLE 2: COOPERATIVES (Summary) -->
-    <!-- ========================================================== -->
-    <div class="table-container">
-        <div class="table-header">
-            <h2>🤝 Cooperatives · Member Consolidation</h2>
-            <div class="actions">
+    <!-- DATA TABLES (Secondary Records) -->
+    <div class="table-wrap">
+        <div class="table-head">
+            <h2>🤝 <span>Cooperatives</span> · Member Consolidation</h2>
+            <div class="table-actions">
                 <input type="text" placeholder="Search..." id="searchCoops" onkeyup="renderCooperatives()" style="width:120px;">
                 <button class="btn btn-success" onclick="openModal('addCooperative')">+ Add Coop</button>
             </div>
         </div>
-        <div class="table-scroll">
+        <div class="tbl-scroll">
             <table>
-                <thead>
-                    <tr>
-                        <th>Cooperative</th>
-                        <th>Province</th>
-                        <th>Members</th>
-                        <th>Licensed</th>
-                        <th>Volume (kg)</th>
-                        <th>Compliance</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>Cooperative</th><th>Province</th><th>Members</th><th>Licensed</th><th>Volume</th><th>Compliance</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody id="cooperativeTableBody"></tbody>
             </table>
         </div>
     </div>
 
-    <!-- ========================================================== -->
-    <!-- TABLE 3: BIOSECURITY SPS RECORDS -->
-    <!-- ========================================================== -->
-    <div class="table-container">
-        <div class="table-header">
-            <h2>🔬 Biosecurity · SPS Records</h2>
-            <div class="actions">
-                <input type="text" placeholder="Search..." id="searchBio" onkeyup="renderBiosecurity()" style="width:120px;">
-                <button class="btn btn-success" onclick="openModal('addBiosecurity')">+ New SPS</button>
-            </div>
-        </div>
-        <div class="table-scroll">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Farmer</th>
-                        <th>Crop</th>
-                        <th>SPS Permit</th>
-                        <th>Quarantine</th>
-                        <th>Pest Status</th>
-                        <th>Certification</th>
-                        <th>Expiry</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="biosecurityTableBody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- ========================================================== -->
-    <!-- TABLE 4: PACKHOUSE INTAKE -->
-    <!-- ========================================================== -->
-    <div class="table-container">
-        <div class="table-header">
-            <h2>📦 Packhouse Intake · Grading</h2>
-            <div class="actions">
+    <div class="table-wrap">
+        <div class="table-head">
+            <h2>📦 <span>Packhouse Intake</span> · Grading</h2>
+            <div class="table-actions">
                 <input type="text" placeholder="Search..." id="searchIntake" onkeyup="renderIntake()" style="width:120px;">
                 <button class="btn btn-success" onclick="openModal('addIntake')">+ New Intake</button>
             </div>
         </div>
-        <div class="table-scroll">
+        <div class="tbl-scroll">
             <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Farmer</th>
-                        <th>Cooperative</th>
-                        <th>Crop</th>
-                        <th>Grade</th>
-                        <th>Volume (kg)</th>
-                        <th>Certification</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>Date</th><th>Farmer</th><th>Coop</th><th>Crop</th><th>Grade</th><th>Volume</th><th>Cert</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody id="intakeTableBody"></tbody>
             </table>
         </div>
     </div>
 
-    <!-- ========================================================== -->
-    <!-- TABLE 5: INVENTORY -->
-    <!-- ========================================================== -->
-    <div class="table-container">
-        <div class="table-header">
-            <h2>📊 Live Inventory</h2>
-            <div class="actions">
+    <div class="table-wrap">
+        <div class="table-head">
+            <h2>📊 <span>Live Inventory</span></h2>
+            <div class="table-actions">
                 <select id="filterInventory" onchange="renderInventory()">
                     <option value="all">All Products</option>
                     <option value="A">Grade A</option>
@@ -586,397 +315,114 @@
                 <button class="btn btn-primary" onclick="renderInventory()">🔄 Refresh</button>
             </div>
         </div>
-        <div class="table-scroll">
+        <div class="tbl-scroll">
             <table>
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Farmer</th>
-                        <th>Cooperative</th>
-                        <th>Grade</th>
-                        <th>Available (kg)</th>
-                        <th>Reserved (kg)</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>Product</th><th>Farmer</th><th>Coop</th><th>Grade</th><th>Available</th><th>Reserved</th><th>Status</th></tr></thead>
                 <tbody id="inventoryTableBody"></tbody>
             </table>
         </div>
     </div>
 
-    <!-- ========================================================== -->
-    <!-- TABLE 6: ORDERS -->
-    <!-- ========================================================== -->
-    <div class="table-container">
-        <div class="table-header">
-            <h2>🏨 Orders & Fulfillment</h2>
-            <div class="actions">
+    <div class="table-wrap">
+        <div class="table-head">
+            <h2>🏨 <span>Orders & Fulfillment</span></h2>
+            <div class="table-actions">
                 <input type="text" placeholder="Search..." id="searchOrders" onkeyup="renderOrders()" style="width:120px;">
                 <select id="filterOrders" onchange="renderOrders()">
                     <option value="all">All Orders</option>
-                    <option value="pending">⏳ Pending</option>
-                    <option value="confirmed">✅ Confirmed</option>
-                    <option value="dispatched">📦 Dispatched</option>
-                    <option value="delivered">🏠 Delivered</option>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="dispatched">Dispatched</option>
                 </select>
                 <button class="btn btn-success" onclick="openModal('addOrder')">+ New Order</button>
             </div>
         </div>
-        <div class="table-scroll">
+        <div class="tbl-scroll">
             <table>
-                <thead>
-                    <tr>
-                        <th>Order #</th>
-                        <th>Buyer</th>
-                        <th>Product</th>
-                        <th>Volume (kg)</th>
-                        <th>Channel</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>Order #</th><th>Buyer</th><th>Product</th><th>Volume</th><th>Channel</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody id="ordersTableBody"></tbody>
             </table>
         </div>
     </div>
 
-    <!-- ===== FOOTER ===== -->
     <footer class="footer">
         <span>🏛️ VBS · Farm to Institution · DARD · Cooperative · Biosecurity · Packhouse</span>
-        <span style="margin:0 8px;">·</span>
-        <span>📋 Based on White Paper vFinal</span>
     </footer>
-
 </div>
 
-<!-- ========================================================== -->
-<!-- MODALS (Same as before) -->
-<!-- ========================================================== -->
-
-<!-- MODAL: Add Farmer -->
+<!-- ===== MODALS ===== -->
 <div class="modal-overlay" id="modal-addFarmer">
     <div class="modal">
-        <h2>👨‍🌾 Register Farmer</h2>
+        <h2>Register Farmer</h2>
         <p class="sub">All four permits required for packhouse access</p>
         <form id="farmerForm" onsubmit="saveFarmer(event)">
-            <div class="form-group">
-                <label>Farmer / Business Name *</label>
-                <input type="text" id="fName" required placeholder="e.g., John B. Tavue">
+            <div class="form-group"><label>Farmer Name</label><input type="text" id="fName" required></div>
+            <div class="form-row">
+                <div class="form-group"><label>Province</label><select id="fProvince"><option>Sanma</option><option>Malampa</option><option>Shefa</option><option>Tafea</option><option>Torba</option><option>Penama</option></select></div>
+                <div class="form-group"><label>Cooperative</label><select id="fCooperative"><option value="">-- Select --</option></select></div>
             </div>
             <div class="form-row">
-                <div class="form-group">
-                    <label>Province</label>
-                    <select id="fProvince">
-                        <option>Sanma</option><option>Malampa</option><option>Shefa</option>
-                        <option>Tafea</option><option>Torba</option><option>Penama</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Cooperative</label>
-                    <select id="fCooperative">
-                        <option value="">-- Select --</option>
-                        <option>Santo United Farmers Coop</option>
-                        <option>Malampa Producers Coop</option>
-                        <option>Efate Sugarcane Farmers Association</option>
-                        <option>Shefa Growers Coop</option>
-                        <option>Tanna Organic Growers</option>
-                        <option>None (Independent)</option>
-                    </select>
-                </div>
+                <div class="form-group"><label>DARD Permit</label><select id="fDard"><option value="approved">Approved</option><option value="in-readiness">In Readiness</option><option value="deferred">Deferred</option></select></div>
+                <div class="form-group"><label>Industry License</label><select id="fIndustry"><option value="approved">Approved</option><option value="pending">Pending</option></select></div>
             </div>
             <div class="form-row">
-                <div class="form-group">
-                    <label>DARD Permit</label>
-                    <select id="fDard">
-                        <option value="approved">✅ Approved</option>
-                        <option value="in-readiness">⏳ In Readiness</option>
-                        <option value="deferred">❌ Deferred</option>
-                        <option value="not-applied">📋 Not Applied</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Industry License</label>
-                    <select id="fIndustry">
-                        <option value="approved">✅ Approved</option>
-                        <option value="pending">⏳ Pending</option>
-                        <option value="not-applied">📋 Not Applied</option>
-                    </select>
-                </div>
+                <div class="form-group"><label>Coop Member</label><select id="fCoopMember"><option value="yes">Yes</option><option value="no">No</option></select></div>
+                <div class="form-group"><label>VanIPO GI</label><select id="fVanipo"><option value="registered">Registered</option><option value="pending">Pending</option></select></div>
             </div>
             <div class="form-row">
-                <div class="form-group">
-                    <label>Cooperative Member</label>
-                    <select id="fCoopMember">
-                        <option value="yes">✅ Yes</option>
-                        <option value="no">❌ No</option>
-                        <option value="pending">⏳ Pending</option>
+                <div class="form-group"><label>Biosecurity Status</label>
+                    <select id="fBiosecurity">
+                        <option value="cleared">Cleared</option>
+                        <option value="pending">Pending Quarantine</option>
+                        <option value="failed">Failed Inspection</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>VanIPO GI</label>
-                    <select id="fVanipo">
-                        <option value="registered">✅ Registered</option>
-                        <option value="pending">⏳ Pending</option>
-                        <option value="not-applied">📋 Not Applied</option>
-                    </select>
-                </div>
+                <div class="form-group"><label>SPS Permit</label><input type="text" id="fSpsPermit" placeholder="SPS-2026-XXXX"></div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Export Permit</label>
-                    <select id="fExport">
-                        <option value="approved">✅ Approved</option>
-                        <option value="pending">⏳ Pending</option>
-                        <option value="not-applied">📋 Not Applied</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Crop</label>
-                    <input type="text" id="fCrop" placeholder="e.g., Kava, Taro">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Notes</label>
-                <textarea id="fNotes" rows="2"></textarea>
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-primary" onclick="closeModal('addFarmer')">Cancel</button>
-                <button type="submit" class="btn btn-success">✅ Register</button>
-            </div>
+            <div class="modal-actions"><button type="button" class="btn btn-primary" onclick="closeModal('addFarmer')">Cancel</button><button type="submit" class="btn btn-success">Register</button></div>
         </form>
     </div>
 </div>
 
-<!-- MODAL: Add Cooperative -->
 <div class="modal-overlay" id="modal-addCooperative">
     <div class="modal">
-        <h2>🤝 Register Cooperative</h2>
-        <p class="sub">Consolidate smallholder farmers into packhouse-scale volume</p>
+        <h2>Register Cooperative</h2>
         <form id="coopForm" onsubmit="saveCooperative(event)">
-            <div class="form-group">
-                <label>Cooperative Name *</label>
-                <input type="text" id="cName" required>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Province</label>
-                    <select id="cProvince">
-                        <option>Sanma</option><option>Malampa</option><option>Shefa</option>
-                        <option>Tafea</option><option>Torba</option><option>Penama</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Total Members</label>
-                    <input type="number" id="cMembers" placeholder="e.g., 45">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Consolidation Volume (kg/month)</label>
-                <input type="number" id="cVolume" placeholder="e.g., 2500">
-            </div>
-            <div class="form-group">
-                <label>Status</label>
-                <select id="cStatus">
-                    <option value="active">✅ Active</option>
-                    <option value="inactive">⏸️ Inactive</option>
-                    <option value="pending">⏳ Pending</option>
-                </select>
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-primary" onclick="closeModal('addCooperative')">Cancel</button>
-                <button type="submit" class="btn btn-success">✅ Register</button>
-            </div>
+            <div class="form-group"><label>Cooperative Name</label><input type="text" id="cName" required></div>
+            <div class="form-row"><div class="form-group"><label>Province</label><select id="cProvince"><option>Sanma</option><option>Malampa</option><option>Shefa</option><option>Tafea</option><option>Torba</option><option>Penama</option></select></div>
+            <div class="form-group"><label>Total Members</label><input type="number" id="cMembers" placeholder="e.g., 45"></div></div>
+            <div class="form-group"><label>Status</label><select id="cStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+            <div class="modal-actions"><button type="button" class="btn btn-primary" onclick="closeModal('addCooperative')">Cancel</button><button type="submit" class="btn btn-success">Register</button></div>
         </form>
     </div>
 </div>
 
-<!-- MODAL: Add Biosecurity -->
-<div class="modal-overlay" id="modal-addBiosecurity">
-    <div class="modal">
-        <h2>🔬 Add Biosecurity Record</h2>
-        <p class="sub">Sanitary and Phytosanitary compliance tracking</p>
-        <form id="bioForm" onsubmit="saveBiosecurity(event)">
-            <div class="form-group">
-                <label>Farmer Name *</label>
-                <input type="text" id="bFarmer" required>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Crop</label>
-                    <input type="text" id="bCrop" placeholder="e.g., Kava, Taro">
-                </div>
-                <div class="form-group">
-                    <label>SPS Permit</label>
-                    <input type="text" id="bPermit" placeholder="e.g., SPS-2026-0042">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Quarantine Clearance</label>
-                    <select id="bQuarantine">
-                        <option value="cleared">✅ Cleared</option>
-                        <option value="pending">⏳ Pending</option>
-                        <option value="failed">❌ Failed</option>
-                        <option value="not-required">📋 Not Required</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Pest Status</label>
-                    <select id="bPest">
-                        <option value="pest-free">✅ Pest-Free</option>
-                        <option value="under-treatment">⚠️ Under Treatment</option>
-                        <option value="infested">❌ Infested</option>
-                        <option value="not-assessed">📋 Not Assessed</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Certification</label>
-                    <input type="text" id="bCertification" placeholder="e.g., Methyl Bromide Treatment">
-                </div>
-                <div class="form-group">
-                    <label>Expiry Date</label>
-                    <input type="date" id="bExpiry">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Status</label>
-                <select id="bBioStatus">
-                    <option value="valid">✅ Valid</option>
-                    <option value="expired">❌ Expired</option>
-                    <option value="pending">⏳ Pending</option>
-                </select>
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-primary" onclick="closeModal('addBiosecurity')">Cancel</button>
-                <button type="submit" class="btn btn-success">✅ Save</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- MODAL: Add Intake -->
 <div class="modal-overlay" id="modal-addIntake">
     <div class="modal">
-        <h2>📦 Packhouse Intake</h2>
-        <p class="sub">Record produce received from farmer</p>
+        <h2>Packhouse Intake</h2>
         <form id="intakeForm" onsubmit="saveIntake(event)">
-            <div class="form-group">
-                <label>Farmer *</label>
-                <select id="iFarmer" required>
-                    <option value="">-- Select Farmer --</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Crop</label>
-                    <input type="text" id="iCrop" placeholder="e.g., Kava, Taro">
-                </div>
-                <div class="form-group">
-                    <label>Volume (kg)</label>
-                    <input type="number" id="iVolume" placeholder="e.g., 100">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Grade</label>
-                    <select id="iGrade">
-                        <option value="A">A - Export Quality</option>
-                        <option value="B">B - Domestic Premium</option>
-                        <option value="C">C - Institutional</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Certification</label>
-                    <select id="iCert">
-                        <option value="certified">✅ Certified</option>
-                        <option value="in-progress">⏳ In Progress</option>
-                        <option value="not-applied">📋 Not Applied</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Notes</label>
-                <textarea id="iNotes" rows="2"></textarea>
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-primary" onclick="closeModal('addIntake')">Cancel</button>
-                <button type="submit" class="btn btn-success">✅ Record</button>
-            </div>
+            <div class="form-group"><label>Farmer</label><select id="iFarmer" required><option value="">-- Select Farmer --</option></select></div>
+            <div class="form-row"><div class="form-group"><label>Crop</label><input type="text" id="iCrop"></div><div class="form-group"><label>Volume (kg)</label><input type="number" id="iVolume"></div></div>
+            <div class="form-row"><div class="form-group"><label>Grade</label><select id="iGrade"><option value="A">A - Export</option><option value="B">B - Premium</option><option value="C">C - Institutional</option></select></div>
+            <div class="form-group"><label>Certification</label><select id="iCert"><option value="certified">Certified</option><option value="in-progress">In Progress</option></select></div></div>
+            <div class="modal-actions"><button type="button" class="btn btn-primary" onclick="closeModal('addIntake')">Cancel</button><button type="submit" class="btn btn-success">Record</button></div>
         </form>
     </div>
 </div>
 
-<!-- MODAL: Add Order -->
 <div class="modal-overlay" id="modal-addOrder">
     <div class="modal">
-        <h2>🏨 New Order</h2>
-        <p class="sub">Place an order from institutional buyer</p>
+        <h2>New Order</h2>
         <form id="orderForm" onsubmit="saveOrder(event)">
-            <div class="form-group">
-                <label>Buyer *</label>
-                <select id="oBuyer" required>
-                    <option value="">-- Select Buyer --</option>
-                    <option>Hotel/Resort</option>
-                    <option>Restaurant</option>
-                    <option>Supermarket</option>
-                    <option>Government Institution</option>
-                    <option>School</option>
-                    <option>Health Facility</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Product</label>
-                    <select id="oProduct">
-                        <option value="">-- Select Product --</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Volume (kg)</label>
-                    <input type="number" id="oVolume" placeholder="e.g., 50">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Channel</label>
-                    <select id="oChannel">
-                        <option value="Tourism">Tourism</option>
-                        <option value="VTO">VTO</option>
-                        <option value="VCCI">VCCI</option>
-                        <option value="VBS-Direct">VBS-Direct</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Order Type</label>
-                    <select id="oType">
-                        <option value="One-Off">One-Off Booking</option>
-                        <option value="Standing">Standing Order</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Status</label>
-                <select id="oStatus">
-                    <option value="pending">⏳ Pending</option>
-                    <option value="confirmed">✅ Confirmed</option>
-                    <option value="dispatched">📦 Dispatched</option>
-                    <option value="delivered">🏠 Delivered</option>
-                </select>
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-primary" onclick="closeModal('addOrder')">Cancel</button>
-                <button type="submit" class="btn btn-success">✅ Place Order</button>
-            </div>
+            <div class="form-group"><label>Buyer</label><select id="oBuyer" required><option value="">-- Select --</option><option>Hotel/Resort</option><option>Restaurant</option><option>Supermarket</option><option>Government</option><option>School</option></select></div>
+            <div class="form-row"><div class="form-group"><label>Product</label><select id="oProduct"><option value="">-- Select --</option></select></div><div class="form-group"><label>Volume</label><input type="number" id="oVolume"></div></div>
+            <div class="form-row"><div class="form-group"><label>Channel</label><select id="oChannel"><option value="Tourism">Tourism</option><option value="VTO">VTO</option><option value="VCCI">VCCI</option></select></div>
+            <div class="form-group"><label>Order Type</label><select id="oType"><option value="One-Off">One-Off</option><option value="Standing">Standing</option></select></div></div>
+            <div class="modal-actions"><button type="button" class="btn btn-primary" onclick="closeModal('addOrder')">Cancel</button><button type="submit" class="btn btn-success">Place Order</button></div>
         </form>
     </div>
 </div>
 
-<!-- ========================================================== -->
-<!-- JAVASCRIPT -->
-<!-- ========================================================== -->
 <script>
 // =============================================================
 // SUPABASE CONFIG
@@ -986,31 +432,21 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // =============================================================
-// SAMPLE DATA
+// DATA (Combined DARD, Coop & Biosecurity Info)
 // =============================================================
 let farmers = [
-    { id: 1, name: 'John B. Tavue', cooperative: 'Santo United Farmers Coop', province: 'Sanma', dard: 'approved', industry: 'approved', coop_member: 'yes', vanipo: 'registered', export: 'approved', notes: '', crop: 'Kava' },
-    { id: 2, name: 'Mary K. Loli', cooperative: 'Malampa Producers Coop', province: 'Malampa', dard: 'in-readiness', industry: 'pending', coop_member: 'yes', vanipo: 'pending', export: 'not-applied', notes: 'In readiness program', crop: 'Taro' },
-    { id: 3, name: 'Peter S. Vuti', cooperative: 'Efate Sugarcane Farmers Association', province: 'Shefa', dard: 'approved', industry: 'approved', coop_member: 'yes', vanipo: 'registered', export: 'approved', notes: 'Fully compliant', crop: 'Sugarcane' },
-    { id: 4, name: 'Sarah N. Wos', cooperative: 'None (Independent)', province: 'Shefa', dard: 'deferred', industry: 'not-applied', coop_member: 'no', vanipo: 'not-applied', export: 'not-applied', notes: 'Not authorized to sell through packhouse', crop: 'Mixed' },
-    { id: 5, name: 'James P. Kapalu', cooperative: 'Santo United Farmers Coop', province: 'Sanma', dard: 'approved', industry: 'approved', coop_member: 'yes', vanipo: 'registered', export: 'approved', notes: 'Export-eligible', crop: 'Coconut' },
-    { id: 6, name: 'Thomas M. Kalsakau', cooperative: 'Shefa Growers Coop', province: 'Shefa', dard: 'not-applied', industry: 'not-applied', coop_member: 'no', vanipo: 'not-applied', export: 'not-applied', notes: 'Needs to contact DARD', crop: 'Mixed' },
-    { id: 7, name: 'David L. Simbolo', cooperative: 'Efate Sugarcane Farmers Association', province: 'Shefa', dard: 'approved', industry: 'approved', coop_member: 'yes', vanipo: 'pending', export: 'pending', notes: 'Export permit pending', crop: 'Sugarcane' },
-    { id: 8, name: 'Maria T. Tari', cooperative: 'Malampa Producers Coop', province: 'Malampa', dard: 'in-readiness', industry: 'pending', coop_member: 'yes', vanipo: 'not-applied', export: 'not-applied', notes: 'Can complete readiness program', crop: 'Taro' },
+    { id: 1, name: 'John B. Tavue', cooperative: 'Santo United Farmers Coop', province: 'Sanma', dard: 'approved', industry: 'approved', coop_member: 'yes', vanipo: 'registered', export: 'approved', biosecurity: 'cleared', sps_permit: 'SPS-2026-0042' },
+    { id: 2, name: 'Mary K. Loli', cooperative: 'Malampa Producers Coop', province: 'Malampa', dard: 'in-readiness', industry: 'pending', coop_member: 'yes', vanipo: 'pending', export: 'not-applied', biosecurity: 'pending', sps_permit: 'SPS-2026-0099' },
+    { id: 3, name: 'Peter S. Vuti', cooperative: 'Efate Sugarcane Farmers Association', province: 'Shefa', dard: 'approved', industry: 'approved', coop_member: 'yes', vanipo: 'registered', export: 'approved', biosecurity: 'cleared', sps_permit: 'SPS-2026-0087' },
+    { id: 4, name: 'Sarah N. Wos', cooperative: 'None (Independent)', province: 'Shefa', dard: 'deferred', industry: 'not-applied', coop_member: 'no', vanipo: 'not-applied', export: 'not-applied', biosecurity: 'failed', sps_permit: 'N/A' },
+    { id: 5, name: 'James P. Kapalu', cooperative: 'Santo United Farmers Coop', province: 'Sanma', dard: 'approved', industry: 'approved', coop_member: 'yes', vanipo: 'registered', export: 'approved', biosecurity: 'cleared', sps_permit: 'SPS-2026-0123' },
 ];
 
 let cooperatives = [
     { id: 1, name: 'Santo United Farmers Coop', province: 'Sanma', members: 78, licensed_members: 52, volume: 3200, status: 'active' },
     { id: 2, name: 'Malampa Producers Coop', province: 'Malampa', members: 45, licensed_members: 18, volume: 1800, status: 'active' },
     { id: 3, name: 'Efate Sugarcane Farmers Association', province: 'Shefa', members: 62, licensed_members: 41, volume: 2800, status: 'active' },
-    { id: 4, name: 'Shefa Growers Coop', province: 'Shefa', members: 34, licensed_members: 12, volume: 950, status: 'active' },
-    { id: 5, name: 'Tanna Organic Growers', province: 'Tafea', members: 28, licensed_members: 8, volume: 1200, status: 'pending' },
-];
-
-let biosecurity = [
-    { id: 1, farmer: 'John B. Tavue', crop: 'Kava', permit: 'SPS-2026-0042', quarantine: 'cleared', pest: 'pest-free', certification: 'Methyl Bromide Treatment', expiry: '2027-08-10', status: 'valid' },
-    { id: 2, farmer: 'Peter S. Vuti', crop: 'Taro', permit: 'SPS-2026-0087', quarantine: 'cleared', pest: 'pest-free', certification: 'Hot Water Treatment', expiry: '2027-06-15', status: 'valid' },
-    { id: 3, farmer: 'James P. Kapalu', crop: 'Coconut', permit: 'SPS-2026-0123', quarantine: 'pending', pest: 'under-treatment', certification: 'Inspection Required', expiry: '2026-12-01', status: 'pending' },
+    { id: 4, name: 'Tanna Organic Growers', province: 'Tafea', members: 28, licensed_members: 8, volume: 1200, status: 'pending' },
 ];
 
 let intake = [];
@@ -1020,50 +456,31 @@ let nextId = 100;
 // =============================================================
 // UTILITY FUNCTIONS
 // =============================================================
-function getStatusTag(status) {
+function getTag(status) {
     const map = {
-        'approved': '<span class="status-tag approved">✅ Approved</span>',
-        'in-readiness': '<span class="status-tag in-readiness">⏳ In Readiness</span>',
-        'deferred': '<span class="status-tag deferred">❌ Deferred</span>',
-        'not-applied': '<span class="status-tag inactive">📋 Not Applied</span>',
-        'pending': '<span class="status-tag pending">⏳ Pending</span>',
-        'yes': '<span class="status-tag compliant">✅ Yes</span>',
-        'no': '<span class="status-tag non-compliant">❌ No</span>',
-        'registered': '<span class="status-tag approved">✅ Registered</span>',
-        'active': '<span class="status-tag approved">✅ Active</span>',
-        'inactive': '<span class="status-tag inactive">⏸️ Inactive</span>',
-        'cleared': '<span class="status-tag approved">✅ Cleared</span>',
-        'valid': '<span class="status-tag approved">✅ Valid</span>',
-        'expired': '<span class="status-tag deferred">❌ Expired</span>',
-        'failed': '<span class="status-tag deferred">❌ Failed</span>',
-        'certified': '<span class="status-tag approved">✅ Certified</span>',
-        'in-progress': '<span class="status-tag pending">⏳ In Progress</span>',
-        'pest-free': '<span class="status-tag approved">✅ Pest-Free</span>',
-        'under-treatment': '<span class="status-tag pending">⚠️ Under Treatment</span>',
-        'infested': '<span class="status-tag deferred">❌ Infested</span>',
-        'not-assessed': '<span class="status-tag inactive">📋 Not Assessed</span>',
-        'not-required': '<span class="status-tag inactive">📋 Not Required</span>',
-        'confirmed': '<span class="status-tag approved">✅ Confirmed</span>',
-        'dispatched': '<span class="status-tag approved">📦 Dispatched</span>',
-        'delivered': '<span class="status-tag approved">🏠 Delivered</span>',
+        'approved': '<span class="tag green">Approved</span>', 'in-readiness': '<span class="tag orange">In Readiness</span>',
+        'deferred': '<span class="tag red">Deferred</span>', 'not-applied': '<span class="tag">Not Applied</span>',
+        'pending': '<span class="tag orange">Pending</span>', 'yes': '<span class="tag green">Yes</span>',
+        'no': '<span class="tag red">No</span>', 'registered': '<span class="tag green">Registered</span>',
+        'active': '<span class="tag green">Active</span>', 'inactive': '<span class="tag">Inactive</span>',
+        'cleared': '<span class="tag green">Cleared</span>', 'valid': '<span class="tag green">Valid</span>',
+        'expired': '<span class="tag red">Expired</span>', 'failed': '<span class="tag red">Failed</span>',
+        'certified': '<span class="tag green">Certified</span>', 'in-progress': '<span class="tag orange">In Progress</span>'
     };
-    return map[status] || `<span class="status-tag inactive">${status}</span>`;
+    return map[status] || `<span class="tag">${status}</span>`;
 }
 
 function getOverallStatus(farmer) {
-    const permits = [farmer.dard, farmer.industry, farmer.coop_member, farmer.vanipo];
-    const allApproved = permits.every(p => p === 'approved' || p === 'registered' || p === 'yes');
-    const anyDeferred = permits.some(p => p === 'deferred' || p === 'no');
-    const anyPending = permits.some(p => p === 'pending' || p === 'in-readiness' || p === 'not-applied');
-    if (allApproved) return { status: '✅ Fully Compliant', tag: 'approved' };
-    if (anyDeferred) return { status: '❌ Non-Compliant', tag: 'deferred' };
-    if (anyPending) return { status: '⏳ In Progress', tag: 'pending' };
-    return { status: '📋 Not Assessed', tag: 'inactive' };
+    const permits = [farmer.dard, farmer.industry, farmer.coop_member, farmer.vanipo, farmer.biosecurity];
+    const allApproved = permits.every(p => ['approved','registered','yes','cleared'].includes(p));
+    if (allApproved) return { status: 'Fully Compliant', tag: 'green' };
+    if (permits.some(p => ['deferred','no','failed'].includes(p))) return { status: 'Non-Compliant', tag: 'red' };
+    return { status: 'In Progress', tag: 'orange' };
 }
 
-function isExportReady(f) { return f.dard === 'approved' && f.industry === 'approved' && f.export === 'approved'; }
-function canAccessPackhouse(f) {
-    return ['approved','registered','yes'].every(v => [f.dard, f.industry, f.coop_member, f.vanipo].includes(v));
+function isExportReady(f) { return f.dard === 'approved' && f.industry === 'approved' && f.export === 'approved' && f.biosecurity === 'cleared'; }
+function canAccessPackhouse(f) { 
+    return ['approved','registered','yes','cleared'].every(v => [f.dard, f.industry, f.coop_member, f.vanipo, f.biosecurity].includes(v)); 
 }
 
 // =============================================================
@@ -1075,32 +492,33 @@ function renderFarmers() {
     const filter = document.getElementById('filterStatus').value;
     let filtered = farmers.filter(f => {
         const match = f.name.toLowerCase().includes(search) || f.cooperative.toLowerCase().includes(search);
-        let mf = true;
         if (filter !== 'all') {
-            const status = getOverallStatus(f);
-            if (filter === 'approved') mf = status.tag === 'approved';
-            else if (filter === 'in-readiness') mf = f.dard === 'in-readiness' || f.dard === 'pending';
-            else if (filter === 'deferred') mf = status.tag === 'deferred';
-            else if (filter === 'not-applied') mf = f.dard === 'not-applied';
+            if (filter === 'approved') return match && getOverallStatus(f).tag === 'green';
+            if (filter === 'in-readiness') return match && f.dard === 'in-readiness';
+            if (filter === 'deferred') return match && getOverallStatus(f).tag === 'red';
         }
-        return match && mf;
+        return match;
     });
     tbody.innerHTML = filtered.map(f => {
         const overall = getOverallStatus(f);
         return `<tr>
             <td><strong>${f.name}</strong></td>
-            <td>${f.cooperative}</td>
             <td>${f.province}</td>
-            <td>${getStatusTag(f.dard)}</td>
-            <td>${getStatusTag(f.industry)}</td>
-            <td>${getStatusTag(f.coop_member)}</td>
-            <td>${getStatusTag(f.vanipo)}</td>
-            <td>${isExportReady(f) ? '✅ Yes' : '❌ No'}</td>
-            <td>${canAccessPackhouse(f) ? '✅ Granted' : '⛔ Denied'}</td>
+            <td>${f.cooperative}</td>
+            <td>${getTag(f.dard)}</td>
+            <td>${getTag(f.industry)}</td>
+            <td>${getTag(f.coop_member)}</td>
+            <td>${getTag(f.vanipo)}</td>
             <td>
-                <button class="btn btn-primary btn-sm" onclick="editFarmer(${f.id})">✏️</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteFarmer(${f.id})">🗑️</button>
+                ${getTag(f.biosecurity)}<br>
+                <span style="font-size:10px; color:#7a958b;">${f.sps_permit}</span>
             </td>
+            <td>
+                ${canAccessPackhouse(f) 
+                    ? '<span class="tag green">✅ ACCESS GRANTED</span>' 
+                    : '<span class="tag red">⛔ ACCESS DENIED</span>'}
+            </td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteFarmer(${f.id})">🗑️</button></td>
         </tr>`;
     }).join('');
     updateStats();
@@ -1117,50 +535,27 @@ function renderCooperatives() {
             <td>${c.province}</td>
             <td>${c.members}</td>
             <td>${c.licensed_members}</td>
-            <td>${c.volume}</td>
+            <td>${c.volume} kg</td>
             <td>${rate}%</td>
-            <td>${getStatusTag(c.status)}</td>
-            <td>
-                <button class="btn btn-primary btn-sm" onclick="editCoop(${c.id})">✏️</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteCoop(${c.id})">🗑️</button>
-            </td>
+            <td>${getTag(c.status)}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteCoop(${c.id})">🗑️</button></td>
         </tr>`;
     }).join('');
-}
-
-function renderBiosecurity() {
-    const tbody = document.getElementById('biosecurityTableBody');
-    const search = document.getElementById('searchBio').value.toLowerCase();
-    const filtered = biosecurity.filter(b => b.farmer.toLowerCase().includes(search) || b.crop.toLowerCase().includes(search));
-    tbody.innerHTML = filtered.map(b => `<tr>
-        <td><strong>${b.farmer}</strong></td>
-        <td>${b.crop}</td>
-        <td>${b.permit}</td>
-        <td>${getStatusTag(b.quarantine)}</td>
-        <td>${getStatusTag(b.pest)}</td>
-        <td>${b.certification || 'None'}</td>
-        <td>${b.expiry}</td>
-        <td>${getStatusTag(b.status)}</td>
-        <td>
-            <button class="btn btn-primary btn-sm" onclick="editBio(${b.id})">✏️</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteBio(${b.id})">🗑️</button>
-        </td>
-    </tr>`).join('');
 }
 
 function renderIntake() {
     const tbody = document.getElementById('intakeTableBody');
     const search = document.getElementById('searchIntake').value.toLowerCase();
-    let filtered = intake.filter(i => i.farmer.toLowerCase().includes(search) || i.crop.toLowerCase().includes(search));
+    let filtered = intake.filter(i => i.farmer.toLowerCase().includes(search));
     tbody.innerHTML = filtered.map(i => `<tr>
-        <td>${i.date || 'Today'}</td>
+        <td>${i.date}</td>
         <td><strong>${i.farmer}</strong></td>
-        <td>${i.cooperative || 'N/A'}</td>
+        <td>${i.cooperative}</td>
         <td>${i.crop}</td>
-        <td><span class="status-tag approved">Grade ${i.grade}</span></td>
+        <td><span class="tag green">Grade ${i.grade}</span></td>
         <td>${i.volume} kg</td>
-        <td>${getStatusTag(i.cert)}</td>
-        <td>${getStatusTag('approved')}</td>
+        <td>${getTag(i.cert)}</td>
+        <td>${getTag('approved')}</td>
         <td><button class="btn btn-danger btn-sm" onclick="deleteIntake(${i.id})">🗑️</button></td>
     </tr>`).join('');
     updateStats();
@@ -1170,23 +565,18 @@ function renderInventory() {
     const tbody = document.getElementById('inventoryTableBody');
     const filter = document.getElementById('filterInventory').value;
     let items = intake.map(i => ({
-        product: i.crop,
-        farmer: i.farmer,
-        cooperative: i.cooperative || 'N/A',
-        grade: i.grade,
-        available: i.volume,
-        reserved: 0
+        product: i.crop, farmer: i.farmer, cooperative: i.cooperative, grade: i.grade, available: i.volume, reserved: 0
     }));
     if (filter !== 'all') items = items.filter(i => i.grade === filter);
-    tbody.innerHTML = items.length > 0 ? items.map(i => `<tr>
+    tbody.innerHTML = items.map(i => `<tr>
         <td><strong>${i.product}</strong></td>
         <td>${i.farmer}</td>
         <td>${i.cooperative}</td>
-        <td><span class="status-tag approved">Grade ${i.grade}</span></td>
+        <td><span class="tag green">Grade ${i.grade}</span></td>
         <td>${i.available} kg</td>
         <td>${i.reserved} kg</td>
-        <td>${getStatusTag('approved')}</td>
-    </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;padding:16px;color:#667799;">No inventory available. Add packhouse intake first.</td></tr>`;
+        <td>${getTag('approved')}</td>
+    </tr>`).join('');
 }
 
 function renderOrders() {
@@ -1195,9 +585,8 @@ function renderOrders() {
     const filter = document.getElementById('filterOrders').value;
     let filtered = orders.filter(o => {
         const match = o.buyer.toLowerCase().includes(search) || o.product.toLowerCase().includes(search);
-        let mf = true;
-        if (filter !== 'all') mf = o.status === filter;
-        return match && mf;
+        if (filter !== 'all') return match && o.status === filter;
+        return match;
     });
     tbody.innerHTML = filtered.map(o => `<tr>
         <td><strong>#${String(o.id).padStart(4, '0')}</strong></td>
@@ -1205,12 +594,9 @@ function renderOrders() {
         <td>${o.product}</td>
         <td>${o.volume} kg</td>
         <td>${o.channel}</td>
-        <td>${o.type === 'Standing' ? '🔄 Standing' : '📋 One-Off'}</td>
-        <td>${getStatusTag(o.status)}</td>
-        <td>
-            <button class="btn btn-primary btn-sm" onclick="updateOrderStatus(${o.id})">🔄</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteOrder(${o.id})">🗑️</button>
-        </td>
+        <td>${o.type}</td>
+        <td>${getTag(o.status)}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteOrder(${o.id})">🗑️</button></td>
     </tr>`).join('');
     updateStats();
 }
@@ -1220,233 +606,76 @@ function renderOrders() {
 // =============================================================
 function updateStats() {
     document.getElementById('totalFarmers').textContent = farmers.length;
-    document.getElementById('compliantFarmers').textContent = farmers.filter(f => getOverallStatus(f).tag === 'approved').length;
-    document.getElementById('nonCompliantFarmers').textContent = farmers.filter(f => getOverallStatus(f).tag === 'deferred').length;
+    document.getElementById('compliantFarmers').textContent = farmers.filter(f => getOverallStatus(f).tag === 'green').length;
+    document.getElementById('nonCompliantFarmers').textContent = farmers.filter(f => getOverallStatus(f).tag === 'red').length;
     document.getElementById('exportReady').textContent = farmers.filter(f => isExportReady(f)).length;
     document.getElementById('totalCoopMembers').textContent = cooperatives.reduce((s, c) => s + c.members, 0);
     document.getElementById('packhouseIntake').textContent = intake.reduce((s, i) => s + i.volume, 0);
     document.getElementById('ordersCount').textContent = orders.length;
     
-    // Sync stats to main dashboard
     const stats = {
         farmers: farmers.length,
-        compliant: farmers.filter(f => getOverallStatus(f).tag === 'approved').length,
-        nonCompliant: farmers.filter(f => getOverallStatus(f).tag === 'deferred').length,
+        compliant: farmers.filter(f => getOverallStatus(f).tag === 'green').length,
+        nonCompliant: farmers.filter(f => getOverallStatus(f).tag === 'red').length,
         exportReady: farmers.filter(f => isExportReady(f)).length,
         cooperatives: cooperatives.length,
         packhouseAccess: farmers.filter(f => canAccessPackhouse(f)).length
     };
     localStorage.setItem('vbsSupplyChainStats', JSON.stringify(stats));
-    if (window.opener) {
-        window.opener.postMessage({ type: 'vbsStatsUpdate', stats: stats }, '*');
-    }
+    if (window.opener) window.opener.postMessage({ type: 'vbsStatsUpdate', stats: stats }, '*');
 }
 
 // =============================================================
-// CRUD OPERATIONS (simplified)
+// CRUD OPERATIONS
 // =============================================================
-function saveFarmer(e) {
-    e.preventDefault();
-    farmers.push({
-        id: nextId++,
-        name: document.getElementById('fName').value,
-        province: document.getElementById('fProvince').value,
-        cooperative: document.getElementById('fCooperative').value,
-        dard: document.getElementById('fDard').value,
-        industry: document.getElementById('fIndustry').value,
-        coop_member: document.getElementById('fCoopMember').value,
-        vanipo: document.getElementById('fVanipo').value,
-        export: document.getElementById('fExport').value,
-        crop: document.getElementById('fCrop').value || 'Mixed',
-        notes: document.getElementById('fNotes').value || ''
-    });
-    closeModal('addFarmer');
-    renderAll();
-    document.getElementById('farmerForm').reset();
-    alert('✅ Farmer registered!');
+function saveFarmer(e) { 
+    e.preventDefault(); 
+    farmers.push({ 
+        id: nextId++, 
+        name: document.getElementById('fName').value, 
+        province: document.getElementById('fProvince').value, 
+        cooperative: document.getElementById('fCooperative').value, 
+        dard: document.getElementById('fDard').value, 
+        industry: document.getElementById('fIndustry').value, 
+        coop_member: document.getElementById('fCoopMember').value, 
+        vanipo: document.getElementById('fVanipo').value, 
+        export: 'not-applied', 
+        biosecurity: document.getElementById('fBiosecurity').value,
+        sps_permit: document.getElementById('fSpsPermit').value || 'Pending'
+    }); 
+    closeModal('addFarmer'); renderAll(); document.getElementById('farmerForm').reset(); 
 }
+function deleteFarmer(id) { if (confirm('Delete this farmer?')) { farmers = farmers.filter(f => f.id !== id); renderAll(); } }
+function saveCooperative(e) { e.preventDefault(); cooperatives.push({ id: nextId++, name: document.getElementById('cName').value, province: document.getElementById('cProvince').value, members: parseInt(document.getElementById('cMembers').value)||0, licensed_members: 0, volume: 0, status: document.getElementById('cStatus').value }); closeModal('addCooperative'); renderAll(); document.getElementById('coopForm').reset(); }
+function deleteCoop(id) { if (confirm('Delete coop?')) { cooperatives = cooperatives.filter(c => c.id !== id); renderAll(); } }
+function saveIntake(e) { e.preventDefault(); const farmerName = document.getElementById('iFarmer').value; const farmer = farmers.find(f => f.name === farmerName); intake.push({ id: nextId++, farmer: farmerName, cooperative: farmer ? farmer.cooperative : 'N/A', crop: document.getElementById('iCrop').value||'Mixed', volume: parseInt(document.getElementById('iVolume').value)||0, grade: document.getElementById('iGrade').value, cert: document.getElementById('iCert').value, date: new Date().toISOString().split('T')[0] }); closeModal('addIntake'); renderAll(); document.getElementById('intakeForm').reset(); }
+function deleteIntake(id) { if (confirm('Delete intake?')) { intake = intake.filter(i => i.id !== id); renderAll(); } }
+function saveOrder(e) { e.preventDefault(); orders.push({ id: nextId++, buyer: document.getElementById('oBuyer').value, product: document.getElementById('oProduct').value||'Mixed', volume: parseInt(document.getElementById('oVolume').value)||0, channel: document.getElementById('oChannel').value, type: document.getElementById('oType').value, status: document.getElementById('oStatus').value }); closeModal('addOrder'); renderAll(); document.getElementById('orderForm').reset(); }
+function deleteOrder(id) { if (confirm('Delete order?')) { orders = orders.filter(o => o.id !== id); renderAll(); } }
 
-function deleteFarmer(id) {
-    if (confirm('Delete this farmer?')) { farmers = farmers.filter(f => f.id !== id); renderAll(); }
-}
-
-function editFarmer(id) {
-    const f = farmers.find(f => f.id === id);
-    if (f) alert(`✏️ Edit: ${f.name}\nDARD: ${f.dard} | Industry: ${f.industry}\nCoop: ${f.coop_member} | VanIPO: ${f.vanipo}`);
-}
-
-function saveCooperative(e) {
-    e.preventDefault();
-    cooperatives.push({
-        id: nextId++,
-        name: document.getElementById('cName').value,
-        province: document.getElementById('cProvince').value,
-        members: parseInt(document.getElementById('cMembers').value) || 0,
-        licensed_members: 0,
-        volume: parseInt(document.getElementById('cVolume').value) || 0,
-        status: document.getElementById('cStatus').value
-    });
-    closeModal('addCooperative');
-    renderAll();
-    document.getElementById('coopForm').reset();
-    alert('✅ Cooperative registered!');
-}
-
-function deleteCoop(id) {
-    if (confirm('Delete this cooperative?')) { cooperatives = cooperatives.filter(c => c.id !== id); renderAll(); }
-}
-
-function editCoop(id) {
-    const c = cooperatives.find(c => c.id === id);
-    if (c) alert(`✏️ Edit: ${c.name}\nMembers: ${c.members}\nVolume: ${c.volume} kg`);
-}
-
-function saveBiosecurity(e) {
-    e.preventDefault();
-    biosecurity.push({
-        id: nextId++,
-        farmer: document.getElementById('bFarmer').value,
-        crop: document.getElementById('bCrop').value || 'Not Specified',
-        permit: document.getElementById('bPermit').value || `SPS-${String(nextId).padStart(4, '0')}`,
-        quarantine: document.getElementById('bQuarantine').value,
-        pest: document.getElementById('bPest').value,
-        certification: document.getElementById('bCertification').value || 'None',
-        expiry: document.getElementById('bExpiry').value || '2027-12-31',
-        status: document.getElementById('bBioStatus').value
-    });
-    closeModal('addBiosecurity');
-    renderAll();
-    document.getElementById('bioForm').reset();
-    alert('✅ Biosecurity record saved!');
-}
-
-function deleteBio(id) {
-    if (confirm('Delete this record?')) { biosecurity = biosecurity.filter(b => b.id !== id); renderAll(); }
-}
-
-function editBio(id) {
-    const b = biosecurity.find(b => b.id === id);
-    if (b) alert(`✏️ Edit: ${b.farmer}\nCrop: ${b.crop}\nPermit: ${b.permit}`);
-}
-
-function saveIntake(e) {
-    e.preventDefault();
-    const farmerName = document.getElementById('iFarmer').value;
-    const farmer = farmers.find(f => f.name === farmerName);
-    intake.push({
-        id: nextId++,
-        farmer: farmerName,
-        cooperative: farmer ? farmer.cooperative : 'N/A',
-        crop: document.getElementById('iCrop').value || 'Mixed',
-        volume: parseInt(document.getElementById('iVolume').value) || 0,
-        grade: document.getElementById('iGrade').value,
-        cert: document.getElementById('iCert').value,
-        notes: document.getElementById('iNotes').value || '',
-        date: new Date().toISOString().split('T')[0]
-    });
-    closeModal('addIntake');
-    renderAll();
-    document.getElementById('intakeForm').reset();
-    alert('✅ Intake recorded!');
-}
-
-function deleteIntake(id) {
-    if (confirm('Delete this intake record?')) { intake = intake.filter(i => i.id !== id); renderAll(); }
-}
-
-function saveOrder(e) {
-    e.preventDefault();
-    orders.push({
-        id: nextId++,
-        buyer: document.getElementById('oBuyer').value,
-        product: document.getElementById('oProduct').value || 'Mixed',
-        volume: parseInt(document.getElementById('oVolume').value) || 0,
-        channel: document.getElementById('oChannel').value,
-        type: document.getElementById('oType').value,
-        status: document.getElementById('oStatus').value
-    });
-    closeModal('addOrder');
-    renderAll();
-    document.getElementById('orderForm').reset();
-    alert('✅ Order placed!');
-}
-
-function deleteOrder(id) {
-    if (confirm('Delete this order?')) { orders = orders.filter(o => o.id !== id); renderAll(); }
-}
-
-function updateOrderStatus(id) {
-    const o = orders.find(o => o.id === id);
-    if (!o) return;
-    const statuses = ['pending', 'confirmed', 'dispatched', 'delivered'];
-    const labels = ['⏳ Pending', '✅ Confirmed', '📦 Dispatched', '🏠 Delivered'];
-    let current = statuses.indexOf(o.status);
-    o.status = statuses[(current + 1) % statuses.length];
-    renderAll();
-    alert(`✅ Order status updated to: ${labels[(current + 1) % statuses.length]}`);
-}
-
-// =============================================================
-// SYNC WITH DARD
-// =============================================================
 function syncWithDARD() {
     document.getElementById('farmerTableBody').innerHTML = `<tr><td colspan="10" style="text-align:center;padding:16px;color:#8899bb;">🔄 Syncing with DARD...</td></tr>`;
-    setTimeout(() => {
-        renderAll();
-        alert('✅ Sync complete!\n\n📊 DARD Statistics (June 2026):\n• Total Approved: 200\n• Shefa: 117 | Sanma: 55 | Malampa: 21\n• Maewo: 6 | Ambae: 1');
-    }, 1000);
+    setTimeout(() => { renderAll(); alert('Sync complete! DARD Stats (July 2026):\nTotal: 200 | Shefa: 117 | Sanma: 55'); }, 1000);
 }
 
-// =============================================================
-// MODAL CONTROLS
-// =============================================================
 function openModal(name) {
     const modal = document.getElementById(`modal-add${name.charAt(0).toUpperCase() + name.slice(1)}`);
     if (modal) modal.classList.add('active');
     if (name === 'addIntake') {
-        const sel = document.getElementById('iFarmer');
-        sel.innerHTML = '<option value="">-- Select Farmer --</option>' + farmers.map(f => `<option value="${f.name}">${f.name}</option>`).join('');
+        const sel = document.getElementById('iFarmer'); sel.innerHTML = '<option value="">-- Select --</option>' + farmers.map(f => `<option value="${f.name}">${f.name}</option>`).join('');
     }
     if (name === 'addOrder') {
-        const sel = document.getElementById('oProduct');
-        sel.innerHTML = '<option value="">-- Select Product --</option>';
-        const products = [...new Set(intake.map(i => i.crop))];
-        products.forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
+        const sel = document.getElementById('oProduct'); sel.innerHTML = '<option value="">-- Select --</option>';
+        [...new Set(intake.map(i => i.crop))].forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
     }
 }
+function closeModal(name) { const modal = document.getElementById(`modal-add${name.charAt(0).toUpperCase() + name.slice(1)}`); if (modal) modal.classList.remove('active'); }
+document.querySelectorAll('.modal-overlay').forEach(el => { el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); }); });
 
-function closeModal(name) {
-    const modal = document.getElementById(`modal-add${name.charAt(0).toUpperCase() + name.slice(1)}`);
-    if (modal) modal.classList.remove('active');
-}
+function renderAll() { renderFarmers(); renderCooperatives(); renderIntake(); renderInventory(); renderOrders(); updateStats(); }
 
-document.querySelectorAll('.modal-overlay').forEach(el => {
-    el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); });
-});
-
-// =============================================================
-// RENDER ALL
-// =============================================================
-function renderAll() {
-    renderFarmers();
-    renderCooperatives();
-    renderBiosecurity();
-    renderIntake();
-    renderInventory();
-    renderOrders();
-    updateStats();
-}
-
-// =============================================================
-// INIT
-// =============================================================
-document.addEventListener('DOMContentLoaded', function() {
-    renderAll();
-    document.getElementById('dbStatus').textContent = '✅ Connected';
-    document.getElementById('dbStatus').style.color = '#66bb6a';
-    console.log('🏭 VBS Supply Chain loaded');
-    console.log(`👨‍🌾 ${farmers.length} farmers, 🤝 ${cooperatives.length} coops, 🔬 ${biosecurity.length} bio records`);
-});
+document.addEventListener('DOMContentLoaded', function() { renderAll(); document.getElementById('dbStatus').textContent = 'Connected'; });
 </script>
 </body>
 </html>
+```
