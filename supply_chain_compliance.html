@@ -424,7 +424,7 @@ let farmers = [];
 let cooperatives = [];
 let intake = [];
 let orders = [];
-let nextId = 100;
+let nextId = "999"; // String to match Supabase ID format
 
 // =============================================================
 // UTILITY FUNCTIONS
@@ -467,21 +467,13 @@ async function fetchData() {
     document.getElementById('dbStatus').textContent = 'Loading...';
     
     try {
-        // 1. Fetch Farmers (Try plural first, then singular if it fails)
+        // 1. Fetch Farmers
         let { data: farmerData, error: farmerError } = await supabase.from('farmers').select('*');
         
         if (farmerError) {
-            console.warn("Table 'farmers' failed. Trying 'farmer'...");
-            let res = await supabase.from('farmer').select('*');
-            farmerData = res.data;
-            farmerError = res.error;
-        }
-
-        if (farmerError) {
             console.error("Supabase Farmer Error:", farmerError);
             document.getElementById('dbStatus').textContent = 'Error';
-            document.getElementById('farmerTableBody').innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#ef5350;">❌ Database Connection Error: ${farmerError.message}. Loading sample data...</td></tr>`;
-            loadSampleData(); 
+            document.getElementById('farmerTableBody').innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#ef5350;">❌ Database Connection Error: ${farmerError.message}</td></tr>`;
             return;
         } 
         
@@ -516,20 +508,8 @@ async function fetchData() {
     } catch (e) {
         console.error("Critical Fetch Error:", e);
         document.getElementById('dbStatus').textContent = 'Failed';
-        document.getElementById('farmerTableBody').innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#ef5350;">❌ Critical Error: ${e.message}. Check console for details.</td></tr>`;
     }
 
-    renderAll();
-}
-
-// =============================================================
-// SAMPLE DATA (If database fails)
-// =============================================================
-function loadSampleData() {
-    farmers = [
-        { id: 1, name: 'Sample Farmer A', cooperative: 'Santo United', province: 'Sanma', dard_permit: 'approved', industry_license: 'approved', coop_member: 'yes', vanipo: 'registered', export_permit: 'approved', vbs_certification: 'certified', crop: 'Kava', grade: 'A', notes: '', sps_permit: 'SPS-2026-TEST' },
-        { id: 2, name: 'Sample Farmer B', cooperative: 'Malampa Producers', province: 'Malampa', dard_permit: 'in-readiness', industry_license: 'pending', coop_member: 'yes', vanipo: 'pending', export_permit: 'not-applied', vbs_certification: 'not-applied', crop: 'Taro', grade: 'B', notes: 'In readiness', sps_permit: 'SPS-2026-TEST-2' }
-    ];
     renderAll();
 }
 
@@ -700,12 +680,16 @@ function updateStats() {
 }
 
 // =============================================================
-// CRUD OPERATIONS (Local for UI)
+// CRUD OPERATIONS (Local for UI, using Strings for IDs)
 // =============================================================
 function saveFarmer(e) { 
     e.preventDefault(); 
+    // Convert nextId to a string to match Supabase BigInt format
+    const newId = String(parseInt(nextId) + 1);
+    nextId = newId;
+    
     farmers.push({ 
-        id: nextId++, 
+        id: newId, 
         name: document.getElementById('fName').value, 
         province: document.getElementById('fProvince').value, 
         cooperative: document.getElementById('fCooperative').value, 
@@ -722,13 +706,86 @@ function saveFarmer(e) {
     }); 
     closeModal('addFarmer'); renderAll(); document.getElementById('farmerForm').reset(); 
 }
-function deleteFarmer(id) { if (confirm('Delete this farmer?')) { farmers = farmers.filter(f => f.id !== id); renderAll(); } }
-function saveCooperative(e) { e.preventDefault(); cooperatives.push({ id: nextId++, name: document.getElementById('cName').value, province: document.getElementById('cProvince').value, total_members: parseInt(document.getElementById('cMembers').value)||0, licensed_members: 0, consolidation_volume_kg: 0, status: document.getElementById('cStatus').value }); closeModal('addCooperative'); renderAll(); document.getElementById('coopForm').reset(); }
-function deleteCoop(id) { if (confirm('Delete coop?')) { cooperatives = cooperatives.filter(c => c.id !== id); renderAll(); } }
-function saveIntake(e) { e.preventDefault(); const farmerName = document.getElementById('iFarmer').value; const farmer = farmers.find(f => f.name === farmerName); intake.push({ id: nextId++, farmer: farmerName, cooperative: farmer ? farmer.cooperative : 'N/A', crop: document.getElementById('iCrop').value||'Mixed', volume: parseInt(document.getElementById('iVolume').value)||0, grade: document.getElementById('iGrade').value, cert: document.getElementById('iCert').value, date: new Date().toISOString().split('T')[0] }); closeModal('addIntake'); renderAll(); document.getElementById('intakeForm').reset(); }
-function deleteIntake(id) { if (confirm('Delete intake?')) { intake = intake.filter(i => i.id !== id); renderAll(); } }
-function saveOrder(e) { e.preventDefault(); orders.push({ id: nextId++, buyer: document.getElementById('oBuyer').value, product: document.getElementById('oProduct').value||'Mixed', volume: parseInt(document.getElementById('oVolume').value)||0, channel: document.getElementById('oChannel').value, type: document.getElementById('oType').value, status: document.getElementById('oStatus').value }); closeModal('addOrder'); renderAll(); document.getElementById('orderForm').reset(); }
-function deleteOrder(id) { if (confirm('Delete order?')) { orders = orders.filter(o => o.id !== id); renderAll(); } }
+
+function deleteFarmer(id) { 
+    if (confirm('Delete this farmer?')) { 
+        // Parse ID to number for strict comparison match
+        farmers = farmers.filter(f => Number(f.id) !== Number(id)); 
+        renderAll(); 
+    } 
+}
+
+function saveCooperative(e) { 
+    e.preventDefault(); 
+    const newId = String(parseInt(nextId) + 1);
+    nextId = newId;
+    cooperatives.push({ 
+        id: newId, 
+        name: document.getElementById('cName').value, 
+        province: document.getElementById('cProvince').value, 
+        total_members: parseInt(document.getElementById('cMembers').value)||0, 
+        licensed_members: 0, 
+        consolidation_volume_kg: 0, 
+        status: document.getElementById('cStatus').value 
+    }); 
+    closeModal('addCooperative'); renderAll(); document.getElementById('coopForm').reset(); 
+}
+
+function deleteCoop(id) { 
+    if (confirm('Delete coop?')) { 
+        cooperatives = cooperatives.filter(c => Number(c.id) !== Number(id)); 
+        renderAll(); 
+    } 
+}
+
+function saveIntake(e) { 
+    e.preventDefault(); 
+    const newId = String(parseInt(nextId) + 1);
+    nextId = newId;
+    const farmerName = document.getElementById('iFarmer').value; 
+    const farmer = farmers.find(f => f.name === farmerName); 
+    intake.push({ 
+        id: newId, 
+        farmer: farmerName, 
+        cooperative: farmer ? farmer.cooperative : 'N/A', 
+        crop: document.getElementById('iCrop').value||'Mixed', 
+        volume: parseInt(document.getElementById('iVolume').value)||0, 
+        grade: document.getElementById('iGrade').value, 
+        cert: document.getElementById('iCert').value, 
+        date: new Date().toISOString().split('T')[0] 
+    }); 
+    closeModal('addIntake'); renderAll(); document.getElementById('intakeForm').reset(); 
+}
+
+function deleteIntake(id) { 
+    if (confirm('Delete intake?')) { 
+        intake = intake.filter(i => Number(i.id) !== Number(id)); 
+        renderAll(); 
+    } 
+}
+
+function saveOrder(e) { 
+    e.preventDefault(); 
+    const newId = String(parseInt(nextId) + 1);
+    nextId = newId;
+    orders.push({ 
+        id: newId, 
+        buyer: document.getElementById('oBuyer').value, 
+        product: document.getElementById('oProduct').value||'Mixed', 
+        volume: parseInt(document.getElementById('oVolume').value)||0, 
+        channel: document.getElementById('oChannel').value, 
+        type: document.getElementById('oType').value, 
+        status: document.getElementById('oStatus').value 
+    }); 
+    closeModal('addOrder'); renderAll(); document.getElementById('orderForm').reset(); 
+}
+
+function deleteOrder(id) { 
+    if (confirm('Delete order?')) { 
+        orders = orders.filter(o => Number(o.id) !== Number(id)); 
+        renderAll(); 
+    } 
+}
 
 function syncWithDARD() {
     document.getElementById('farmerTableBody').innerHTML = `<tr><td colspan="10" style="text-align:center;padding:16px;color:#8899bb;">🔄 Syncing with DARD...</td></tr>`;
