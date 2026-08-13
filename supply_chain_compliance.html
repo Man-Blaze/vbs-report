@@ -217,8 +217,7 @@
     </div>
 
     <!-- ========================================================== -->
-    <!-- COMBINED FARMER REGISTRY (DARD, COOP, & BIOSECURITY)      -->
-    <!-- This is the ONLY table packhouse staff need to check       -->
+    <!-- COMBINED FARMER REGISTRY (MAPPED TO CSV)                   -->
     <!-- ========================================================== -->
     <div class="table-wrap">
         <div class="table-head">
@@ -239,8 +238,8 @@
                 <thead>
                     <tr>
                         <th>Farmer Name</th>
-                        <th>Province</th>
                         <th>Cooperative</th>
+                        <th>Province</th>
                         <th>DARD Permit</th>
                         <th>Industry License</th>
                         <th>Coop Member</th>
@@ -345,26 +344,25 @@
             <div class="form-group"><label>Farmer Name</label><input type="text" id="fName" required></div>
             <div class="form-row">
                 <div class="form-group"><label>Province</label><select id="fProvince"><option>Sanma</option><option>Malampa</option><option>Shefa</option><option>Tafea</option><option>Torba</option><option>Penama</option></select></div>
-                <div class="form-group"><label>Cooperative</label><select id="fCooperative"><option value="">-- Select --</option></select></div>
+                <div class="form-group"><label>Cooperative</label><select id="fCooperative"><option value="">-- Select --</option><option value="Santo United Farmers Coop">Santo United Farmers Coop</option><option value="Malampa Producers Coop">Malampa Producers Coop</option><option value="Efate Sugarcane Farmers Association">Efate Sugarcane Farmers Association</option><option value="Shefa Growers Coop">Shefa Growers Coop</option><option value="None (Independent)">None (Independent)</option></select></div>
             </div>
             <div class="form-row">
-                <div class="form-group"><label>DARD Permit</label><select id="fDard"><option value="approved">Approved</option><option value="in-readiness">In Readiness</option><option value="deferred">Deferred</option></select></div>
-                <div class="form-group"><label>Industry License</label><select id="fIndustry"><option value="approved">Approved</option><option value="pending">Pending</option></select></div>
+                <div class="form-group"><label>DARD Permit</label><select id="fDard"><option value="approved">Approved</option><option value="in-readiness">In Readiness</option><option value="deferred">Deferred</option><option value="not-applied">Not Applied</option></select></div>
+                <div class="form-group"><label>Industry License</label><select id="fIndustry"><option value="approved">Approved</option><option value="pending">Pending</option><option value="not-applied">Not Applied</option></select></div>
             </div>
             <div class="form-row">
-                <div class="form-group"><label>Coop Member</label><select id="fCoopMember"><option value="yes">Yes</option><option value="no">No</option></select></div>
-                <div class="form-group"><label>VanIPO GI</label><select id="fVanipo"><option value="registered">Registered</option><option value="pending">Pending</option></select></div>
+                <div class="form-group"><label>Coop Member</label><select id="fCoopMember"><option value="yes">Yes</option><option value="no">No</option><option value="pending">Pending</option></select></div>
+                <div class="form-group"><label>VanIPO GI</label><select id="fVanipo"><option value="registered">Registered</option><option value="pending">Pending</option><option value="not-applied">Not Applied</option></select></div>
             </div>
             <div class="form-row">
-                <div class="form-group"><label>Biosecurity Status</label>
-                    <select id="fBiosecurity">
-                        <option value="cleared">Cleared</option>
-                        <option value="pending">Pending Quarantine</option>
-                        <option value="failed">Failed Inspection</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>SPS Permit</label><input type="text" id="fSpsPermit" placeholder="SPS-2026-XXXX"></div>
+                <div class="form-group"><label>Export Permit</label><select id="fExport"><option value="approved">Approved</option><option value="pending">Pending</option><option value="not-applied">Not Applied</option></select></div>
+                <div class="form-group"><label>Crop</label><input type="text" id="fCrop" placeholder="e.g. Kava"></div>
             </div>
+            <div class="form-row">
+                <div class="form-group"><label>Grade</label><select id="fGrade"><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></div>
+                <div class="form-group"><label>VBS Certification</label><select id="fVbsCert"><option value="certified">Certified</option><option value="in-progress">In Progress</option><option value="not-applied">Not Applied</option></select></div>
+            </div>
+            <div class="form-group"><label>Notes</label><textarea id="fNotes" rows="2"></textarea></div>
             <div class="modal-actions"><button type="button" class="btn btn-primary" onclick="closeModal('addFarmer')">Cancel</button><button type="submit" class="btn btn-success">Register</button></div>
         </form>
     </div>
@@ -418,14 +416,17 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // =============================================================
-// DATA (Combined DARD, Coop & Biosecurity Info)
+// DATA (Mapped directly from your CSV)
 // =============================================================
 let farmers = [
-    { id: 1, name: 'John B. Tavue', cooperative: 'Santo United Farmers Coop', province: 'Sanma', dard: 'approved', industry: 'approved', coop_member: 'yes', vanipo: 'registered', export: 'approved', biosecurity: 'cleared', sps_permit: 'SPS-2026-0042' },
-    { id: 2, name: 'Mary K. Loli', cooperative: 'Malampa Producers Coop', province: 'Malampa', dard: 'in-readiness', industry: 'pending', coop_member: 'yes', vanipo: 'pending', export: 'not-applied', biosecurity: 'pending', sps_permit: 'SPS-2026-0099' },
-    { id: 3, name: 'Peter S. Vuti', cooperative: 'Efate Sugarcane Farmers Association', province: 'Shefa', dard: 'approved', industry: 'approved', coop_member: 'yes', vanipo: 'registered', export: 'approved', biosecurity: 'cleared', sps_permit: 'SPS-2026-0087' },
-    { id: 4, name: 'Sarah N. Wos', cooperative: 'None (Independent)', province: 'Shefa', dard: 'deferred', industry: 'not-applied', coop_member: 'no', vanipo: 'not-applied', export: 'not-applied', biosecurity: 'failed', sps_permit: 'N/A' },
-    { id: 5, name: 'James P. Kapalu', cooperative: 'Santo United Farmers Coop', province: 'Sanma', dard: 'approved', industry: 'approved', coop_member: 'yes', vanipo: 'registered', export: 'approved', biosecurity: 'cleared', sps_permit: 'SPS-2026-0123' },
+    { id: 1, name: 'John B. Tavue', cooperative: 'Santo United Farmers Coop', province: 'Sanma', dard_permit: 'approved', industry_license: 'approved', coop_member: 'yes', vanipo: 'registered', export_permit: 'approved', vbs_certification: 'in-progress', crop: 'Kava', grade: 'A', notes: '' },
+    { id: 2, name: 'Mary K. Loli', cooperative: 'Malampa Producers Coop', province: 'Malampa', dard_permit: 'in-readiness', industry_license: 'pending', coop_member: 'yes', vanipo: 'pending', export_permit: 'not-applied', vbs_certification: 'not-applied', crop: 'Taro', grade: 'B', notes: 'In readiness program' },
+    { id: 3, name: 'Peter S. Vuti', cooperative: 'Efate Sugarcane Farmers Association', province: 'Shefa', dard_permit: 'approved', industry_license: 'approved', coop_member: 'yes', vanipo: 'registered', export_permit: 'approved', vbs_certification: 'certified', crop: 'Sugarcane', grade: 'A', notes: 'Fully compliant' },
+    { id: 4, name: 'Sarah N. Wos', cooperative: 'None (Independent)', province: 'Shefa', dard_permit: 'deferred', industry_license: 'not-applied', coop_member: 'no', vanipo: 'not-applied', export_permit: 'not-applied', vbs_certification: 'not-applied', crop: 'Mixed', grade: 'C', notes: 'Not authorized to sell through packhouse' },
+    { id: 5, name: 'James P. Kapalu', cooperative: 'Santo United Farmers Coop', province: 'Sanma', dard_permit: 'approved', industry_license: 'approved', coop_member: 'yes', vanipo: 'registered', export_permit: 'approved', vbs_certification: 'in-progress', crop: 'Coconut', grade: 'A', notes: 'Export-eligible' },
+    { id: 6, name: 'Thomas M. Kalsakau', cooperative: 'Shefa Growers Coop', province: 'Shefa', dard_permit: 'not-applied', industry_license: 'not-applied', coop_member: 'no', vanipo: 'not-applied', export_permit: 'not-applied', vbs_certification: 'not-applied', crop: 'Mixed', grade: 'C', notes: 'Needs to contact DARD' },
+    { id: 7, name: 'David L. Simbolo', cooperative: 'Efate Sugarcane Farmers Association', province: 'Shefa', dard_permit: 'approved', industry_license: 'approved', coop_member: 'yes', vanipo: 'pending', export_permit: 'pending', vbs_certification: 'not-applied', crop: 'Sugarcane', grade: 'B', notes: 'Export permit pending' },
+    { id: 8, name: 'Maria T. Tari', cooperative: 'Malampa Producers Coop', province: 'Malampa', dard_permit: 'in-readiness', industry_license: 'pending', coop_member: 'yes', vanipo: 'not-applied', export_permit: 'not-applied', vbs_certification: 'not-applied', crop: 'Taro', grade: 'B', notes: 'Can complete readiness program' },
 ];
 
 let cooperatives = [
@@ -444,29 +445,33 @@ let nextId = 100;
 // =============================================================
 function getTag(status) {
     const map = {
-        'approved': '<span class="tag green">Approved</span>', 'in-readiness': '<span class="tag orange">In Readiness</span>',
-        'deferred': '<span class="tag red">Deferred</span>', 'not-applied': '<span class="tag">Not Applied</span>',
-        'pending': '<span class="tag orange">Pending</span>', 'yes': '<span class="tag green">Yes</span>',
-        'no': '<span class="tag red">No</span>', 'registered': '<span class="tag green">Registered</span>',
-        'active': '<span class="tag green">Active</span>', 'inactive': '<span class="tag">Inactive</span>',
-        'cleared': '<span class="tag green">Cleared</span>', 'valid': '<span class="tag green">Valid</span>',
-        'expired': '<span class="tag red">Expired</span>', 'failed': '<span class="tag red">Failed</span>',
-        'certified': '<span class="tag green">Certified</span>', 'in-progress': '<span class="tag orange">In Progress</span>'
+        'approved': '<span class="tag green">Approved</span>',
+        'in-readiness': '<span class="tag orange">In Readiness</span>',
+        'deferred': '<span class="tag red">Deferred</span>',
+        'not-applied': '<span class="tag">Not Applied</span>',
+        'pending': '<span class="tag orange">Pending</span>',
+        'yes': '<span class="tag green">Yes</span>',
+        'no': '<span class="tag red">No</span>',
+        'registered': '<span class="tag green">Registered</span>',
+        'active': '<span class="tag green">Active</span>',
+        'inactive': '<span class="tag">Inactive</span>',
+        'certified': '<span class="tag green">Certified</span>',
+        'in-progress': '<span class="tag orange">In Progress</span>'
     };
     return map[status] || `<span class="tag">${status}</span>`;
 }
 
 function getOverallStatus(farmer) {
-    const permits = [farmer.dard, farmer.industry, farmer.coop_member, farmer.vanipo, farmer.biosecurity];
-    const allApproved = permits.every(p => ['approved','registered','yes','cleared'].includes(p));
+    const permits = [farmer.dard_permit, farmer.industry_license, farmer.coop_member, farmer.vanipo, farmer.vbs_certification];
+    const allApproved = permits.every(p => ['approved','registered','yes','certified'].includes(p));
     if (allApproved) return { status: 'Fully Compliant', tag: 'green' };
-    if (permits.some(p => ['deferred','no','failed'].includes(p))) return { status: 'Non-Compliant', tag: 'red' };
+    if (permits.some(p => ['deferred','no','not-applied'].includes(p))) return { status: 'Non-Compliant', tag: 'red' };
     return { status: 'In Progress', tag: 'orange' };
 }
 
-function isExportReady(f) { return f.dard === 'approved' && f.industry === 'approved' && f.export === 'approved' && f.biosecurity === 'cleared'; }
+function isExportReady(f) { return f.dard_permit === 'approved' && f.industry_license === 'approved' && f.export_permit === 'approved'; }
 function canAccessPackhouse(f) { 
-    return ['approved','registered','yes','cleared'].every(v => [f.dard, f.industry, f.coop_member, f.vanipo, f.biosecurity].includes(v)); 
+    return ['approved','registered','yes','certified'].every(v => [f.dard_permit, f.industry_license, f.coop_member, f.vanipo, f.vbs_certification].includes(v)); 
 }
 
 // =============================================================
@@ -480,24 +485,25 @@ function renderFarmers() {
         const match = f.name.toLowerCase().includes(search) || f.cooperative.toLowerCase().includes(search);
         if (filter !== 'all') {
             if (filter === 'approved') return match && getOverallStatus(f).tag === 'green';
-            if (filter === 'in-readiness') return match && f.dard === 'in-readiness';
+            if (filter === 'in-readiness') return match && f.dard_permit === 'in-readiness';
             if (filter === 'deferred') return match && getOverallStatus(f).tag === 'red';
         }
         return match;
     });
     tbody.innerHTML = filtered.map(f => {
         const overall = getOverallStatus(f);
+        // Using VBS Certification as the Biosecurity/SPS Status for this table
         return `<tr>
             <td><strong>${f.name}</strong></td>
-            <td>${f.province}</td>
             <td>${f.cooperative}</td>
-            <td>${getTag(f.dard)}</td>
-            <td>${getTag(f.industry)}</td>
+            <td>${f.province}</td>
+            <td>${getTag(f.dard_permit)}</td>
+            <td>${getTag(f.industry_license)}</td>
             <td>${getTag(f.coop_member)}</td>
             <td>${getTag(f.vanipo)}</td>
             <td>
-                ${getTag(f.biosecurity)}<br>
-                <span style="font-size:10px; color:#7a958b;">${f.sps_permit}</span>
+                ${getTag(f.vbs_certification)}<br>
+                <span style="font-size:10px; color:#7a958b;">${f.crop} (Grade ${f.grade})</span>
             </td>
             <td>
                 ${canAccessPackhouse(f) 
@@ -621,13 +627,15 @@ function saveFarmer(e) {
         name: document.getElementById('fName').value, 
         province: document.getElementById('fProvince').value, 
         cooperative: document.getElementById('fCooperative').value, 
-        dard: document.getElementById('fDard').value, 
-        industry: document.getElementById('fIndustry').value, 
+        dard_permit: document.getElementById('fDard').value, 
+        industry_license: document.getElementById('fIndustry').value, 
         coop_member: document.getElementById('fCoopMember').value, 
         vanipo: document.getElementById('fVanipo').value, 
-        export: 'not-applied', 
-        biosecurity: document.getElementById('fBiosecurity').value,
-        sps_permit: document.getElementById('fSpsPermit').value || 'Pending'
+        export_permit: document.getElementById('fExport').value,
+        vbs_certification: document.getElementById('fVbsCert').value,
+        crop: document.getElementById('fCrop').value || 'Not Specified',
+        grade: document.getElementById('fGrade').value,
+        notes: document.getElementById('fNotes').value || ''
     }); 
     closeModal('addFarmer'); renderAll(); document.getElementById('farmerForm').reset(); 
 }
