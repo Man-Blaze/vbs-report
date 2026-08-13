@@ -1,3 +1,13 @@
+Ah, I understand now! In your timesheet example, you use **`supabase.from('timesheet').select('*')`** to pull the actual live data from the database. 
+
+Your current `supply_chain.html` is **not** doing that. It is currently using a hardcoded `let farmers = [...]` array at the top of the script, which is why it looks empty to you (because you want to see the data you provided in the CSV/Supabase table).
+
+I have completely rewritten the JavaScript section of `supply_chain.html`. It now **authenticates with Supabase, pulls the data from your `public.farmers` table, and renders it** exactly like your timesheet example does.
+
+### Updated `supply_chain.html` (Live Database Pull)
+*Replace your entire `supply_chain.html` file with this code. It will automatically fetch `farmers`, `cooperatives`, and `biosecurity_records` from your Supabase database.*
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -148,7 +158,7 @@
                 </div>
             </div>
             <div class="header-actions">
-                <div class="status-pill"><span class="dot-pulse"></span> <span id="dbStatus">Connected</span></div>
+                <div class="status-pill"><span class="dot-pulse"></span> <span id="dbStatus">Connecting...</span></div>
                 <button class="btn-sync" onclick="syncWithDARD()">🔄 Sync DARD</button>
             </div>
         </div>
@@ -217,7 +227,7 @@
     </div>
 
     <!-- ========================================================== -->
-    <!-- COMBINED FARMER REGISTRY (MAPPED TO CSV)                   -->
+    <!-- COMBINED FARMER REGISTRY (LIVE DATA)                       -->
     <!-- ========================================================== -->
     <div class="table-wrap">
         <div class="table-head">
@@ -249,7 +259,9 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="farmerTableBody"></tbody>
+                <tbody id="farmerTableBody">
+                    <tr><td colspan="10" style="text-align:center; padding:20px; color:#7a958b;">Loading farmers from database...</td></tr>
+                </tbody>
             </table>
         </div>
     </div>
@@ -409,33 +421,17 @@
 
 <script>
 // =============================================================
-// SUPABASE CONFIG
+// SUPABASE CONFIG (Using your existing credentials)
 // =============================================================
 const supabaseUrl = 'https://pdwctzueksfuspwwumdy.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // =============================================================
-// DATA (Mapped directly from your CSV)
+// GLOBAL STATE
 // =============================================================
-let farmers = [
-    { id: 1, name: 'John B. Tavue', cooperative: 'Santo United Farmers Coop', province: 'Sanma', dard_permit: 'approved', industry_license: 'approved', coop_member: 'yes', vanipo: 'registered', export_permit: 'approved', vbs_certification: 'in-progress', crop: 'Kava', grade: 'A', notes: '' },
-    { id: 2, name: 'Mary K. Loli', cooperative: 'Malampa Producers Coop', province: 'Malampa', dard_permit: 'in-readiness', industry_license: 'pending', coop_member: 'yes', vanipo: 'pending', export_permit: 'not-applied', vbs_certification: 'not-applied', crop: 'Taro', grade: 'B', notes: 'In readiness program' },
-    { id: 3, name: 'Peter S. Vuti', cooperative: 'Efate Sugarcane Farmers Association', province: 'Shefa', dard_permit: 'approved', industry_license: 'approved', coop_member: 'yes', vanipo: 'registered', export_permit: 'approved', vbs_certification: 'certified', crop: 'Sugarcane', grade: 'A', notes: 'Fully compliant' },
-    { id: 4, name: 'Sarah N. Wos', cooperative: 'None (Independent)', province: 'Shefa', dard_permit: 'deferred', industry_license: 'not-applied', coop_member: 'no', vanipo: 'not-applied', export_permit: 'not-applied', vbs_certification: 'not-applied', crop: 'Mixed', grade: 'C', notes: 'Not authorized to sell through packhouse' },
-    { id: 5, name: 'James P. Kapalu', cooperative: 'Santo United Farmers Coop', province: 'Sanma', dard_permit: 'approved', industry_license: 'approved', coop_member: 'yes', vanipo: 'registered', export_permit: 'approved', vbs_certification: 'in-progress', crop: 'Coconut', grade: 'A', notes: 'Export-eligible' },
-    { id: 6, name: 'Thomas M. Kalsakau', cooperative: 'Shefa Growers Coop', province: 'Shefa', dard_permit: 'not-applied', industry_license: 'not-applied', coop_member: 'no', vanipo: 'not-applied', export_permit: 'not-applied', vbs_certification: 'not-applied', crop: 'Mixed', grade: 'C', notes: 'Needs to contact DARD' },
-    { id: 7, name: 'David L. Simbolo', cooperative: 'Efate Sugarcane Farmers Association', province: 'Shefa', dard_permit: 'approved', industry_license: 'approved', coop_member: 'yes', vanipo: 'pending', export_permit: 'pending', vbs_certification: 'not-applied', crop: 'Sugarcane', grade: 'B', notes: 'Export permit pending' },
-    { id: 8, name: 'Maria T. Tari', cooperative: 'Malampa Producers Coop', province: 'Malampa', dard_permit: 'in-readiness', industry_license: 'pending', coop_member: 'yes', vanipo: 'not-applied', export_permit: 'not-applied', vbs_certification: 'not-applied', crop: 'Taro', grade: 'B', notes: 'Can complete readiness program' },
-];
-
-let cooperatives = [
-    { id: 1, name: 'Santo United Farmers Coop', province: 'Sanma', members: 78, licensed_members: 52, volume: 3200, status: 'active' },
-    { id: 2, name: 'Malampa Producers Coop', province: 'Malampa', members: 45, licensed_members: 18, volume: 1800, status: 'active' },
-    { id: 3, name: 'Efate Sugarcane Farmers Association', province: 'Shefa', members: 62, licensed_members: 41, volume: 2800, status: 'active' },
-    { id: 4, name: 'Tanna Organic Growers', province: 'Tafea', members: 28, licensed_members: 8, volume: 1200, status: 'pending' },
-];
-
+let farmers = [];
+let cooperatives = [];
 let intake = [];
 let orders = [];
 let nextId = 100;
@@ -475,14 +471,51 @@ function canAccessPackhouse(f) {
 }
 
 // =============================================================
+// FETCH FROM SUPABASE (The Key Fix)
+// =============================================================
+async function fetchData() {
+    document.getElementById('dbStatus').textContent = 'Loading...';
+    
+    // 1. Fetch Farmers
+    const { data: farmerData, error: farmerError } = await supabase.from('farmers').select('*');
+    if (farmerError) { console.error('Farmer Error:', farmerError); } 
+    else if (farmerData) { farmers = farmerData; }
+
+    // 2. Fetch Cooperatives
+    const { data: coopData, error: coopError } = await supabase.from('cooperatives').select('*');
+    if (coopError) { console.error('Coop Error:', coopError); } 
+    else if (coopData) { cooperatives = coopData; }
+
+    // 3. Fetch Biosecurity (To show SPS Permit in the Farmer Table)
+    const { data: bioData, error: bioError } = await supabase.from('biosecurity_records').select('*');
+    if (bioError) { console.error('Biosecurity Error:', bioError); }
+
+    // Map Biosecurity data into the Farmers array for quick access
+    if (bioData) {
+        farmers = farmers.map(f => {
+            const record = bioData.find(b => b.farmer_name === f.name);
+            return {
+                ...f,
+                sps_permit: record ? record.sps_permit : 'Not Found',
+                quarantine_clearance: record ? record.quarantine_clearance : 'not-required'
+            };
+        });
+    }
+
+    document.getElementById('dbStatus').textContent = 'Connected';
+    renderAll();
+}
+
+// =============================================================
 // RENDER FUNCTIONS
 // =============================================================
 function renderFarmers() {
     const tbody = document.getElementById('farmerTableBody');
     const search = document.getElementById('searchFarmers').value.toLowerCase();
     const filter = document.getElementById('filterStatus').value;
+    
     let filtered = farmers.filter(f => {
-        const match = f.name.toLowerCase().includes(search) || f.cooperative.toLowerCase().includes(search);
+        const match = f.name.toLowerCase().includes(search) || (f.cooperative || '').toLowerCase().includes(search);
         if (filter !== 'all') {
             if (filter === 'approved') return match && getOverallStatus(f).tag === 'green';
             if (filter === 'in-readiness') return match && f.dard_permit === 'in-readiness';
@@ -490,20 +523,26 @@ function renderFarmers() {
         }
         return match;
     });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#7a958b;">No farmers found matching your search.</td></tr>`;
+        return;
+    }
+
     tbody.innerHTML = filtered.map(f => {
-        const overall = getOverallStatus(f);
         // Using VBS Certification as the Biosecurity/SPS Status for this table
+        // Adding the SPS Permit from the mapped query
         return `<tr>
             <td><strong>${f.name}</strong></td>
-            <td>${f.cooperative}</td>
-            <td>${f.province}</td>
+            <td>${f.cooperative || 'N/A'}</td>
+            <td>${f.province || 'N/A'}</td>
             <td>${getTag(f.dard_permit)}</td>
             <td>${getTag(f.industry_license)}</td>
             <td>${getTag(f.coop_member)}</td>
             <td>${getTag(f.vanipo)}</td>
             <td>
                 ${getTag(f.vbs_certification)}<br>
-                <span style="font-size:10px; color:#7a958b;">${f.crop} (Grade ${f.grade})</span>
+                <span style="font-size:10px; color:#7a958b;">SPS: ${f.sps_permit || 'N/A'}</span>
             </td>
             <td>
                 ${canAccessPackhouse(f) 
@@ -520,14 +559,20 @@ function renderCooperatives() {
     const tbody = document.getElementById('cooperativeTableBody');
     const search = document.getElementById('searchCoops').value.toLowerCase();
     const filtered = cooperatives.filter(c => c.name.toLowerCase().includes(search));
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#7a958b;">No cooperatives found.</td></tr>`;
+        return;
+    }
+
     tbody.innerHTML = filtered.map(c => {
-        const rate = c.members > 0 ? Math.round((c.licensed_members / c.members) * 100) : 0;
+        const rate = c.total_members > 0 ? Math.round((c.licensed_members / c.total_members) * 100) : 0;
         return `<tr>
             <td><strong>${c.name}</strong></td>
             <td>${c.province}</td>
-            <td>${c.members}</td>
+            <td>${c.total_members}</td>
             <td>${c.licensed_members}</td>
-            <td>${c.volume} kg</td>
+            <td>${c.consolidation_volume_kg || 0} kg</td>
             <td>${rate}%</td>
             <td>${getTag(c.status)}</td>
             <td><button class="btn btn-danger btn-sm" onclick="deleteCoop(${c.id})">🗑️</button></td>
@@ -539,6 +584,12 @@ function renderIntake() {
     const tbody = document.getElementById('intakeTableBody');
     const search = document.getElementById('searchIntake').value.toLowerCase();
     let filtered = intake.filter(i => i.farmer.toLowerCase().includes(search));
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#7a958b;">No intake records found.</td></tr>`;
+        return;
+    }
+
     tbody.innerHTML = filtered.map(i => `<tr>
         <td>${i.date}</td>
         <td><strong>${i.farmer}</strong></td>
@@ -560,6 +611,12 @@ function renderInventory() {
         product: i.crop, farmer: i.farmer, cooperative: i.cooperative, grade: i.grade, available: i.volume, reserved: 0
     }));
     if (filter !== 'all') items = items.filter(i => i.grade === filter);
+    
+    if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#7a958b;">No inventory available.</td></tr>`;
+        return;
+    }
+
     tbody.innerHTML = items.map(i => `<tr>
         <td><strong>${i.product}</strong></td>
         <td>${i.farmer}</td>
@@ -580,6 +637,12 @@ function renderOrders() {
         if (filter !== 'all') return match && o.status === filter;
         return match;
     });
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#7a958b;">No orders found.</td></tr>`;
+        return;
+    }
+
     tbody.innerHTML = filtered.map(o => `<tr>
         <td><strong>#${String(o.id).padStart(4, '0')}</strong></td>
         <td>${o.buyer}</td>
@@ -601,7 +664,7 @@ function updateStats() {
     document.getElementById('compliantFarmers').textContent = farmers.filter(f => getOverallStatus(f).tag === 'green').length;
     document.getElementById('nonCompliantFarmers').textContent = farmers.filter(f => getOverallStatus(f).tag === 'red').length;
     document.getElementById('exportReady').textContent = farmers.filter(f => isExportReady(f)).length;
-    document.getElementById('totalCoopMembers').textContent = cooperatives.reduce((s, c) => s + c.members, 0);
+    document.getElementById('totalCoopMembers').textContent = cooperatives.reduce((s, c) => s + (c.total_members || 0), 0);
     document.getElementById('packhouseIntake').textContent = intake.reduce((s, i) => s + i.volume, 0);
     document.getElementById('ordersCount').textContent = orders.length;
     
@@ -618,7 +681,7 @@ function updateStats() {
 }
 
 // =============================================================
-// CRUD OPERATIONS
+// CRUD OPERATIONS (Local for UI until DB Insert is setup)
 // =============================================================
 function saveFarmer(e) { 
     e.preventDefault(); 
@@ -640,7 +703,7 @@ function saveFarmer(e) {
     closeModal('addFarmer'); renderAll(); document.getElementById('farmerForm').reset(); 
 }
 function deleteFarmer(id) { if (confirm('Delete this farmer?')) { farmers = farmers.filter(f => f.id !== id); renderAll(); } }
-function saveCooperative(e) { e.preventDefault(); cooperatives.push({ id: nextId++, name: document.getElementById('cName').value, province: document.getElementById('cProvince').value, members: parseInt(document.getElementById('cMembers').value)||0, licensed_members: 0, volume: 0, status: document.getElementById('cStatus').value }); closeModal('addCooperative'); renderAll(); document.getElementById('coopForm').reset(); }
+function saveCooperative(e) { e.preventDefault(); cooperatives.push({ id: nextId++, name: document.getElementById('cName').value, province: document.getElementById('cProvince').value, total_members: parseInt(document.getElementById('cMembers').value)||0, licensed_members: 0, consolidation_volume_kg: 0, status: document.getElementById('cStatus').value }); closeModal('addCooperative'); renderAll(); document.getElementById('coopForm').reset(); }
 function deleteCoop(id) { if (confirm('Delete coop?')) { cooperatives = cooperatives.filter(c => c.id !== id); renderAll(); } }
 function saveIntake(e) { e.preventDefault(); const farmerName = document.getElementById('iFarmer').value; const farmer = farmers.find(f => f.name === farmerName); intake.push({ id: nextId++, farmer: farmerName, cooperative: farmer ? farmer.cooperative : 'N/A', crop: document.getElementById('iCrop').value||'Mixed', volume: parseInt(document.getElementById('iVolume').value)||0, grade: document.getElementById('iGrade').value, cert: document.getElementById('iCert').value, date: new Date().toISOString().split('T')[0] }); closeModal('addIntake'); renderAll(); document.getElementById('intakeForm').reset(); }
 function deleteIntake(id) { if (confirm('Delete intake?')) { intake = intake.filter(i => i.id !== id); renderAll(); } }
@@ -668,7 +731,8 @@ document.querySelectorAll('.modal-overlay').forEach(el => { el.addEventListener(
 
 function renderAll() { renderFarmers(); renderCooperatives(); renderIntake(); renderInventory(); renderOrders(); updateStats(); }
 
-document.addEventListener('DOMContentLoaded', function() { renderAll(); document.getElementById('dbStatus').textContent = 'Connected'; });
+document.addEventListener('DOMContentLoaded', function() { fetchData(); });
 </script>
 </body>
 </html>
+```
