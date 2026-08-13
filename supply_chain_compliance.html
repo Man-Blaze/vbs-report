@@ -1,13 +1,3 @@
-Ah, I understand now! In your timesheet example, you use **`supabase.from('timesheet').select('*')`** to pull the actual live data from the database. 
-
-Your current `supply_chain.html` is **not** doing that. It is currently using a hardcoded `let farmers = [...]` array at the top of the script, which is why it looks empty to you (because you want to see the data you provided in the CSV/Supabase table).
-
-I have completely rewritten the JavaScript section of `supply_chain.html`. It now **authenticates with Supabase, pulls the data from your `public.farmers` table, and renders it** exactly like your timesheet example does.
-
-### Updated `supply_chain.html` (Live Database Pull)
-*Replace your entire `supply_chain.html` file with this code. It will automatically fetch `farmers`, `cooperatives`, and `biosecurity_records` from your Supabase database.*
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
