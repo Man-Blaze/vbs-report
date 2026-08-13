@@ -461,38 +461,75 @@ function canAccessPackhouse(f) {
 }
 
 // =============================================================
-// FETCH FROM SUPABASE (The Key Fix)
+// FETCH FROM SUPABASE
 // =============================================================
 async function fetchData() {
     document.getElementById('dbStatus').textContent = 'Loading...';
     
-    // 1. Fetch Farmers
-    const { data: farmerData, error: farmerError } = await supabase.from('farmers').select('*');
-    if (farmerError) { console.error('Farmer Error:', farmerError); } 
-    else if (farmerData) { farmers = farmerData; }
+    try {
+        // 1. Fetch Farmers (Try plural first, then singular if it fails)
+        let { data: farmerData, error: farmerError } = await supabase.from('farmers').select('*');
+        
+        if (farmerError) {
+            console.warn("Table 'farmers' failed. Trying 'farmer'...");
+            let res = await supabase.from('farmer').select('*');
+            farmerData = res.data;
+            farmerError = res.error;
+        }
 
-    // 2. Fetch Cooperatives
-    const { data: coopData, error: coopError } = await supabase.from('cooperatives').select('*');
-    if (coopError) { console.error('Coop Error:', coopError); } 
-    else if (coopData) { cooperatives = coopData; }
+        if (farmerError) {
+            console.error("Supabase Farmer Error:", farmerError);
+            document.getElementById('dbStatus').textContent = 'Error';
+            document.getElementById('farmerTableBody').innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#ef5350;">❌ Database Connection Error: ${farmerError.message}. Loading sample data...</td></tr>`;
+            loadSampleData(); 
+            return;
+        } 
+        
+        if (farmerData && farmerData.length > 0) {
+            farmers = farmerData;
+            document.getElementById('dbStatus').textContent = 'Connected';
+        } else {
+            document.getElementById('dbStatus').textContent = 'Empty';
+            document.getElementById('farmerTableBody').innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#7a958b;">✅ Database connected, but no farmers found. Add one below!</td></tr>`;
+        }
 
-    // 3. Fetch Biosecurity (To show SPS Permit in the Farmer Table)
-    const { data: bioData, error: bioError } = await supabase.from('biosecurity_records').select('*');
-    if (bioError) { console.error('Biosecurity Error:', bioError); }
+        // 2. Fetch Cooperatives
+        const { data: coopData, error: coopError } = await supabase.from('cooperatives').select('*');
+        if (coopError) console.warn('Cooperatives Error:', coopError); 
+        else if (coopData) cooperatives = coopData;
 
-    // Map Biosecurity data into the Farmers array for quick access
-    if (bioData) {
-        farmers = farmers.map(f => {
-            const record = bioData.find(b => b.farmer_name === f.name);
-            return {
-                ...f,
-                sps_permit: record ? record.sps_permit : 'Not Found',
-                quarantine_clearance: record ? record.quarantine_clearance : 'not-required'
-            };
-        });
+        // 3. Fetch Biosecurity
+        const { data: bioData, error: bioError } = await supabase.from('biosecurity_records').select('*');
+        if (bioError) console.warn('Biosecurity Error:', bioError);
+
+        if (bioData) {
+            farmers = farmers.map(f => {
+                const record = bioData.find(b => b.farmer_name === f.name);
+                return {
+                    ...f,
+                    sps_permit: record ? record.sps_permit : 'Not Found',
+                    quarantine_clearance: record ? record.quarantine_clearance : 'not-required'
+                };
+            });
+        }
+
+    } catch (e) {
+        console.error("Critical Fetch Error:", e);
+        document.getElementById('dbStatus').textContent = 'Failed';
+        document.getElementById('farmerTableBody').innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#ef5350;">❌ Critical Error: ${e.message}. Check console for details.</td></tr>`;
     }
 
-    document.getElementById('dbStatus').textContent = 'Connected';
+    renderAll();
+}
+
+// =============================================================
+// SAMPLE DATA (If database fails)
+// =============================================================
+function loadSampleData() {
+    farmers = [
+        { id: 1, name: 'Sample Farmer A', cooperative: 'Santo United', province: 'Sanma', dard_permit: 'approved', industry_license: 'approved', coop_member: 'yes', vanipo: 'registered', export_permit: 'approved', vbs_certification: 'certified', crop: 'Kava', grade: 'A', notes: '', sps_permit: 'SPS-2026-TEST' },
+        { id: 2, name: 'Sample Farmer B', cooperative: 'Malampa Producers', province: 'Malampa', dard_permit: 'in-readiness', industry_license: 'pending', coop_member: 'yes', vanipo: 'pending', export_permit: 'not-applied', vbs_certification: 'not-applied', crop: 'Taro', grade: 'B', notes: 'In readiness', sps_permit: 'SPS-2026-TEST-2' }
+    ];
     renderAll();
 }
 
@@ -504,6 +541,8 @@ function renderFarmers() {
     const search = document.getElementById('searchFarmers').value.toLowerCase();
     const filter = document.getElementById('filterStatus').value;
     
+    if (!farmers || farmers.length === 0) return;
+
     let filtered = farmers.filter(f => {
         const match = f.name.toLowerCase().includes(search) || (f.cooperative || '').toLowerCase().includes(search);
         if (filter !== 'all') {
@@ -520,8 +559,6 @@ function renderFarmers() {
     }
 
     tbody.innerHTML = filtered.map(f => {
-        // Using VBS Certification as the Biosecurity/SPS Status for this table
-        // Adding the SPS Permit from the mapped query
         return `<tr>
             <td><strong>${f.name}</strong></td>
             <td>${f.cooperative || 'N/A'}</td>
@@ -547,14 +584,12 @@ function renderFarmers() {
 
 function renderCooperatives() {
     const tbody = document.getElementById('cooperativeTableBody');
-    const search = document.getElementById('searchCoops').value.toLowerCase();
-    const filtered = cooperatives.filter(c => c.name.toLowerCase().includes(search));
-    
-    if (filtered.length === 0) {
+    if (!cooperatives || cooperatives.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#7a958b;">No cooperatives found.</td></tr>`;
         return;
     }
-
+    const search = document.getElementById('searchCoops').value.toLowerCase();
+    const filtered = cooperatives.filter(c => c.name.toLowerCase().includes(search));
     tbody.innerHTML = filtered.map(c => {
         const rate = c.total_members > 0 ? Math.round((c.licensed_members / c.total_members) * 100) : 0;
         return `<tr>
@@ -572,14 +607,12 @@ function renderCooperatives() {
 
 function renderIntake() {
     const tbody = document.getElementById('intakeTableBody');
-    const search = document.getElementById('searchIntake').value.toLowerCase();
-    let filtered = intake.filter(i => i.farmer.toLowerCase().includes(search));
-    
-    if (filtered.length === 0) {
+    if (!intake || intake.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#7a958b;">No intake records found.</td></tr>`;
         return;
     }
-
+    const search = document.getElementById('searchIntake').value.toLowerCase();
+    let filtered = intake.filter(i => i.farmer.toLowerCase().includes(search));
     tbody.innerHTML = filtered.map(i => `<tr>
         <td>${i.date}</td>
         <td><strong>${i.farmer}</strong></td>
@@ -601,12 +634,10 @@ function renderInventory() {
         product: i.crop, farmer: i.farmer, cooperative: i.cooperative, grade: i.grade, available: i.volume, reserved: 0
     }));
     if (filter !== 'all') items = items.filter(i => i.grade === filter);
-    
     if (items.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#7a958b;">No inventory available.</td></tr>`;
         return;
     }
-
     tbody.innerHTML = items.map(i => `<tr>
         <td><strong>${i.product}</strong></td>
         <td>${i.farmer}</td>
@@ -620,6 +651,10 @@ function renderInventory() {
 
 function renderOrders() {
     const tbody = document.getElementById('ordersTableBody');
+    if (!orders || orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#7a958b;">No orders found.</td></tr>`;
+        return;
+    }
     const search = document.getElementById('searchOrders').value.toLowerCase();
     const filter = document.getElementById('filterOrders').value;
     let filtered = orders.filter(o => {
@@ -627,12 +662,6 @@ function renderOrders() {
         if (filter !== 'all') return match && o.status === filter;
         return match;
     });
-    
-    if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#7a958b;">No orders found.</td></tr>`;
-        return;
-    }
-
     tbody.innerHTML = filtered.map(o => `<tr>
         <td><strong>#${String(o.id).padStart(4, '0')}</strong></td>
         <td>${o.buyer}</td>
@@ -671,7 +700,7 @@ function updateStats() {
 }
 
 // =============================================================
-// CRUD OPERATIONS (Local for UI until DB Insert is setup)
+// CRUD OPERATIONS (Local for UI)
 // =============================================================
 function saveFarmer(e) { 
     e.preventDefault(); 
@@ -688,7 +717,8 @@ function saveFarmer(e) {
         vbs_certification: document.getElementById('fVbsCert').value,
         crop: document.getElementById('fCrop').value || 'Not Specified',
         grade: document.getElementById('fGrade').value,
-        notes: document.getElementById('fNotes').value || ''
+        notes: document.getElementById('fNotes').value || '',
+        sps_permit: 'Pending'
     }); 
     closeModal('addFarmer'); renderAll(); document.getElementById('farmerForm').reset(); 
 }
@@ -725,4 +755,3 @@ document.addEventListener('DOMContentLoaded', function() { fetchData(); });
 </script>
 </body>
 </html>
-```
