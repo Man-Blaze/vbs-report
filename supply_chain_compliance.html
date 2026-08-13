@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VBS Supply Chain · Farm to Institution</title>
-    <!-- Load Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* --- VBS Dark Theme --- */
@@ -195,12 +194,19 @@
 
 <script>
 // =============================================================
-// SUPABASE CONFIG (Totally isolated variable)
+// SUPABASE CONFIG - FIXED KEY DECLARATION
 // =============================================================
 const supabaseUrl = 'https://pdwctzueksfuspwwumdy.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
 
-// We name this 'supabaseApp' so it NEVER clashes with anything else on your page
+/* 
+   ⚠️ IMPORTANT: 
+   1. Go to Supabase Dashboard > Settings > API
+   2. Click "Regenerate" on the 'anon' key.
+   3. Copy the NEW key and replace the text between the quotes below.
+*/
+const supabaseKey = 'PASTE_YOUR_NEWLY_REGENERATED_ANON_KEY_HERE'; 
+
+// We name this 'supabaseApp' so it NEVER clashes with other scripts
 const supabaseApp = supabase.createClient(supabaseUrl, supabaseKey);
 
 // =============================================================
@@ -234,10 +240,12 @@ function getTag(status) {
 async function fetchAll() {
     document.getElementById('dbStatus').textContent = 'Connecting...';
 
-    // 1. Fetch Farmers (using 'supabaseApp')
+    // 1. Fetch Farmers
     const { data: farmers, error: fErr } = await supabaseApp.from('farmers').select('*');
-    if (fErr) console.error("Farmers Error:", fErr);
-    else if (farmers) {
+    if (fErr) {
+        console.error("Farmers Error:", fErr);
+        document.getElementById('dbStatus').textContent = 'Error';
+    } else if (farmers) {
         document.getElementById('totalFarmers').textContent = farmers.length;
         document.getElementById('farmerTableBody').innerHTML = farmers.map(f => `
             <tr>
@@ -290,8 +298,10 @@ async function fetchAll() {
             </tr>
         `).join('');
     }
-
-    document.getElementById('dbStatus').textContent = 'Connected';
+    
+    if(!fErr && !cErr && !bErr) {
+        document.getElementById('dbStatus').textContent = 'Connected';
+    }
 }
 
 // =============================================================
