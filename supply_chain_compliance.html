@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VBS Supply Chain · Farm to Institution</title>
+    <!-- Load Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* --- VBS Dark Theme --- */
@@ -194,16 +195,13 @@
 
 <script>
 // =============================================================
-// SUPABASE CONFIG (Fix for Variable Clash)
+// SUPABASE CONFIG (Totally isolated variable)
 // =============================================================
-// Using window.supabase to avoid "Identifier 'supabase' has already been declared"
 const supabaseUrl = 'https://pdwctzueksfuspwwumdy.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
 
-if (!window.supabase) {
-    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
-}
-const supabase = window.supabase;
+// We name this 'supabaseApp' so it NEVER clashes with anything else on your page
+const supabaseApp = supabase.createClient(supabaseUrl, supabaseKey);
 
 // =============================================================
 // HELPER TAGS
@@ -236,8 +234,8 @@ function getTag(status) {
 async function fetchAll() {
     document.getElementById('dbStatus').textContent = 'Connecting...';
 
-    // 1. Fetch Farmers
-    const { data: farmers, error: fErr } = await supabase.from('farmers').select('*');
+    // 1. Fetch Farmers (using 'supabaseApp')
+    const { data: farmers, error: fErr } = await supabaseApp.from('farmers').select('*');
     if (fErr) console.error("Farmers Error:", fErr);
     else if (farmers) {
         document.getElementById('totalFarmers').textContent = farmers.length;
@@ -257,7 +255,7 @@ async function fetchAll() {
     }
 
     // 2. Fetch Cooperatives
-    const { data: coops, error: cErr } = await supabase.from('cooperatives').select('*');
+    const { data: coops, error: cErr } = await supabaseApp.from('cooperatives').select('*');
     if (cErr) console.error("Coops Error:", cErr);
     else if (coops) {
         document.getElementById('totalCoops').textContent = coops.length;
@@ -275,7 +273,7 @@ async function fetchAll() {
     }
 
     // 3. Fetch Biosecurity
-    const { data: bio, error: bErr } = await supabase.from('biosecurity_records').select('*');
+    const { data: bio, error: bErr } = await supabaseApp.from('biosecurity_records').select('*');
     if (bErr) console.error("Biosecurity Error:", bErr);
     else if (bio) {
         document.getElementById('totalBio').textContent = bio.length;
