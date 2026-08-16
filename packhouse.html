@@ -1,52 +1,304 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>VBS - Packhouse Report</title>
+    <title>VBS - Packhouse Intake & Grading</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>body { font-family: Arial, sans-serif; max-width: 500px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
-    .container { background: white; padding: 20px; border-radius: 10px; }
-    h1 { color: #2c7a4d; } label { display: block; margin-top: 15px; font-weight: bold; }
-    input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; }
-    button { width: 100%; padding: 12px; margin-top: 20px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 20px auto; 
+            padding: 20px; 
+            background: #0d1512; 
+            color: #e0e8e4;
+        }
+        .container { 
+            background: #16201a; 
+            padding: 25px; 
+            border-radius: 10px; 
+            border: 1px solid #1a2f27;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        h1 { 
+            color: #d5b07c; 
+            font-family: 'Times New Roman', Times, serif;
+            margin-bottom: 5px;
+        }
+        .subtitle { 
+            font-size: 13px; 
+            color: #8ba79e; 
+            margin-bottom: 20px; 
+            border-bottom: 1px solid #1a2f27; 
+            padding-bottom: 10px;
+        }
+        label { 
+            display: block; 
+            margin-top: 15px; 
+            font-weight: bold; 
+            font-size: 13px;
+            color: #a1b7b0;
+        }
+        input, select, textarea { 
+            width: 100%; 
+            padding: 10px; 
+            margin-top: 5px; 
+            background: #0d1814;
+            border: 1px solid #1a2f27; 
+            border-radius: 5px; 
+            color: #e0e8e4;
+            font-size: 14px;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #2a5a44;
+        }
+        .form-row { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+        }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            margin-top: 25px; 
+            background: #2e5a44; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+        button:hover { background: #3d7559; }
+        .status-badge { 
+            display: inline-block; 
+            padding: 4px 10px; 
+            border-radius: 12px; 
+            font-size: 11px; 
+            background: #1a3b24; 
+            color: #a5d6a7;
+            margin-top: 10px;
+        }
+        .error-msg { color: #ef5350; margin-top: 5px; font-size: 12px; display: none; }
+        .back-link { color: #a1b7b0; text-decoration: none; display: inline-block; margin-bottom: 15px; }
+        .back-link:hover { color: #d5b07c; }
     </style>
 </head>
 <body>
+    <a href="supply_chain_compliance.html" class="back-link">← Back to Supply Chain Dashboard</a>
+
     <div class="container">
-        <h1>📦 Packhouse Report</h1>
-        <form id="reportForm">
-            <label>Officer Name:</label><input name="officer_name" required>
-            <label>Report Date:</label><input name="report_date" type="date" required>
-            <label>Volume Received (kg):</label><input name="volume_received_kg" type="number" value="0">
-            <label>Volume Processed (kg):</label><input name="volume_processed_kg" type="number" value="0">
-            <label>Volume Exported (kg):</label><input name="volume_exported_kg" type="number" value="0">
-            <label>Waste (%):</label><input name="waste_percent" type="number" step="0.1" value="0">
-            <label>Rejection Rate (%):</label><input name="rejection_rate_percent" type="number" step="0.1" value="0">
-            <label>Farmers Supplied:</label><input name="farmers_supplied" type="number" value="0">
-            <label>Cold Room Temp (°C):</label><input name="cold_room_temp_c" type="number" step="0.1">
-            <label>Equipment Status:</label><select name="equipment_status"><option>All normal</option><option>Minor issue</option><option>Major breakdown</option></select>
-            <label>Staff on Duty:</label><input name="staff_on_duty" type="number" value="0">
-            <label>Non-Compliance Cases:</label><input name="non_compliance_cases" type="number" value="0">
-            <label>Hours Worked:</label><input name="hours_worked" type="number" step="0.5" value="8">
-            <label>Tasks Completed:</label><input name="tasks_completed" type="number" value="0">
-            <label>Notes:</label><textarea name="inspector_notes"></textarea>
-            <button type="submit">Submit Report</button>
+        <h1>📦 Packhouse Intake & Grading</h1>
+        <div class="subtitle">Record produce received, graded, and packaged for the supply chain.</div>
+
+        <div class="status-badge" id="statusBadge">🔄 Loading Farmers...</div>
+
+        <form id="intakeForm">
+            <!-- Farmer Selection (Auto-filled from Farmers Table) -->
+            <label>Select Farmer (Requires Packhouse Access):</label>
+            <select id="farmerSelect" required>
+                <option value="">-- Select Farmer --</option>
+            </select>
+            <div id="farmerAccessMsg" class="error-msg">Farmer does not meet compliance standards for packhouse access.</div>
+
+            <div class="form-row">
+                <div>
+                    <label>Date Received:</label>
+                    <input type="date" id="reportDate" required>
+                </div>
+                <div>
+                    <label>Crop Type:</label>
+                    <input type="text" id="cropType" placeholder="e.g. Kava, Taro" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <label>Total Weight (kg):</label>
+                    <input type="number" id="volumeKg" step="0.1" placeholder="0.0" required>
+                </div>
+                <div>
+                    <label>Grade:</label>
+                    <select id="grade" required>
+                        <option value="A">A - Export Quality</option>
+                        <option value="B">B - Domestic Premium</option>
+                        <option value="C">C - Institutional Supply</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Packaging & Labeling Requirements -->
+            <div class="form-row">
+                <div>
+                    <label>Packaging Type:</label>
+                    <select id="packagingType">
+                        <option value="Vacuum Sealed">Vacuum Sealed</option>
+                        <option value="Mesh Bag">Mesh Bag</option>
+                        <option value="Cardboard Box">Cardboard Box</option>
+                        <option value="Plastic Crate">Plastic Crate</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Label Batch #:</label>
+                    <input type="text" id="batchNumber" placeholder="e.g. VBS-2026-A-001">
+                </div>
+            </div>
+
+            <label>Destination:</label>
+            <select id="destination">
+                <option value="Export">Export</option>
+                <option value="Domestic">Domestic</option>
+                <option value="Institutional">Institutional</option>
+            </select>
+
+            <label>Inspector Notes:</label>
+            <textarea id="notes" rows="2" placeholder="Any quality checks, packaging issues, or notes..."></textarea>
+
+            <button type="submit">✅ Record Intake & Update Inventory</button>
         </form>
     </div>
+
     <script>
-        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-        document.getElementById('reportForm').onsubmit = async (e) => {
-            e.preventDefault(); const formData = new FormData(e.target); const data = {};
-            formData.forEach((v,k) => { if(v) data[k] = v; });
-            data.status = 'PENDING';
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/packhouse_reports`, {
-                method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            alert(response.ok ? '✅ Report submitted!' : '❌ Error');
-            if(response.ok) e.target.reset();
+        // =============================================================
+        // SUPABASE CONFIG
+        // =============================================================
+        const VBS_SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const VBS_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        const supabaseApp = supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
+
+        // =============================================================
+        // LOAD FARMERS INTO DROPDOWN
+        // =============================================================
+        async function loadFarmers() {
+            const statusBadge = document.getElementById('statusBadge');
+            const select = document.getElementById('farmerSelect');
+            
+            const { data: farmers, error } = await supabaseApp.from('farmers').select('*');
+
+            if (error) {
+                console.error("Error fetching farmers:", error);
+                statusBadge.textContent = '❌ Error loading farmers';
+                statusBadge.style.backgroundColor = '#401c1c';
+                statusBadge.style.color = '#ef9a9a';
+                return;
+            }
+
+            if (!farmers || farmers.length === 0) {
+                statusBadge.textContent = '⚠️ No Farmers Registered Yet';
+                return;
+            }
+
+            // Function to check if a farmer has full compliance
+            function canAccessPackhouse(f) { 
+                return ['approved','registered','yes','certified'].every(v => 
+                    [f.dard_permit, f.industry_license, f.coop_member, f.vanipo, f.vbs_certification].includes(v)
+                ); 
+            }
+
+            let html = '<option value="">-- Select Farmer --</option>';
+            let compliantCount = 0;
+
+            for (let f of farmers) {
+                const allowed = canAccessPackhouse(f);
+                if(allowed) compliantCount++;
+                
+                // Only show Compliant farmers
+                if(allowed) {
+                    html += `<option value="${f.id}" data-name="${f.name}" data-crop="${f.crop || 'Mixed'}">${f.name} (${f.province})</option>`;
+                }
+            }
+
+            select.innerHTML = html;
+            statusBadge.textContent = `✅ ${compliantCount} Compliant Farmers Ready`;
+            statusBadge.style.backgroundColor = '#1a3b24';
+            statusBadge.style.color = '#a5d6a7';
+        }
+
+        // =============================================================
+        // AUTO-FILL CROP ON FARMER SELECT
+        // =============================================================
+        document.getElementById('farmerSelect').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if(selectedOption && selectedOption.dataset.crop) {
+                document.getElementById('cropType').value = selectedOption.dataset.crop;
+            }
+        });
+
+        // =============================================================
+        // SUBMIT FORM (INSERT INTO PACKHOUSE_REPORTS & TRACEABILITY_BATCHES)
+        // =============================================================
+        document.getElementById('intakeForm').onsubmit = async (e) => {
+            e.preventDefault();
+
+            const farmerId = document.getElementById('farmerSelect').value;
+            const farmerName = document.getElementById('farmerSelect').options[document.getElementById('farmerSelect').selectedIndex].text.split('(')[0].trim();
+            const date = document.getElementById('reportDate').value;
+            const crop = document.getElementById('cropType').value;
+            const volume = parseFloat(document.getElementById('volumeKg').value);
+            const grade = document.getElementById('grade').value;
+            const packaging = document.getElementById('packagingType').value;
+            const batch = document.getElementById('batchNumber').value || `VBS-${grade}-${Date.now()}`;
+            const destination = document.getElementById('destination').value;
+            const notes = document.getElementById('notes').value;
+
+            if(!farmerId) return alert('Please select a compliant farmer.');
+
+            // 1. Insert into packhouse_reports
+            const reportData = {
+                officer_name: 'Packhouse Officer', // Default or you can add a field
+                report_date: date,
+                volume_received_kg: volume,
+                volume_processed_kg: volume,
+                volume_exported_kg: destination === 'Export' ? volume : 0,
+                rejection_rate_percent: 0,
+                farmers_supplied: 1,
+                inspector_notes: notes,
+                status: 'PENDING'
+            };
+
+            const { error: reportError } = await supabaseApp.from('packhouse_reports').insert(reportData);
+
+            if (reportError) {
+                alert('❌ Error submitting packhouse report: ' + reportError.message);
+                return;
+            }
+
+            // 2. Insert into traceability_batches to update Live Inventory
+            const batchData = {
+                batch_number: batch,
+                farmer_id: farmerId,
+                farmer_name: farmerName,
+                crop: crop,
+                grade: grade,
+                destination: destination,
+                quantity_kg: volume,
+                packhouse_location: 'Santo Packhouse',
+                status: 'Ready',
+                notes: `Packaged in ${packaging}`
+            };
+
+            const { error: batchError } = await supabaseApp.from('traceability_batches').insert(batchData);
+
+            if (batchError) {
+                alert('⚠️ Packhouse report saved, but failed to update Inventory: ' + batchError.message);
+            } else {
+                alert(`✅ Success! ${volume}kg of Grade ${crop} (${destination}) recorded. Inventory updated.`);
+                document.getElementById('intakeForm').reset();
+                document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('farmerSelect').value = '';
+                document.getElementById('cropType').value = '';
+            }
         };
-        document.querySelector('input[name="report_date"]').value = new Date().toISOString().split('T')[0];
+
+        // =============================================================
+        // INIT
+        // =============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+            loadFarmers();
+        });
     </script>
 </body>
 </html>
