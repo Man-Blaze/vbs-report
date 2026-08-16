@@ -1,13 +1,3 @@
-Ah, my apologies! I completely over-engineered that last step. 
-
-You are right. If the business rule is strictly: **"Agriculture Permit must be `approved`; ignore everything else"**, then we only check that one single column.
-
-Here is the simplified `packhouse_report.html`. I have removed all the strict "5-star compliance" rules and replaced it with a single check: `if (f.dard_permit === 'approved')`.
-
-### Updated `packhouse_report.html` (Single Check: DARD Permit)
-*Replace your file with this code:*
-
-```html
 <!DOCTYPE html>
 <html>
 <head>
