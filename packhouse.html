@@ -1,3 +1,13 @@
+Ah, my apologies! I completely over-engineered that last step. 
+
+You are right. If the business rule is strictly: **"Agriculture Permit must be `approved`; ignore everything else"**, then we only check that one single column.
+
+Here is the simplified `packhouse_report.html`. I have removed all the strict "5-star compliance" rules and replaced it with a single check: `if (f.dard_permit === 'approved')`.
+
+### Updated `packhouse_report.html` (Single Check: DARD Permit)
+*Replace your file with this code:*
+
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -81,7 +91,6 @@
             color: #a5d6a7;
             margin-top: 10px;
         }
-        .error-msg { color: #ef5350; margin-top: 5px; font-size: 12px; display: none; }
         .back-link { color: #a1b7b0; text-decoration: none; display: inline-block; margin-bottom: 15px; }
         .back-link:hover { color: #d5b07c; }
     </style>
@@ -91,17 +100,18 @@
 
     <div class="container">
         <h1>📦 Packhouse Intake & Grading</h1>
-        <div class="subtitle">Record produce received, graded, and packaged for the supply chain.</div>
+        <div class="subtitle">Record produce received, graded, and packaged.</div>
 
         <div class="status-badge" id="statusBadge">🔄 Loading Farmers...</div>
 
         <form id="intakeForm">
-            <!-- Farmer Selection (Auto-filled from Farmers Table) -->
-            <label>Select Farmer (Requires Packhouse Access):</label>
+            <label>Select Farmer (Must have DARD Permit 'Approved'):</label>
             <select id="farmerSelect" required>
                 <option value="">-- Select Farmer --</option>
             </select>
-            <div id="farmerAccessMsg" class="error-msg">Farmer does not meet compliance standards for packhouse access.</div>
+            <div style="font-size: 11px; color: #8ba79e; margin-top: 5px;">
+                *Only approved Agriculture Permits are allowed to sell.
+            </div>
 
             <div class="form-row">
                 <div>
@@ -129,7 +139,6 @@
                 </div>
             </div>
 
-            <!-- Packaging & Labeling Requirements -->
             <div class="form-row">
                 <div>
                     <label>Packaging Type:</label>
@@ -169,7 +178,7 @@
         const supabaseApp = supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
 
         // =============================================================
-        // LOAD FARMERS INTO DROPDOWN
+        // LOAD FARMERS INTO DROPDOWN (SINGLE CHECK: DARD PERMIT)
         // =============================================================
         async function loadFarmers() {
             const statusBadge = document.getElementById('statusBadge');
@@ -190,11 +199,9 @@
                 return;
             }
 
-            // Function to check if a farmer has full compliance
+            // SIMPLIFIED RULE: ONLY check dard_permit
             function canAccessPackhouse(f) { 
-                return ['approved','registered','yes','certified'].every(v => 
-                    [f.dard_permit, f.industry_license, f.coop_member, f.vanipo, f.vbs_certification].includes(v)
-                ); 
+                return f.dard_permit === 'approved';
             }
 
             let html = '<option value="">-- Select Farmer --</option>';
@@ -204,14 +211,14 @@
                 const allowed = canAccessPackhouse(f);
                 if(allowed) compliantCount++;
                 
-                // Only show Compliant farmers
+                // Only show farmers with DARD 'approved'
                 if(allowed) {
                     html += `<option value="${f.id}" data-name="${f.name}" data-crop="${f.crop || 'Mixed'}">${f.name} (${f.province})</option>`;
                 }
             }
 
             select.innerHTML = html;
-            statusBadge.textContent = `✅ ${compliantCount} Compliant Farmers Ready`;
+            statusBadge.textContent = `✅ ${compliantCount} Farmers Ready`;
             statusBadge.style.backgroundColor = '#1a3b24';
             statusBadge.style.color = '#a5d6a7';
         }
@@ -243,11 +250,11 @@
             const destination = document.getElementById('destination').value;
             const notes = document.getElementById('notes').value;
 
-            if(!farmerId) return alert('Please select a compliant farmer.');
+            if(!farmerId) return alert('Please select a farmer.');
 
             // 1. Insert into packhouse_reports
             const reportData = {
-                officer_name: 'Packhouse Officer', // Default or you can add a field
+                officer_name: 'Packhouse Officer',
                 report_date: date,
                 volume_received_kg: volume,
                 volume_processed_kg: volume,
@@ -302,3 +309,4 @@
     </script>
 </body>
 </html>
+```
