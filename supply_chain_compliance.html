@@ -1,3 +1,15 @@
+Perfect! You have the foundational "Viewer" working correctly, but now you need **full CRUD (Create, Read, Update, Delete)** capabilities so officers can actually manage the data.
+
+I have completely upgraded the file you provided. I have added:
+1. **"Add New" buttons** to all three tables.
+2. **Pop-up Modal Forms** for Farmers, Cooperatives, and Biosecurity records.
+3. **Inline "Delete" and "Edit" buttons** so officers can instantly modify records.
+4. **Real-time Supabase Updates** – when a form is submitted, it updates the database and refreshes the table instantly.
+
+### Upgraded `supply_chain_compliance.html` (Full CRUD Version)
+*Replace your existing file completely with this code. It includes the new HTML Modals and the JavaScript to Insert/Update/Delete directly into Supabase.*
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,15 +26,12 @@
         }
         .container { max-width: 1400px; margin: 0 auto; }
         
-        /* --- Typography --- */
         h1, h2, h3 { font-family: 'Times New Roman', Times, serif; letter-spacing: -0.5px; }
         .text-gold { color: #d5b07c; }
 
-        /* --- Nav --- */
         .back-nav { margin-bottom: 15px; }
         .back-nav a { color: #a1b7b0; text-decoration: none; font-size: 13px; padding: 8px 14px; border: 1px solid #1a2f27; border-radius: 6px; background: #111f19; display: inline-block; }
 
-        /* --- Header --- */
         .header-box {
             background: linear-gradient(145deg, #12241e, #162c25);
             border: 1px solid #1b362e; border-radius: 12px; padding: 20px 25px; margin-bottom: 20px;
@@ -36,7 +45,6 @@
         .dot-pulse { width: 8px; height: 8px; background: #66bb6a; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: .6; } 50% { opacity: 1; } 100% { opacity: .6; } }
 
-        /* --- Stats --- */
         .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
         .stat-card { background: #0d1814; border: 1px solid #1a2f27; border-radius: 8px; padding: 12px 10px; text-align: center; }
         .stat-card .value { font-size: 22px; font-weight: 700; color: #fff; }
@@ -56,6 +64,12 @@
         .table-head h2 { font-size: 18px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
         .table-head h2 span { color: #d5b07c; font-size: 16px; }
         
+        /* ACTION BUTTONS */
+        .btn-sm { padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; color: #fff; }
+        .btn-add { background: #2e7d32; color: white; border: none; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-edit { background: #d5b07c; color: #0d1512; }
+        .btn-delete { background: #b71c1c; }
+        
         .tbl-scroll { overflow-x: auto; padding: 0 4px 4px 4px; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         thead { background: #0a1410; border-bottom: 1px solid #1a2f27; }
@@ -63,15 +77,40 @@
         tbody td { padding: 10px 12px; border-bottom: 1px solid #111f19; color: #c5d5ce; }
         tbody tr:hover { background: #0d1512; }
 
-        /* --- Tags --- */
         .tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; background: #1a2f27; color: #8ba79e; }
         .tag.green { background: #1a3b24; color: #a5d6a7; }
         .tag.orange { background: #402510; color: #ffab91; }
         .tag.red { background: #401c1c; color: #ef9a9a; }
         .tag.blue { background: #1c3040; color: #90caf9; }
 
-        /* --- Footer --- */
         .footer { text-align: center; padding: 14px; font-size: 11px; color: #375048; border-top: 1px solid #0d1814; margin-top: 10px; }
+
+        /* --- MODAL STYLES --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);
+            z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: #162c25; border: 1px solid #1b362e; border-radius: 12px;
+            max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        .modal-content h2 { font-size: 22px; color: #d5b07c; margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; color: #7a958b; margin-bottom: 4px; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 8px 10px; background: #0d1814; border: 1px solid #1a2f27;
+            border-radius: 6px; color: #e0e8e4; font-size: 13px;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2a5a44; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 15px; border-top: 1px solid #1a2f27; }
+        .btn-modal-save { background: #2e7d32; color: #fff; padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-modal-close { background: #4a4a4a; color: #fff; padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+        @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -109,6 +148,7 @@
     <div class="table-wrap">
         <div class="table-head">
             <h2>👨‍🌾 <span>Farmers</span> · DARD · Cooperative</h2>
+            <button class="btn-add" onclick="openModal('farmerModal', null)">+ Add Farmer</button>
         </div>
         <div class="tbl-scroll">
             <table>
@@ -118,15 +158,16 @@
                         <th>Name</th>
                         <th>Cooperative</th>
                         <th>Province</th>
-                        <th>DARD Permit</th>
-                        <th>Industry License</th>
-                        <th>Coop Member</th>
+                        <th>DARD</th>
+                        <th>Industry</th>
+                        <th>Coop</th>
                         <th>VanIPO</th>
-                        <th>Export Permit</th>
+                        <th>Export</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="farmerTableBody">
-                    <tr><td colspan="9" style="text-align:center; padding:20px; color:#7a958b;">Loading farmers...</td></tr>
+                    <tr><td colspan="10" style="text-align:center; padding:20px; color:#7a958b;">Loading farmers...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -138,6 +179,7 @@
     <div class="table-wrap">
         <div class="table-head">
             <h2>🤝 <span>Cooperatives</span> · Member Consolidation</h2>
+            <button class="btn-add" onclick="openModal('coopModal', null)">+ Add Cooperative</button>
         </div>
         <div class="tbl-scroll">
             <table>
@@ -146,14 +188,15 @@
                         <th>ID</th>
                         <th>Name</th>
                         <th>Province</th>
-                        <th>Total Members</th>
-                        <th>Licensed Members</th>
+                        <th>Members</th>
+                        <th>Licensed</th>
                         <th>Volume (kg)</th>
                         <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="cooperativeTableBody">
-                    <tr><td colspan="7" style="text-align:center; padding:20px; color:#7a958b;">Loading cooperatives...</td></tr>
+                    <tr><td colspan="8" style="text-align:center; padding:20px; color:#7a958b;">Loading cooperatives...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -165,6 +208,7 @@
     <div class="table-wrap">
         <div class="table-head">
             <h2>🔬 <span>Biosecurity</span> · SPS Records</h2>
+            <button class="btn-add" onclick="openModal('bioModal', null)">+ New Record</button>
         </div>
         <div class="tbl-scroll">
             <table>
@@ -178,68 +222,142 @@
                         <th>Pest Status</th>
                         <th>Expiry</th>
                         <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="biosecurityTableBody">
-                    <tr><td colspan="8" style="text-align:center; padding:20px; color:#7a958b;">Loading biosecurity records...</td></tr>
+                    <tr><td colspan="9" style="text-align:center; padding:20px; color:#7a958b;">Loading biosecurity records...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
     <footer class="footer">
-        <span>🏛️ VBS · Farm to Institution · Live Data Viewer</span>
+        <span>🏛️ VBS · Farm to Institution · Live Data Manager</span>
     </footer>
+</div>
+
+<!-- ========================================================== -->
+<!-- MODALS (FORMS) -->
+<!-- ========================================================== -->
+
+<!-- FARMER MODAL -->
+<div id="farmerModal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 id="farmerModalTitle">➕ Add New Farmer</h2>
+        <form id="farmerForm">
+            <input type="hidden" id="farmerId">
+            <div class="form-group"><label>Name *</label><input type="text" id="fName" required></div>
+            <div class="form-row">
+                <div class="form-group"><label>Cooperative</label><input type="text" id="fCoop"></div>
+                <div class="form-group"><label>Province</label><select id="fProvince"><option>Sanma</option><option>Malampa</option><option>Shefa</option><option>Tafea</option><option>Torba</option><option>Penama</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>DARD Permit</label><select id="fDard"><option value="approved">Approved</option><option value="in-readiness">In Readiness</option><option value="deferred">Deferred</option><option value="not-applied">Not Applied</option></select></div>
+                <div class="form-group"><label>Industry License</label><select id="fIndustry"><option value="approved">Approved</option><option value="pending">Pending</option><option value="not-applied">Not Applied</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Coop Member</label><select id="fCoopMember"><option value="yes">Yes</option><option value="no">No</option><option value="pending">Pending</option></select></div>
+                <div class="form-group"><label>VanIPO GI</label><select id="fVanipo"><option value="registered">Registered</option><option value="pending">Pending</option><option value="not-applied">Not Applied</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Export Permit</label><select id="fExport"><option value="approved">Approved</option><option value="pending">Pending</option><option value="not-applied">Not Applied</option></select></div>
+                <div class="form-group"><label>Crop</label><input type="text" id="fCrop"></div>
+            </div>
+            <div class="form-group"><label>Notes</label><textarea id="fNotes" rows="2"></textarea></div>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-close" onclick="closeModal('farmerModal')">Cancel</button>
+                <button type="submit" class="btn-modal-save">💾 Save Farmer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- COOPERATIVE MODAL -->
+<div id="coopModal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 id="coopModalTitle">➕ Add New Cooperative</h2>
+        <form id="coopForm">
+            <input type="hidden" id="coopId">
+            <div class="form-group"><label>Cooperative Name *</label><input type="text" id="cName" required></div>
+            <div class="form-row">
+                <div class="form-group"><label>Province</label><select id="cProvince"><option>Sanma</option><option>Malampa</option><option>Shefa</option><option>Tafea</option><option>Torba</option><option>Penama</option></select></div>
+                <div class="form-group"><label>Total Members</label><input type="number" id="cMembers"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Licensed Members</label><input type="number" id="cLicensed"></div>
+                <div class="form-group"><label>Volume (kg)</label><input type="number" id="cVolume"></div>
+            </div>
+            <div class="form-group"><label>Status</label><select id="cStatus"><option value="active">Active</option><option value="inactive">Inactive</option><option value="pending">Pending</option></select></div>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-close" onclick="closeModal('coopModal')">Cancel</button>
+                <button type="submit" class="btn-modal-save">💾 Save Cooperative</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- BIOSECURITY MODAL -->
+<div id="bioModal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 id="bioModalTitle">➕ Add Biosecurity Record</h2>
+        <form id="bioForm">
+            <input type="hidden" id="bioId">
+            <div class="form-group"><label>Farmer Name *</label><input type="text" id="bFarmer" required></div>
+            <div class="form-row">
+                <div class="form-group"><label>Crop</label><input type="text" id="bCrop"></div>
+                <div class="form-group"><label>SPS Permit</label><input type="text" id="bPermit"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Quarantine Clearance</label><select id="bQuarantine"><option value="cleared">Cleared</option><option value="pending">Pending</option><option value="failed">Failed</option><option value="not-required">Not Required</option></select></div>
+                <div class="form-group"><label>Pest Status</label><select id="bPest"><option value="pest-free">Pest-Free</option><option value="under-treatment">Under Treatment</option><option value="infested">Infested</option><option value="not-assessed">Not Assessed</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Certification</label><input type="text" id="bCert"></div>
+                <div class="form-group"><label>Expiry Date</label><input type="date" id="bExpiry"></div>
+            </div>
+            <div class="form-group"><label>Status</label><select id="bStatus"><option value="valid">Valid</option><option value="expired">Expired</option><option value="pending">Pending</option></select></div>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-close" onclick="closeModal('bioModal')">Cancel</button>
+                <button type="submit" class="btn-modal-save">💾 Save Record</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
 // =============================================================
-// SUPABASE CONFIG - FIXED KEY DECLARATION
+// SUPABASE CONFIG
 // =============================================================
 const VBS_SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
 const VBS_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
 const supabaseApp = supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
-/* 
-   ⚠️ IMPORTANT: 
-   1. Go to Supabase Dashboard > Settings > API
-   2. Click "Regenerate" on the 'anon' key.
-   3. Copy the NEW key and replace the text between the quotes below.
-       const VBS_SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-    const VBS_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-*/
 
 // =============================================================
-// HELPER TAGS
+// HELPER TAGS & UTILITIES
 // =============================================================
 function getTag(status) {
     const map = {
-        'approved': '<span class="tag green">Approved</span>',
-        'in-readiness': '<span class="tag orange">In Readiness</span>',
-        'deferred': '<span class="tag red">Deferred</span>',
-        'not-applied': '<span class="tag">Not Applied</span>',
-        'pending': '<span class="tag orange">Pending</span>',
-        'yes': '<span class="tag green">Yes</span>',
-        'no': '<span class="tag red">No</span>',
-        'registered': '<span class="tag green">Registered</span>',
-        'active': '<span class="tag green">Active</span>',
-        'inactive': '<span class="tag">Inactive</span>',
-        'cleared': '<span class="tag green">Cleared</span>',
-        'valid': '<span class="tag green">Valid</span>',
-        'expired': '<span class="tag red">Expired</span>',
-        'pest-free': '<span class="tag green">Pest-Free</span>',
-        'under-treatment': '<span class="tag orange">Under Treatment</span>',
-        'infested': '<span class="tag red">Infested</span>'
+        'approved': '<span class="tag green">Approved</span>', 'in-readiness': '<span class="tag orange">In Readiness</span>',
+        'deferred': '<span class="tag red">Deferred</span>', 'not-applied': '<span class="tag">Not Applied</span>',
+        'pending': '<span class="tag orange">Pending</span>', 'yes': '<span class="tag green">Yes</span>',
+        'no': '<span class="tag red">No</span>', 'registered': '<span class="tag green">Registered</span>',
+        'active': '<span class="tag green">Active</span>', 'inactive': '<span class="tag">Inactive</span>',
+        'cleared': '<span class="tag green">Cleared</span>', 'valid': '<span class="tag green">Valid</span>',
+        'expired': '<span class="tag red">Expired</span>', 'pest-free': '<span class="tag green">Pest-Free</span>',
+        'under-treatment': '<span class="tag orange">Under Treatment</span>', 'infested': '<span class="tag red">Infested</span>',
+        'not-assessed': '<span class="tag">Not Assessed</span>', 'not-required': '<span class="tag">Not Required</span>'
     };
     return map[status] || `<span class="tag">${status}</span>`;
 }
 
 // =============================================================
-// FETCH DATA
+// FETCH DATA (READ)
 // =============================================================
 async function fetchAll() {
     document.getElementById('dbStatus').textContent = 'Connecting...';
 
-    // 1. Fetch Farmers
+    // 1. Farmers
     const { data: farmers, error: fErr } = await supabaseApp.from('farmers').select('*');
     if (fErr) {
         console.error("Farmers Error:", fErr);
@@ -257,11 +375,15 @@ async function fetchAll() {
                 <td>${getTag(f.coop_member)}</td>
                 <td>${getTag(f.vanipo)}</td>
                 <td>${getTag(f.export_permit)}</td>
+                <td>
+                    <button class="btn-sm btn-edit" onclick="editRecord('farmer', ${f.id})">✏️</button>
+                    <button class="btn-sm btn-delete" onclick="deleteRecord('farmers', ${f.id}, 'Farmer')">🗑️</button>
+                </td>
             </tr>
         `).join('');
     }
 
-    // 2. Fetch Cooperatives
+    // 2. Cooperatives
     const { data: coops, error: cErr } = await supabaseApp.from('cooperatives').select('*');
     if (cErr) console.error("Coops Error:", cErr);
     else if (coops) {
@@ -275,11 +397,15 @@ async function fetchAll() {
                 <td>${c.licensed_members || 0}</td>
                 <td>${c.consolidation_volume_kg || 0}</td>
                 <td>${getTag(c.status)}</td>
+                <td>
+                    <button class="btn-sm btn-edit" onclick="editRecord('coop', ${c.id})">✏️</button>
+                    <button class="btn-sm btn-delete" onclick="deleteRecord('cooperatives', ${c.id}, 'Cooperative')">🗑️</button>
+                </td>
             </tr>
         `).join('');
     }
 
-    // 3. Fetch Biosecurity
+    // 3. Biosecurity
     const { data: bio, error: bErr } = await supabaseApp.from('biosecurity_records').select('*');
     if (bErr) console.error("Biosecurity Error:", bErr);
     else if (bio) {
@@ -294,6 +420,10 @@ async function fetchAll() {
                 <td>${getTag(b.pest_status)}</td>
                 <td>${b.expiry_date || '-'}</td>
                 <td>${getTag(b.status)}</td>
+                <td>
+                    <button class="btn-sm btn-edit" onclick="editRecord('bio', ${b.id})">✏️</button>
+                    <button class="btn-sm btn-delete" onclick="deleteRecord('biosecurity_records', ${b.id}, 'Bio Record')">🗑️</button>
+                </td>
             </tr>
         `).join('');
     }
@@ -304,11 +434,190 @@ async function fetchAll() {
 }
 
 // =============================================================
+// MODAL CONTROLS
+// =============================================================
+function openModal(modalId, recordData) {
+    document.getElementById(modalId).classList.add('active');
+    if (modalId === 'farmerModal') {
+        document.getElementById('farmerForm').reset();
+        document.getElementById('farmerId').value = '';
+        document.getElementById('farmerModalTitle').innerText = '➕ Add New Farmer';
+        if (recordData) {
+            document.getElementById('farmerModalTitle').innerText = '✏️ Edit Farmer';
+            document.getElementById('farmerId').value = recordData.id;
+            document.getElementById('fName').value = recordData.name || '';
+            document.getElementById('fCoop').value = recordData.cooperative || '';
+            document.getElementById('fProvince').value = recordData.province || 'Sanma';
+            document.getElementById('fDard').value = recordData.dard_permit || 'not-applied';
+            document.getElementById('fIndustry').value = recordData.industry_license || 'not-applied';
+            document.getElementById('fCoopMember').value = recordData.coop_member || 'pending';
+            document.getElementById('fVanipo').value = recordData.vanipo || 'not-applied';
+            document.getElementById('fExport').value = recordData.export_permit || 'not-applied';
+            document.getElementById('fCrop').value = recordData.crop || '';
+            document.getElementById('fNotes').value = recordData.notes || '';
+        }
+    } else if (modalId === 'coopModal') {
+        document.getElementById('coopForm').reset();
+        document.getElementById('coopId').value = '';
+        document.getElementById('coopModalTitle').innerText = '➕ Add New Cooperative';
+        if (recordData) {
+            document.getElementById('coopModalTitle').innerText = '✏️ Edit Cooperative';
+            document.getElementById('coopId').value = recordData.id;
+            document.getElementById('cName').value = recordData.name || '';
+            document.getElementById('cProvince').value = recordData.province || 'Sanma';
+            document.getElementById('cMembers').value = recordData.total_members || 0;
+            document.getElementById('cLicensed').value = recordData.licensed_members || 0;
+            document.getElementById('cVolume').value = recordData.consolidation_volume_kg || 0;
+            document.getElementById('cStatus').value = recordData.status || 'active';
+        }
+    } else if (modalId === 'bioModal') {
+        document.getElementById('bioForm').reset();
+        document.getElementById('bioId').value = '';
+        document.getElementById('bioModalTitle').innerText = '➕ Add Biosecurity Record';
+        if (recordData) {
+            document.getElementById('bioModalTitle').innerText = '✏️ Edit Biosecurity Record';
+            document.getElementById('bioId').value = recordData.id;
+            document.getElementById('bFarmer').value = recordData.farmer_name || '';
+            document.getElementById('bCrop').value = recordData.crop || '';
+            document.getElementById('bPermit').value = recordData.sps_permit || '';
+            document.getElementById('bQuarantine').value = recordData.quarantine_clearance || 'pending';
+            document.getElementById('bPest').value = recordData.pest_status || 'not-assessed';
+            document.getElementById('bCert').value = recordData.certification || '';
+            document.getElementById('bExpiry').value = recordData.expiry_date || '';
+            document.getElementById('bStatus').value = recordData.status || 'pending';
+        }
+    }
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+}
+
+// Click outside modal to close
+document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('active');
+    });
+});
+
+// =============================================================
+// CRUD: INSERT / UPDATE
+// =============================================================
+
+// 1. SAVE FARMER
+document.getElementById('farmerForm').onsubmit = async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('farmerId').value;
+    const data = {
+        name: document.getElementById('fName').value,
+        cooperative: document.getElementById('fCoop').value || null,
+        province: document.getElementById('fProvince').value,
+        dard_permit: document.getElementById('fDard').value,
+        industry_license: document.getElementById('fIndustry').value,
+        coop_member: document.getElementById('fCoopMember').value,
+        vanipo: document.getElementById('fVanipo').value,
+        export_permit: document.getElementById('fExport').value,
+        crop: document.getElementById('fCrop').value || null,
+        notes: document.getElementById('fNotes').value || null
+    };
+
+    let error;
+    if (id) {
+        // Update
+        const { error: e } = await supabaseApp.from('farmers').update(data).eq('id', id);
+        error = e;
+    } else {
+        // Insert
+        const { error: e } = await supabaseApp.from('farmers').insert(data);
+        error = e;
+    }
+    
+    if (error) alert('Error saving farmer: ' + error.message);
+    else { closeModal('farmerModal'); fetchAll(); }
+};
+
+// 2. SAVE COOPERATIVE
+document.getElementById('coopForm').onsubmit = async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('coopId').value;
+    const data = {
+        name: document.getElementById('cName').value,
+        province: document.getElementById('cProvince').value,
+        total_members: parseInt(document.getElementById('cMembers').value) || 0,
+        licensed_members: parseInt(document.getElementById('cLicensed').value) || 0,
+        consolidation_volume_kg: parseInt(document.getElementById('cVolume').value) || 0,
+        status: document.getElementById('cStatus').value
+    };
+
+    let error;
+    if (id) {
+        const { error: e } = await supabaseApp.from('cooperatives').update(data).eq('id', id);
+        error = e;
+    } else {
+        const { error: e } = await supabaseApp.from('cooperatives').insert(data);
+        error = e;
+    }
+    
+    if (error) alert('Error saving cooperative: ' + error.message);
+    else { closeModal('coopModal'); fetchAll(); }
+};
+
+// 3. SAVE BIOSECURITY
+document.getElementById('bioForm').onsubmit = async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('bioId').value;
+    const data = {
+        farmer_name: document.getElementById('bFarmer').value,
+        crop: document.getElementById('bCrop').value || null,
+        sps_permit: document.getElementById('bPermit').value || null,
+        quarantine_clearance: document.getElementById('bQuarantine').value,
+        pest_status: document.getElementById('bPest').value,
+        certification: document.getElementById('bCert').value || null,
+        expiry_date: document.getElementById('bExpiry').value || null,
+        status: document.getElementById('bStatus').value
+    };
+
+    let error;
+    if (id) {
+        const { error: e } = await supabaseApp.from('biosecurity_records').update(data).eq('id', id);
+        error = e;
+    } else {
+        const { error: e } = await supabaseApp.from('biosecurity_records').insert(data);
+        error = e;
+    }
+    
+    if (error) alert('Error saving record: ' + error.message);
+    else { closeModal('bioModal'); fetchAll(); }
+};
+
+// =============================================================
+// CRUD: EDIT BUTTON HANDLERS
+// =============================================================
+async function editRecord(type, id) {
+    let table = type === 'farmer' ? 'farmers' : (type === 'coop' ? 'cooperatives' : 'biosecurity_records');
+    const { data, error } = await supabaseApp.from(table).select('*').eq('id', id).single();
+    if (error) { alert('Error fetching record: ' + error.message); return; }
+    
+    if (type === 'farmer') openModal('farmerModal', data);
+    else if (type === 'coop') openModal('coopModal', data);
+    else if (type === 'bio') openModal('bioModal', data);
+}
+
+// =============================================================
+// CRUD: DELETE
+// =============================================================
+async function deleteRecord(table, id, label) {
+    if (!confirm(`Are you sure you want to delete this ${label}? This cannot be undone.`)) return;
+    const { error } = await supabaseApp.from(table).delete().eq('id', id);
+    if (error) alert('Error deleting: ' + error.message);
+    else fetchAll();
+}
+
+// =============================================================
 // INIT
 // =============================================================
-document.addEventListener('DOMContentLoaded', function() {
-    fetchAll();
-});
+document.addEventListener('DOMContentLoaded', fetchAll);
 </script>
 </body>
 </html>
+```
