@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VBS - Packhouse Intake & Grading</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 20px auto; 
+            padding: 20px; 
+            background: #0d1512; 
+            color: #e0e8e4;
+        }
+        .container { 
+            background: #16201a; 
+            padding: 25px; 
+            border-radius: 10px; 
+            border: 1px solid #1a2f27;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        h1 { 
+            color: #d5b07c; 
+            font-family: 'Times New Roman', Times, serif;
+            margin-bottom: 5px;
+        }
+        .subtitle { 
+            font-size: 13px; 
+            color: #8ba79e; 
+            margin-bottom: 20px; 
+            border-bottom: 1px solid #1a2f27; 
+            padding-bottom: 10px;
+        }
+        label { 
+            display: block; 
+            margin-top: 15px; 
+            font-weight: bold; 
+            font-size: 13px;
+            color: #a1b7b0;
+        }
+        input, select, textarea { 
+            width: 100%; 
+            padding: 10px; 
+            margin-top: 5px; 
+            background: #0d1814;
+            border: 1px solid #1a2f27; 
+            border-radius: 5px; 
+            color: #e0e8e4;
+            font-size: 14px;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #2a5a44;
+        }
+        .form-row { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+        }
+        
+        /* --- Grade Checkboxes --- */
+        .grade-box { 
+            background: #0d1814; 
+            border: 1px solid #1a2f27; 
+            border-radius: 6px; 
+            padding: 12px; 
+            margin-top: 10px; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            cursor: pointer; 
+            transition: 0.2s; 
+        }
+        .grade-box:hover { border-color: #2a5a44; }
+        .grade-box input[type="checkbox"] { 
+            width: 18px; height: 18px; accent-color: #2e5a44; cursor: pointer; 
+        }
+        .grade-box .g-label { font-weight: bold; font-size: 14px; flex: 1; }
+        .grade-box .g-desc { font-size: 11px; color: #8ba79e; }
+        .grade-box .g-split { 
+            width: 70px; background: #111f19; border: 1px solid #1a2f27; 
+            color: #e0e8e4; padding: 4px 8px; border-radius: 4px; text-align: center; 
+        }
+
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            margin-top: 25px; 
+            background: #2e5a44; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+        button:hover { background: #3d7559; }
+        .status-badge { 
+            display: inline-block; 
+            padding: 4px 10px; 
+            border-radius: 12px; 
+            font-size: 11px; 
+            background: #1a3b24; 
+            color: #a5d6a7;
+            margin-top: 10px;
+        }
+        .back-link { color: #a1b7b0; text-decoration: none; display: inline-block; margin-bottom: 15px; }
+        .back-link:hover { color: #d5b07c; }
+    </style>
+</head>
+<body>
+    <a href="packhouse_management.html" class="back-link">← Back to Packhouse Dashboard</a>
+
+    <div class="container">
+        <h1>📦 Packhouse Sorting & Grading</h1>
+        <div class="subtitle">Record produce received. Select grades to split inventory automatically.</div>
+
+        <div class="status-badge" id="statusBadge">🔄 Loading Farmers...</div>
+
+        <form id="intakeForm">
+            <label>Select Farmer (Must have DARD Permit 'Approved'):</label>
+            <select id="farmerSelect" required>
+                <option value="">-- Select Farmer --</option>
+            </select>
+
+            <div class="form-row">
+                <div>
+                    <label>Date Received:</label>
+                    <input type="date" id="reportDate" required>
+                </div>
+                <div>
+                    <label>Crop Type:</label>
+                    <input type="text" id="cropType" placeholder="e.g. Taro, Coconut" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <label>Total Intake Weight (kg):</label>
+                    <input type="number" id="volumeKg" step="0.1" placeholder="0.0" required>
+                </div>
+                <div>
+                    <label>Procurement Cost (VT/kg):</label>
+                    <input type="number" id="costPerKg" step="1" placeholder="e.g. 150" value="200">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <label>Packaging Type:</label>
+                    <select id="packagingType">
+                        <option value="Vacuum Sealed">Vacuum Sealed</option>
+                        <option value="Mesh Bag">Mesh Bag</option>
+                        <option value="Cardboard Box">Cardboard Box</option>
+                        <option value="Plastic Crate">Plastic Crate</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Destination:</label>
+                    <select id="destination">
+                        <option value="Export">Export</option>
+                        <option value="Domestic">Domestic</option>
+                        <option value="Institutional">Institutional</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ====== GRADE SELECTION ====== -->
+            <label style="margin-top: 20px;">Select Grades Processed (Check all that apply):</label>
+            
+            <div class="grade-box">
+                <input type="checkbox" id="gradeA" value="A">
+                <div class="g-label">Grade A</div>
+                <div class="g-desc">Export Quality</div>
+                <input type="number" class="g-split" id="splitA" placeholder="kg" step="0.1" disabled>
+            </div>
+
+            <div class="grade-box">
+                <input type="checkbox" id="gradeB" value="B">
+                <div class="g-label">Grade B</div>
+                <div class="g-desc">Domestic Premium</div>
+                <input type="number" class="g-split" id="splitB" placeholder="kg" step="0.1" disabled>
+            </div>
+
+            <div class="grade-box">
+                <input type="checkbox" id="gradeC" value="C">
+                <div class="g-label">Grade C</div>
+                <div class="g-desc">Institutional Supply</div>
+                <input type="number" class="g-split" id="splitC" placeholder="kg" step="0.1" disabled>
+            </div>
+
+            <label>Inspector Notes:</label>
+            <textarea id="notes" rows="2" placeholder="Any quality checks, packaging issues, or notes..."></textarea>
+
+            <button type="submit">✅ Process Intake & Split Batches</button>
+        </form>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        const vbsClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        document.querySelectorAll('.grade-box input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const splitInput = this.parentElement.querySelector('.g-split');
+                splitInput.disabled = !this.checked;
+                if (!this.checked) splitInput.value = '';
+            });
+        });
+
+        async function loadFarmers() {
+            const statusBadge = document.getElementById('statusBadge');
+            const select = document.getElementById('farmerSelect');
+            const { data: farmers, error } = await vbsClient.from('farmers').select('*');
+            if (error) {
+                statusBadge.textContent = '❌ Error loading farmers';
+                return;
+            }
+            let html = '<option value="">-- Select Farmer --</option>';
+            let count = 0;
+            for (let f of farmers) {
+                if(f.dard_permit === 'approved') {
+                    count++;
+                    html += `<option value="${f.id}" data-name="${f.name}" data-crop="${f.crop || 'Mixed'}">${f.name} (${f.province})</option>`;
+                }
+            }
+            select.innerHTML = html;
+            statusBadge.textContent = `✅ ${count} Farmers Ready`;
+        }
+
+        document.getElementById('farmerSelect').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if(selectedOption && selectedOption.dataset.crop) {
+                document.getElementById('cropType').value = selectedOption.dataset.crop;
+            }
+        });
+
+        document.getElementById('intakeForm').onsubmit = async (e) => {
+            e.preventDefault();
+
+            const farmerId = document.getElementById('farmerSelect').value;
+            const farmerName = document.getElementById('farmerSelect').options[document.getElementById('farmerSelect').selectedIndex].text.split('(')[0].trim();
+            const date = document.getElementById('reportDate').value;
+            const crop = document.getElementById('cropType').value;
+            const totalKg = parseFloat(document.getElementById('volumeKg').value);
+            const costPerKg = parseFloat(document.getElementById('costPerKg').value);
+            const packaging = document.getElementById('packagingType').value;
+            const destination = document.getElementById('destination').value;
+            const notes = document.getElementById('notes').value;
+
+            if(!farmerId) return alert('Please select a farmer.');
+            if(!totalKg || totalKg <= 0) return alert('Please enter a valid total weight.');
+
+            let gradesToProcess = [];
+            if(document.getElementById('gradeA').checked) {
+                let kg = parseFloat(document.getElementById('splitA').value);
+                if(!kg || kg <= 0) return alert('Please enter a valid weight for Grade A.');
+                gradesToProcess.push({ grade: 'A', kg: kg, dest: 'Export' });
+            }
+            if(document.getElementById('gradeB').checked) {
+                let kg = parseFloat(document.getElementById('splitB').value);
+                if(!kg || kg <= 0) return alert('Please enter a valid weight for Grade B.');
+                gradesToProcess.push({ grade: 'B', kg: kg, dest: destination });
+            }
+            if(document.getElementById('gradeC').checked) {
+                let kg = parseFloat(document.getElementById('splitC').value);
+                if(!kg || kg <= 0) return alert('Please enter a valid weight for Grade C.');
+                gradesToProcess.push({ grade: 'C', kg: kg, dest: 'Institutional' });
+            }
+
+            if(gradesToProcess.length === 0) return alert('Please select at least one Grade checkbox.');
+            
+            const splitTotal = gradesToProcess.reduce((sum, g) => sum + g.kg, 0);
+            if(splitTotal !== totalKg) {
+                if(!confirm(`⚠️ The split weights (${splitTotal}kg) do not equal the Total Weight (${totalKg}kg). Proceed anyway?`)) {
+                    return;
+                }
+            }
+
+            // 1. Record Packhouse Report with Financial Data
+            const totalCost = totalKg * costPerKg;
+            const reportData = {
+                officer_name: 'Packhouse Officer',
+                report_date: date,
+                volume_received_kg: totalKg,
+                volume_processed_kg: splitTotal,
+                volume_exported_kg: gradesToProcess.filter(g => g.dest === 'Export').reduce((s, g) => s + g.kg, 0),
+                farmers_supplied: 1,
+                inspector_notes: `Procurement Cost: ${costPerKg} VT/kg. Total Cost: ${totalCost} VT.`,
+                status: 'PENDING'
+            };
+            await vbsClient.from('packhouse_reports').insert(reportData);
+
+            // 2. Create Multiple Traceability Batches (Inventory)
+            let batchSuccessCount = 0;
+            let batchErrors = [];
+
+            for (let g of gradesToProcess) {
+                const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                const batchNumber = `VBS-${dateStr}-${g.grade}-${randomSuffix}`;
+
+                const batchData = {
+                    batch_number: batchNumber,
+                    farmer_id: farmerId,
+                    farmer_name: farmerName,
+                    crop: crop,
+                    grade: g.grade,
+                    destination: g.dest,
+                    quantity_kg: g.kg,
+                    packhouse_location: 'Santo Packhouse',
+                    status: 'Ready',
+                    notes: `Packaged in ${packaging}. Cost: ${costPerKg} VT/kg.`
+                };
+
+                const { error: batchError } = await vbsClient.from('traceability_batches').insert(batchData);
+                if (batchError) batchErrors.push(batchError.message);
+                else batchSuccessCount++;
+            }
+
+            if (batchErrors.length > 0) {
+                alert(`⚠️ Partially saved. ${batchSuccessCount} batches created. Errors: ${batchErrors.join(', ')}`);
+            } else {
+                alert(`✅ Success! ${batchSuccessCount} Batches created for Farmer ${farmerName}.`);
+                document.getElementById('intakeForm').reset();
+                document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('farmerSelect').value = '';
+                document.getElementById('cropType').value = '';
+                document.querySelectorAll('.g-split').forEach(i => { i.value = ''; i.disabled = true; });
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+            loadFarmers();
+        });
+    </script>
+</body>
+</html>
