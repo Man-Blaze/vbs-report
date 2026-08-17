@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Vanuatu Fresh Market Standards | Taste of Vanuatu</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -273,6 +274,26 @@
             background: #2b5a2b;
         }
 
+        .live-badge {
+            background: #dc3545;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 10px;
+            font-weight: normal;
+        }
+        .live-stock {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
         @media (max-width: 700px) {
             .page {
                 padding: 32px 20px;
@@ -290,9 +311,9 @@
     </style>
 </head>
 <body>
-    <!-- <div class="top-nav">
+    <div class="top-nav">
         <a href="https://Man-Blaze.github.io/vbs-report/">← Back to VBS Digital Shield</a>
-    </div> -->
+    </div>
     
     <div class="floating-buttons">
         <a href="https://wa.me/6787972045?text=Hello%21%20I%27m%20interested%20in%20your%20Vanuatu%20fresh%20produce%20catalogue.%20Please%20send%20me%20more%20information%20about%20pricing%20and%20availability." 
@@ -326,7 +347,7 @@
             <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/vanu.png" alt="Vanu Trademark" style="height: 80px;">
         </div>
         <h1>FRESH MARKET STANDARDS<br>CATALOGUE</h1>
-        <div class="tagline">From Vanuatu Organic Farms to National and Internationl Markets . Grown in Volcanic Soil , Pure Organic , Only The Best– Global Edition</div>
+        <div class="tagline">From Vanuatu Organic Farms to National and International Markets . Grown in Volcanic Soil , Pure Organic , Only The Best– Global Edition</div>
         <div style="margin: 32px 0 24px;">
             <span style="background: #1e3a1e; color: white; padding: 6px 18px; border-radius: 40px; font-size: 0.9rem;">Taro</span>
             <span style="background: #1e3a1e; color: white; padding: 6px 18px; border-radius: 40px; font-size: 0.9rem; margin-left: 12px;">Yam</span>
@@ -341,7 +362,7 @@
         <div class="footer-note">PRODUCE OF VANUATU</div>
     </section>
 
-    <!-- PAGE 2: CEO MESSAGE + SIGNATURE with CEO PHOTO -->
+    <!-- PAGE 2: CEO MESSAGE + SIGNATURE -->
     <section class="page" id="ceo">
         <div class="two-column">
             <div>
@@ -350,7 +371,6 @@
                 <p style="font-size: 1.05rem; line-height: 1.6; margin: 20px 0;">From farm traceability, standards, biosecurity, customs, and cold-chain logistics to final market presentation in Melbourne, this achievement demonstrates that Vanuatu can now deliver high-quality products through a fully coordinated international export system – opening a new era of sustainable trade, farmer income, and economic transformation for the nation.</p>
             </div>
             
-            <!-- CEO PHOTO - CORRECTED URL -->
             <div style="text-align: center;">
                 <img class="ceo-photo" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/ceo.jpg" alt="CEO VBS">
                 <div class="sign-line" style="margin: 24px auto 12px; width: 200px;"></div>
@@ -359,7 +379,6 @@
             </div>
         </div>
         
-        <!-- LOGOS AFTER CEO MESSAGE -->
         <div class="logo-row">
             <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/vbs.png" alt="VBS">
             <img src="https://github.com/Man-Blaze/vbs-report/raw/main/images/WBT.png" alt="WBT">
@@ -397,12 +416,13 @@
         <div class="footer-note">Together, we delivered.</div>
     </section>
 
-    <!-- PAGE 4: TARO -->
+    <!-- PAGE 4: DYNAMIC TARO -->
     <section class="page" id="taro">
         <div class="brand">VANU · TASTE OF VANUATU</div>
         <div class="two-column">
             <div>
-                <h2 style="border-left: none; padding-left: 0;">Fresh Taro</h2>
+                <h2 style="border-left: none; padding-left: 0;">Fresh Taro <span class="live-badge">LIVE</span></h2>
+                <div id="taroStock" class="live-stock">Loading stock...</div>
                 <p class="scientific"><em>Colocasia esculenta var. esculenta</em></p>
                 <table class="spec-table">
                     <tr><td>Product Description</td><td>White flesh, firm texture</td></tr>
@@ -413,9 +433,10 @@
                     <tr><td>Exporter Address</td><td>Z1 Building, Rue de Bougainville, George Pompidou, PO Box 6532, Port Vila, Vanuatu</td></tr>
                     <tr><td>Importer (Australia)</td><td>World Best Trading Australia Pty Ltd, 25 Kirkham Rd, Keysborough VIC 3173</td></tr>
                     <tr><td>Phone</td><td>+613 9401 3948</td></tr>
-                    <tr><td>Lot Code</td><td>160426-1</td></tr>
-                    <tr><td>Net Weight</td><td>15 kg</td></tr>
+                    <tr><td>Lot Code</td><td>Updated Automatically by Packhouse</td></tr>
+                    <tr><td>Net Weight</td><td>Varies by Batch</td></tr>
                     <tr><td>Storage</td><td>Cool dry place · 10°C</td></tr>
+                    <tr><td>Available Stock</td><td id="taroSource">Fetching Data...</td></tr>
                 </table>
             </div>
             <div>
@@ -426,12 +447,13 @@
         <div class="footer-note">PRODUCE OF VANUATU</div>
     </section>
 
-    <!-- PAGE 5: YAM -->
+    <!-- PAGE 5: DYNAMIC YAM -->
     <section class="page" id="yam">
         <div class="brand">VANU · TASTE OF VANUATU</div>
         <div class="two-column">
             <div>
-                <h2 style="border-left: none; padding-left: 0;">Fresh Yam</h2>
+                <h2 style="border-left: none; padding-left: 0;">Fresh Yam <span class="live-badge">LIVE</span></h2>
+                <div id="yamStock" class="live-stock">Loading stock...</div>
                 <p class="scientific"><em>Dioscorea alata</em></p>
                 <table class="spec-table">
                     <tr><td>Product Description</td><td>Purple or white flesh, firm texture</td></tr>
@@ -441,24 +463,26 @@
                     <tr><td>Exporter</td><td>WBT Vanuatu Ltd</td></tr>
                     <tr><td>Exporter Address</td><td>Z1 Building, Port Vila, Vanuatu</td></tr>
                     <tr><td>Importer</td><td>World Best Trading Australia Pty Ltd</td></tr>
-                    <tr><td>Lot Code</td><td>160426-2</td></tr>
-                    <tr><td>Net Weight</td><td>15 kg</td></tr>
+                    <tr><td>Lot Code</td><td>Updated Automatically by Packhouse</td></tr>
+                    <tr><td>Net Weight</td><td>Varies by Batch</td></tr>
                     <tr><td>Storage</td><td>Cool dry place · 14–16°C</td></tr>
+                    <tr><td>Available Stock</td><td id="yamSource">Fetching Data...</td></tr>
                 </table>
             </div>
             <div>
-                <img class="product-image" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/yams white.jpg" alt="Fresh Yam">
+                <img class="product-image" src="https://github.com/Man-Blaze/vbs-report/raw/main/images/yams%20white.jpg" alt="Fresh Yam">
             </div>
         </div>
         <div class="footer-note">PRODUCE OF VANUATU</div>
     </section>
 
-    <!-- PAGE 6: KUMALA -->
+    <!-- PAGE 6: DYNAMIC KUMALA -->
     <section class="page" id="kumala">
         <div class="brand">VANU · TASTE OF VANUATU</div>
         <div class="two-column">
             <div>
-                <h2 style="border-left: none; padding-left: 0;">Fresh Kumala / Sweet Potato</h2>
+                <h2 style="border-left: none; padding-left: 0;">Fresh Kumala / Sweet Potato <span class="live-badge">LIVE</span></h2>
+                <div id="kumalaStock" class="live-stock">Loading stock...</div>
                 <p class="scientific"><em>Ipomoea batatas</em></p>
                 <table class="spec-table">
                     <tr><td>Product Description</td><td>Orange, yellow, or purple flesh – naturally sweet</td></tr>
@@ -468,9 +492,10 @@
                     <tr><td>Exporter</td><td>WBT Vanuatu Ltd</td></tr>
                     <tr><td>Exporter Address</td><td>Z1 Building, Port Vila, Vanuatu</td></tr>
                     <tr><td>Importer</td><td>World Best Trading Australia Pty Ltd</td></tr>
-                    <tr><td>Lot Code</td><td>160426-3</td></tr>
-                    <tr><td>Net Weight</td><td>15 kg</td></tr>
+                    <tr><td>Lot Code</td><td>Updated Automatically by Packhouse</td></tr>
+                    <tr><td>Net Weight</td><td>Varies by Batch</td></tr>
                     <tr><td>Storage</td><td>Cool dry place · 13–15°C</td></tr>
+                    <tr><td>Available Stock</td><td id="kumalaSource">Fetching Data...</td></tr>
                 </table>
             </div>
             <div>
@@ -480,12 +505,13 @@
         <div class="footer-note">PRODUCE OF VANUATU</div>
     </section>
 
-    <!-- PAGE 7: GINGER -->
+    <!-- PAGE 7: DYNAMIC GINGER -->
     <section class="page" id="ginger">
         <div class="brand">VANU · TASTE OF VANUATU</div>
         <div class="two-column">
             <div>
-                <h2 style="border-left: none; padding-left: 0;">Fresh Ginger</h2>
+                <h2 style="border-left: none; padding-left: 0;">Fresh Ginger <span class="live-badge">LIVE</span></h2>
+                <div id="gingerStock" class="live-stock">Loading stock...</div>
                 <p class="scientific"><em>Zingiber officinale</em></p>
                 <table class="spec-table">
                     <tr><td>Product Description</td><td>Young ginger – mild, juicy, low fiber</td></tr>
@@ -495,9 +521,10 @@
                     <tr><td>Exporter</td><td>WBT Vanuatu Ltd</td></tr>
                     <tr><td>Exporter Address</td><td>Z1 Building, Port Vila, Vanuatu</td></tr>
                     <tr><td>Importer</td><td>World Best Trading Australia Pty Ltd</td></tr>
-                    <tr><td>Lot Code</td><td>160426-4</td></tr>
-                    <tr><td>Net Weight</td><td>5 kg</td></tr>
+                    <tr><td>Lot Code</td><td>Updated Automatically by Packhouse</td></tr>
+                    <tr><td>Net Weight</td><td>Varies by Batch</td></tr>
                     <tr><td>Storage</td><td>Cool dry place · 13°C</td></tr>
+                    <tr><td>Available Stock</td><td id="gingerSource">Fetching Data...</td></tr>
                 </table>
             </div>
             <div>
@@ -507,12 +534,13 @@
         <div class="footer-note">PRODUCE OF VANUATU</div>
     </section>
 
-    <!-- PAGE 8: DRIED COCONUT -->
+    <!-- PAGE 8: DYNAMIC DRIED COCONUT -->
     <section class="page" id="coconut">
         <div class="brand">VANU · TASTE OF VANUATU</div>
         <div class="two-column">
             <div>
-                <h2 style="border-left: none; padding-left: 0;">Dried Coconut</h2>
+                <h2 style="border-left: none; padding-left: 0;">Dried Coconut <span class="live-badge">LIVE</span></h2>
+                <div id="coconutStock" class="live-stock">Loading stock...</div>
                 <p class="scientific"><em>Cocos nucifera</em></p>
                 <table class="spec-table">
                     <tr><td>Product Description</td><td>Desiccated, sun-dried, or shredded – no sulfites</td></tr>
@@ -522,9 +550,10 @@
                     <tr><td>Exporter</td><td>WBT Vanuatu Ltd</td></tr>
                     <tr><td>Exporter Address</td><td>Z1 Building, Port Vila, Vanuatu</td></tr>
                     <tr><td>Importer</td><td>World Best Trading Australia Pty Ltd</td></tr>
-                    <tr><td>Lot Code</td><td>160426-5</td></tr>
-                    <tr><td>Net Weight</td><td>10 kg</td></tr>
+                    <tr><td>Lot Code</td><td>Updated Automatically by Packhouse</td></tr>
+                    <tr><td>Net Weight</td><td>Varies by Batch</td></tr>
                     <tr><td>Storage</td><td>Cool dry place · Below 25°C, humidity <60%</td></tr>
+                    <tr><td>Available Stock</td><td id="coconutSource">Fetching Data...</td></tr>
                 </table>
             </div>
             <div>
@@ -574,5 +603,92 @@
     </section>
 
 </div>
+
+<script>
+// =============================================================
+// SUPABASE CONFIG
+// =============================================================
+const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+const vbsClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// =============================================================
+// FETCH LIVE PACKHOUSE DATA
+// =============================================================
+async function loadCatalogueStock() {
+    const { data: batches, error } = await vbsClient.from('traceability_batches').select('*');
+
+    if (error) {
+        console.error("Error loading stock:", error);
+        document.querySelectorAll('.live-stock').forEach(el => el.innerText = "❌ Error loading data");
+        return;
+    }
+
+    // Initialize stock counters
+    let stock = {
+        taro: 0,
+        yam: 0,
+        kumala: 0,
+        ginger: 0,
+        coconut: 0
+    };
+    
+    // Sources (Distinct Provinces)
+    let sources = {
+        taro: new Set(),
+        yam: new Set(),
+        kumala: new Set(),
+        ginger: new Set(),
+        coconut: new Set()
+    };
+
+    // Loop through batches
+    for (let b of batches) {
+        // Only count "Ready" or "Dispatched" inventory
+        if (b.status === 'Ready' || b.status === 'Dispatched') {
+            const lowerCrop = b.crop.toLowerCase();
+            const qty = parseFloat(b.quantity_kg || 0);
+            
+            if (lowerCrop.includes('taro')) {
+                stock.taro += qty;
+                if (b.province) sources.taro.add(b.province);
+            } else if (lowerCrop.includes('yam')) {
+                stock.yam += qty;
+                if (b.province) sources.yam.add(b.province);
+            } else if (lowerCrop.includes('kumala') || lowerCrop.includes('sweet potato')) {
+                stock.kumala += qty;
+                if (b.province) sources.kumala.add(b.province);
+            } else if (lowerCrop.includes('ginger')) {
+                stock.ginger += qty;
+                if (b.province) sources.ginger.add(b.province);
+            } else if (lowerCrop.includes('coconut')) {
+                stock.coconut += qty;
+                if (b.province) sources.coconut.add(b.province);
+            }
+        }
+    }
+
+    // Update DOM
+    document.getElementById('taroStock').innerHTML = `📦 ${stock.taro.toLocaleString()} kg Available`;
+    document.getElementById('taroSource').innerHTML = `Source: ${[...sources.taro].join(', ') || 'None'}`;
+
+    document.getElementById('yamStock').innerHTML = `📦 ${stock.yam.toLocaleString()} kg Available`;
+    document.getElementById('yamSource').innerHTML = `Source: ${[...sources.yam].join(', ') || 'None'}`;
+
+    document.getElementById('kumalaStock').innerHTML = `📦 ${stock.kumala.toLocaleString()} kg Available`;
+    document.getElementById('kumalaSource').innerHTML = `Source: ${[...sources.kumala].join(', ') || 'None'}`;
+
+    document.getElementById('gingerStock').innerHTML = `📦 ${stock.ginger.toLocaleString()} kg Available`;
+    document.getElementById('gingerSource').innerHTML = `Source: ${[...sources.ginger].join(', ') || 'None'}`;
+
+    document.getElementById('coconutStock').innerHTML = `📦 ${stock.coconut.toLocaleString()} kg Available`;
+    document.getElementById('coconutSource').innerHTML = `Source: ${[...sources.coconut].join(', ') || 'None'}`;
+}
+
+// =============================================================
+// INIT
+// =============================================================
+document.addEventListener('DOMContentLoaded', loadCatalogueStock);
+</script>
 </body>
 </html>
