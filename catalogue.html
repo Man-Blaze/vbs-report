@@ -1,39 +1,3 @@
-This is a brilliant idea! You want a **fully functional Online Ordering System** embedded right into the Catalogue.
-
-Here is how I built it for you:
-1. **"Order Now" button** on every product page.
-2. A popup **Order Modal** where buyers enter their **Name, Email, Phone, and Quantity (kg)**.
-3. **Live Stock Check:** The system checks if the quantity they want is available *before* placing the order.
-4. **Reservation System:** When they click "Place Order", the system subtracts the amount from the `traceability_batches` table and creates a new order record in a new **`market_orders`** table.
-5. **Admin Dashboard:** The Packhouse Manager can log in to the dashboard to confirm payment.
-
----
-
-### Step 1: Create the `market_orders` table in Supabase
-Go to your **Supabase SQL Editor** and run this SQL query to create the Order Log table:
-
-```sql
--- Create a table to log all orders from the catalogue
-CREATE TABLE public.market_orders (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    customer_name TEXT NOT NULL,
-    customer_email TEXT NOT NULL,
-    customer_phone TEXT NOT NULL,
-    crop TEXT NOT NULL,
-    grade TEXT NOT NULL,
-    quantity_kg NUMERIC NOT NULL,
-    total_price_vt NUMERIC NOT NULL,
-    status TEXT DEFAULT 'Pending Payment' -- Options: Pending Payment, Paid, Dispatched
-);
-```
-
----
-
-### Step 2: Updated `catalogue.html` (Order Button + Live Bookings)
-*Replace your entire `catalogue.html` with this version.*
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
