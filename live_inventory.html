@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>VBS · Live Inventory & Catalogue</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #f5f2eb;
+            color: #1a2a1f;
+            line-height: 1.5;
+        }
+
+        /* --- Header --- */
+        .header-bar {
+            background: #1a5a3a;
+            padding: 16px 24px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header-bar h1 {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        .header-bar h1 span {
+            color: #ffc107;
+            font-weight: 700;
+        }
+        .header-bar a {
+            color: #d4edda;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-block;
+            margin-top: 6px;
+        }
+        .header-bar a:hover {
+            color: white;
+            text-decoration: underline;
+        }
+
+        /* --- Main Content --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* --- KPI Metrics --- */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        .kpi-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #e2d8cd;
+        }
+        .kpi-card .number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e3a1e;
+        }
+        .kpi-card .label {
+            font-size: 13px;
+            color: #6b6b6b;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- Live Inventory Grid --- */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #e2d8cd;
+            transition: transform 0.2s;
+        }
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+
+        .product-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #e6dacf;
+        }
+
+        .product-body {
+            padding: 20px;
+        }
+
+        .product-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1e3a1e;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .product-meta {
+            font-size: 0.9rem;
+            color: #6b6b6b;
+            margin-bottom: 12px;
+        }
+
+        .stock-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .stock-tag.in-stock {
+            background: #d4edda;
+            color: #155724;
+        }
+        .stock-tag.low-stock {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .stock-tag.out-of-stock {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .product-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e2d8cd;
+        }
+        .product-stats div {
+            text-align: center;
+        }
+        .product-stats .stat-value {
+            font-weight: 700;
+            color: #1e3a1e;
+        }
+        .product-stats .stat-label {
+            font-size: 12px;
+            color: #6b6b6b;
+        }
+
+        /* --- Order Button --- */
+        .order-btn {
+            display: block;
+            width: 100%;
+            margin-top: 16px;
+            padding: 10px;
+            background: #1e3a1e;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .order-btn:hover {
+            background: #2b5a2b;
+            transform: scale(1.02);
+        }
+        .order-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 700px) {
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .inventory-grid {
+                grid-template-columns: 1fr;
+            }
+            .header-bar h1 {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header-bar">
+        <h1>📦 Live <span>Inventory</span></h1>
+        <a href="https://Man-Blaze.github.io/vbs-report/">← Back to VBS Digital Shield</a>
+    </div>
+
+    <div class="container">
+
+        <!-- KPI Dashboard -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="number" id="totalItems">0</div>
+                <div class="label">Active Products</div>
+            </div>
+            <div class="kpi-card">
+                <div class="number" id="totalVolume">0 kg</div>
+                <div class="label">Total Stock Available</div>
+            </div>
+            <div class="kpi-card">
+                <div class="number" id="totalValue">VT 0</div>
+                <div class="label">Estimated Stock Value</div>
+            </div>
+            <div class="kpi-card">
+                <div class="number" id="totalBatches">0</div>
+                <div class="label">Traceability Batches</div>
+            </div>
+        </div>
+
+        <!-- Live Inventory Grid -->
+        <div class="inventory-grid" id="inventoryGrid">
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #6b6b6b;">
+                ⏳ Loading live inventory from Packhouse...
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // =============================================================
+        // SUPABASE CONFIG
+        // =============================================================
+        const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+        const vbsClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // =============================================================
+        // IMAGE & PRICE DATABASE
+        // =============================================================
+        const productDB = {
+            'taro': {
+                image: 'https://github.com/Man-Blaze/vbs-report/raw/main/images/freshtaro.jpg',
+                pricePerKg: 560,
+                desc: 'White flesh, firm texture'
+            },
+            'yam': {
+                image: 'https://github.com/Man-Blaze/vbs-report/raw/main/images/yams%20white.jpg',
+                pricePerKg: 460,
+                desc: 'Purple or white flesh, firm texture'
+            },
+            'kumala': {
+                image: 'https://github.com/Man-Blaze/vbs-report/raw/main/images/Kumala-Food-Dine-Pacific-Island-Living-01.jpg',
+                pricePerKg: 400,
+                desc: 'Orange, yellow, or purple flesh'
+            },
+            'ginger': {
+                image: 'https://github.com/Man-Blaze/vbs-report/raw/main/images/fresh_ginger.png',
+                pricePerKg: 620,
+                desc: 'Young ginger – mild, juicy, low fiber'
+            },
+            'coconut': {
+                image: 'https://github.com/Man-Blaze/vbs-report/raw/main/images/coconut%20(1).PNG',
+                pricePerKg: 330,
+                desc: 'Desiccated, sun-dried, or shredded'
+            }
+        };
+
+        // =============================================================
+        // FETCH & RENDER LIVE INVENTORY
+        // =============================================================
+        async function loadLiveInventory() {
+            // 1. Fetch from Packhouse
+            const { data: batches, error } = await vbsClient.from('traceability_batches').select('*');
+
+            if (error) {
+                console.error("Error loading inventory:", error);
+                document.getElementById('inventoryGrid').innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #721c24;">
+                        ❌ Error connecting to Packhouse Database. Please refresh.
+                    </div>
+                `;
+                return;
+            }
+
+            // 2. Aggregate Stock
+            const stockMap = {};
+            let totalVolume = 0;
+            let totalValue = 0;
+            let batchCount = 0;
+
+            for (let b of batches) {
+                if (b.status === 'Ready' || b.status === 'Dispatched') {
+                    batchCount++;
+                    const cropKey = b.crop.toLowerCase();
+                    const qty = parseFloat(b.quantity_kg || 0);
+                    
+                    if (!stockMap[cropKey]) {
+                        stockMap[cropKey] = {
+                            totalQty: 0,
+                            batchNumbers: [],
+                            provinces: new Set()
+                        };
+                    }
+                    
+                    stockMap[cropKey].totalQty += qty;
+                    stockMap[cropKey].batchNumbers.push(b.batch_number);
+                    if (b.province) stockMap[cropKey].provinces.add(b.province);
+                    
+                    totalVolume += qty;
+                }
+            }
+
+            // 3. Calculate Values & Render Cards
+            const grid = document.getElementById('inventoryGrid');
+            const keys = Object.keys(stockMap);
+            
+            document.getElementById('totalItems').innerText = keys.length;
+            document.getElementById('totalVolume').innerText = totalVolume.toLocaleString() + ' kg';
+            document.getElementById('totalBatches').innerText = batchCount;
+
+            if (keys.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: #6b6b6b;">
+                        📭 No stock currently available. Please check back later.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            for (let key of keys) {
+                const item = stockMap[key];
+                const productInfo = productDB[key] || { 
+                    image: 'https://placehold.co/400x300/e2d8cd/1e3a1e?text=Produce', 
+                    pricePerKg: 300, 
+                    desc: 'Vanuatu Fresh Produce' 
+                };
+                
+                const value = item.totalQty * productInfo.pricePerKg;
+                totalValue += value;
+
+                let statusClass = 'out-of-stock';
+                let statusText = 'Out of Stock';
+                if (item.totalQty > 50) {
+                    statusClass = 'in-stock';
+                    statusText = 'In Stock';
+                } else if (item.totalQty > 0) {
+                    statusClass = 'low-stock';
+                    statusText = 'Low Stock';
+                }
+
+                html += `
+                    <div class="product-card">
+                        <img class="product-img" src="${productInfo.image}" alt="${key}" onerror="this.src='https://placehold.co/400x300/e2d8cd/1e3a1e?text=${key}'">
+                        <div class="product-body">
+                            <div class="product-title">
+                                <span>${key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                                <span class="stock-tag ${statusClass}">${statusText}</span>
+                            </div>
+                            <div class="product-meta">${productInfo.desc}</div>
+                            
+                            <div class="product-stats">
+                                <div>
+                                    <div class="stat-value">${item.totalQty.toLocaleString()} kg</div>
+                                    <div class="stat-label">Available</div>
+                                </div>
+                                <div>
+                                    <div class="stat-value">VT ${productInfo.pricePerKg}/kg</div>
+                                    <div class="stat-label">Price</div>
+                                </div>
+                            </div>
+                            
+                            <button class="order-btn" onclick="alert('📦 Please go to the Full Catalogue to place your order for ${key}.')">
+                                🛒 View to Order
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            grid.innerHTML = html;
+            document.getElementById('totalValue').innerText = 'VT ' + totalValue.toLocaleString();
+        }
+
+        // =============================================================
+        // INIT
+        // =============================================================
+        document.addEventListener('DOMContentLoaded', loadLiveInventory);
+    </script>
+</body>
+</html>
