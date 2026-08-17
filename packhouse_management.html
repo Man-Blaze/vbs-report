@@ -23,9 +23,9 @@
         .header-sub { font-size: 13px; color: #8ba79e; }
         .status-badge { background: #1a3b24; color: #a5d6a7; padding: 4px 12px; border-radius: 20px; font-size: 12px; display: inline-block; }
 
-        /* --- Stats Grid (KPIs from the Operation Plan) --- */
+        /* --- Financial & KPI Grid --- */
         .kpi-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 25px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 25px;
         }
         .kpi-card {
             background: #0d1814; border: 1px solid #1a2f27; border-radius: 8px; padding: 12px; text-align: center;
@@ -33,14 +33,14 @@
         .kpi-card .value { font-size: 22px; font-weight: 700; color: #fff; }
         .kpi-card .value.gold { color: #d5b07c; }
         .kpi-card .value.green { color: #66bb6a; }
+        .kpi-card .value.red { color: #ef5350; }
         .kpi-card .label { font-size: 10px; color: #5e7f74; text-transform: uppercase; margin-top: 4px; }
 
         /* --- Action Buttons --- */
         .action-bar { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
         .btn-primary { background: #2e5a44; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
         .btn-primary:hover { background: #3d7559; }
-        .btn-danger { background: #5a2e2e; }
-        .btn-danger:hover { background: #753d3d; }
+        .btn-action { background: #d5b07c; color: #0d1512; font-weight: 600; }
 
         /* --- Tables --- */
         .table-wrap { background: #0d1814; border: 1px solid #1a2f27; border-radius: 8px; overflow: hidden; margin-bottom: 25px; }
@@ -64,6 +64,7 @@
         .btn-sm { border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; color: #fff; font-size: 11px; }
         .btn-sm.edit { background: #d5b07c; color: #0d1512; }
         .btn-sm.del { background: #b71c1c; }
+        .btn-sm.track { background: #17a2b8; }
 
         /* --- Modal --- */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
@@ -96,20 +97,21 @@
         </div>
     </div>
 
-    <!-- KPI Dashboard -->
+    <!-- Financial & Operational KPIs -->
     <div class="kpi-grid" id="kpiGrid">
-        <div class="kpi-card"><div class="value blue" id="totalFarmers">0</div><div class="label">Active Farmers</div></div>
+        <div class="kpi-card"><div class="value blue" id="totalFarmers">0</div><div class="label">Registered Farmers</div></div>
         <div class="kpi-card"><div class="value gold" id="totalCoops">0</div><div class="label">Producer Coops</div></div>
-        <div class="kpi-card"><div class="value green" id="totalBatches">0</div><div class="label">Traceability Batches</div></div>
-        <div class="kpi-card"><div class="value gold" id="totalVolume">0 kg</div><div class="label">Total Processed</div></div>
-        <div class="kpi-card"><div class="value green" id="readyShipments">0</div><div class="label">Shipments Ready</div></div>
+        <div class="kpi-card"><div class="value green" id="totalBatches">0</div><div class="label">Active Inventory Batches</div></div>
+        <div class="kpi-card"><div class="value gold" id="totalVolume">0 kg</div><div class="label">Total Volume Processed</div></div>
+        <div class="kpi-card"><div class="value green" id="totalRevenue">VT 0</div><div class="label">Est. Total Revenue</div></div>
+        <div class="kpi-card"><div class="value gold" id="totalOpsCost">VT 0</div><div class="label">Operational Spend</div></div>
     </div>
 
     <!-- Controls -->
     <div class="action-bar">
         <button class="btn-primary" onclick="openModal('farmerModal', null)">➕ Register Farmer</button>
         <button class="btn-primary" onclick="openModal('coopModal', null)">➕ Register Coop</button>
-        <button class="btn-primary" onclick="window.location.href='packhouse_report.html'">📦 New Intake & Grading</button>
+        <button class="btn-action" onclick="window.location.href='packhouse_report.html'">📦 New Intake & Grading</button>
         <button class="btn-primary" onclick="refreshData()" style="background:#6c757d;">🔄 Refresh Data</button>
     </div>
 
@@ -126,14 +128,14 @@
         </div>
     </div>
 
-    <!-- Table 2: Traceability Batches (Inventory) -->
+    <!-- Table 2: Traceability Batches (Inventory & Financials) -->
     <div class="table-wrap">
         <div class="table-head">
             <h2>📦 <span>Traceability Batches · Packhouse Inventory</span></h2>
         </div>
         <div class="tbl-scroll">
             <table>
-                <thead><tr><th>Batch #</th><th>Farmer</th><th>Crop</th><th>Grade</th><th>Qty (kg)</th><th>Destination</th><th>Status</th></tr></thead>
+                <thead><tr><th>Batch #</th><th>Farmer</th><th>Crop</th><th>Grade</th><th>Qty (kg)</th><th>Cost (VT)</th><th>Revenue (VT)</th><th>Status</th><th>Tracking</th></tr></thead>
                 <tbody id="batchTableBody"></tbody>
             </table>
         </div>
@@ -187,17 +189,12 @@
 
 <script>
 // =============================================================
-// SUPABASE CONFIG - FIXED VARIABLE NAME (Prevent Clash)
+// SUPABASE CONFIG
 // =============================================================
 const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-
-// Using 'vbsClient' to prevent "already declared" errors
 const vbsClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// =============================================================
-// HELPER FUNCTIONS
-// =============================================================
 function getStatus(status) { 
     const map = { 
         'approved':'tag green', 'certified':'tag green', 'registered':'tag green', 
@@ -207,7 +204,7 @@ function getStatus(status) {
 }
 
 // =============================================================
-// DATA LOADING
+// DATA LOADING & FINANCIAL CALCULATIONS
 // =============================================================
 async function loadData() {
     document.getElementById('dbStatus').innerHTML = '🔄 Fetching Data...';
@@ -238,26 +235,56 @@ async function loadData() {
     if(cErr) console.error(cErr);
     else document.getElementById('totalCoops').innerText = coops.length;
 
-    // 3. Load Traceability Batches (Inventory)
+    // 3. Load Traceability Batches (Inventory & Financials)
     const { data: batches, error: bErr } = await vbsClient.from('traceability_batches').select('*').order('created_at', { ascending: false });
     if(bErr) console.error(bErr);
     else {
         document.getElementById('totalBatches').innerText = batches.length;
-        const totalVol = batches.reduce((sum, b) => sum + parseFloat(b.quantity_kg || 0), 0);
-        document.getElementById('totalVolume').innerText = totalVol.toLocaleString() + ' kg';
-        document.getElementById('readyShipments').innerText = batches.filter(b => b.status === 'Ready' || b.status === 'Dispatched').length;
+        
+        let totalVol = 0;
+        let totalRevenue = 0;
+        let totalOpsCost = 0;
 
-        document.getElementById('batchTableBody').innerHTML = batches.map(b => `
+        document.getElementById('batchTableBody').innerHTML = batches.map(b => {
+            totalVol += parseFloat(b.quantity_kg || 0);
+            
+            // Financial Logic based on Page 11 of the Plan
+            let revenue = 0;
+            let estCost = 0;
+            
+            if (b.crop && b.crop.toLowerCase().includes('taro')) {
+                revenue = (b.quantity_kg || 0) * 560; // 560 VT / kg
+                estCost = (b.quantity_kg || 0) * 200; // Approx cost estimate
+            } else if (b.crop && b.crop.toLowerCase().includes('coconut')) {
+                revenue = (b.quantity_kg || 0) * 330; // 330 VT / kg
+                estCost = (b.quantity_kg || 0) * 200; 
+            } else {
+                revenue = (b.quantity_kg || 0) * 400; // Average fallback
+                estCost = (b.quantity_kg || 0) * 200;
+            }
+            
+            totalRevenue += revenue;
+            totalOpsCost += estCost;
+
+            return `
             <tr>
                 <td><strong>${b.batch_number}</strong></td>
                 <td>${b.farmer_name || '-'}</td>
                 <td>${b.crop || '-'}</td>
                 <td><span class="tag gold">${b.grade || '-'}</span></td>
                 <td>${b.quantity_kg || 0}</td>
-                <td>${b.destination || '-'}</td>
+                <td>VT ${estCost.toLocaleString()}</td>
+                <td style="color:#66bb6a;">VT ${revenue.toLocaleString()}</td>
                 <td>${getStatus(b.status)}</td>
-            </tr>
-        `).join('');
+                <td>
+                    <button class="btn-sm track" onclick="alert('Traceability Chain:\nBatch: ${b.batch_number}\nFarmer: ${b.farmer_name}\nCrop: ${b.crop}\nOrigin: ${b.packhouse_location}')">🔍 Trace</button>
+                </td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('totalVolume').innerText = totalVol.toLocaleString() + ' kg';
+        document.getElementById('totalRevenue').innerText = 'VT ' + totalRevenue.toLocaleString();
+        document.getElementById('totalOpsCost').innerText = 'VT ' + totalOpsCost.toLocaleString();
     }
 
     document.getElementById('dbStatus').innerHTML = '✅ Live Data Connected';
@@ -324,19 +351,16 @@ function openModal(id) {
 
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-// Make refreshData globally accessible for the HTML button
 window.refreshData = function() { loadData(); };
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.editRecord = editRecord;
 window.deleteRecord = deleteRecord;
 
-// Close modal on background click
 document.querySelectorAll('.modal-overlay').forEach(el => {
     el.addEventListener('click', function(e) { if(e.target === this) this.classList.remove('active'); });
 });
 
-// Init
 document.addEventListener('DOMContentLoaded', loadData);
 </script>
 </body>
