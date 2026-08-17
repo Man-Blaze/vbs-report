@@ -186,145 +186,158 @@
 </div>
 
 <script>
-    // =============================================================
-    // SUPABASE CONFIG
-    // =============================================================
-    const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// =============================================================
+// SUPABASE CONFIG - FIXED VARIABLE NAME (Prevent Clash)
+// =============================================================
+const SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
 
-    function getStatus(status) { 
-        const map = { 'approved':'tag green', 'certified':'tag green', 'registered':'tag green', 'in-readiness':'tag orange', 'pending':'tag orange', 'deferred':'tag red' };
-        return `<span class="${map[status] || 'tag'}">${status || 'N/A'}</span>`;
-    }
+// Using 'vbsClient' to prevent "already declared" errors
+const vbsClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // =============================================================
-    // DATA LOADING
-    // =============================================================
-    async function loadData() {
-        document.getElementById('dbStatus').innerHTML = '🔄 Fetching Data...';
-        
-        // 1. Load Farmers
-        const { data: farmers, error: fErr } = await supabase.from('farmers').select('*');
-        if(fErr) console.error(fErr);
-        else {
-            document.getElementById('totalFarmers').innerText = farmers.length;
-            document.getElementById('farmerTableBody').innerHTML = farmers.map(f => `
-                <tr>
-                    <td><strong>${f.name}</strong></td>
-                    <td>${f.cooperative || '-'}</td>
-                    <td>${f.province || '-'}</td>
-                    <td>${getStatus(f.dard_permit)}</td>
-                    <td>${getStatus(f.vanipo)}</td>
-                    <td>${getStatus(f.vbs_certification)}</td>
-                    <td>
-                        <button class="btn-sm edit" onclick="editRecord('farmer', ${f.id})">✏️</button>
-                        <button class="btn-sm del" onclick="deleteRecord('farmers', ${f.id})">🗑️</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // 2. Load Coops
-        const { data: coops, error: cErr } = await supabase.from('cooperatives').select('*');
-        if(cErr) console.error(cErr);
-        else document.getElementById('totalCoops').innerText = coops.length;
-
-        // 3. Load Traceability Batches (Inventory)
-        const { data: batches, error: bErr } = await supabase.from('traceability_batches').select('*').order('created_at', { ascending: false });
-        if(bErr) console.error(bErr);
-        else {
-            document.getElementById('totalBatches').innerText = batches.length;
-            const totalVol = batches.reduce((sum, b) => sum + parseFloat(b.quantity_kg || 0), 0);
-            document.getElementById('totalVolume').innerText = totalVol.toLocaleString() + ' kg';
-            document.getElementById('readyShipments').innerText = batches.filter(b => b.status === 'Ready' || b.status === 'Dispatched').length;
-
-            document.getElementById('batchTableBody').innerHTML = batches.map(b => `
-                <tr>
-                    <td><strong>${b.batch_number}</strong></td>
-                    <td>${b.farmer_name || '-'}</td>
-                    <td>${b.crop || '-'}</td>
-                    <td><span class="tag gold">${b.grade || '-'}</span></td>
-                    <td>${b.quantity_kg || 0}</td>
-                    <td>${b.destination || '-'}</td>
-                    <td>${getStatus(b.status)}</td>
-                </tr>
-            `).join('');
-        }
-
-        document.getElementById('dbStatus').innerHTML = '✅ Live Data Connected';
-    }
-
-    // =============================================================
-    // CRUD OPERATIONS
-    // =============================================================
-    async function editRecord(type, id) {
-        const table = type === 'farmer' ? 'farmers' : 'cooperatives';
-        const { data, error } = await supabase.from(table).select('*').eq('id', id).single();
-        if(error) return alert('Error loading record');
-
-        if(type === 'farmer') {
-            document.getElementById('farmerId').value = data.id;
-            document.getElementById('fName').value = data.name;
-            document.getElementById('fCoop').value = data.cooperative || '';
-            document.getElementById('fProvince').value = data.province || 'Sanma';
-            document.getElementById('fDard').value = data.dard_permit || 'pending';
-            document.getElementById('fVanipo').value = data.vanipo || 'pending';
-            document.getElementById('fVbs').value = data.vbs_certification || 'pending';
-            document.getElementById('fCrop').value = data.crop || '';
-            document.getElementById('farmerModalTitle').innerHTML = '✏️ Edit Farmer';
-            document.getElementById('farmerModal').classList.add('active');
-        }
-    }
-
-    document.getElementById('farmerForm').onsubmit = async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('farmerId').value;
-        const data = { 
-            name: document.getElementById('fName').value,
-            cooperative: document.getElementById('fCoop').value,
-            province: document.getElementById('fProvince').value,
-            dard_permit: document.getElementById('fDard').value,
-            vanipo: document.getElementById('fVanipo').value,
-            vbs_certification: document.getElementById('fVbs').value,
-            crop: document.getElementById('fCrop').value
-        };
-        
-        let error;
-        if(id) error = (await supabase.from('farmers').update(data).eq('id', id)).error;
-        else error = (await supabase.from('farmers').insert(data)).error;
-        
-        if(error) alert('Error: ' + error.message);
-        else { document.getElementById('farmerModal').classList.remove('active'); loadData(); }
+// =============================================================
+// HELPER FUNCTIONS
+// =============================================================
+function getStatus(status) { 
+    const map = { 
+        'approved':'tag green', 'certified':'tag green', 'registered':'tag green', 
+        'in-readiness':'tag orange', 'pending':'tag orange', 'deferred':'tag red' 
     };
+    return `<span class="${map[status] || 'tag'}">${status || 'N/A'}</span>`;
+}
 
-    async function deleteRecord(table, id) {
-        if(!confirm('Permanently delete this record?')) return;
-        const { error } = await supabase.from(table).delete().eq('id', id);
-        if(error) alert('Error: ' + error.message);
-        else loadData();
+// =============================================================
+// DATA LOADING
+// =============================================================
+async function loadData() {
+    document.getElementById('dbStatus').innerHTML = '🔄 Fetching Data...';
+    
+    // 1. Load Farmers
+    const { data: farmers, error: fErr } = await vbsClient.from('farmers').select('*');
+    if(fErr) console.error(fErr);
+    else {
+        document.getElementById('totalFarmers').innerText = farmers.length;
+        document.getElementById('farmerTableBody').innerHTML = farmers.map(f => `
+            <tr>
+                <td><strong>${f.name}</strong></td>
+                <td>${f.cooperative || '-'}</td>
+                <td>${f.province || '-'}</td>
+                <td>${getStatus(f.dard_permit)}</td>
+                <td>${getStatus(f.vanipo)}</td>
+                <td>${getStatus(f.vbs_certification)}</td>
+                <td>
+                    <button class="btn-sm edit" onclick="editRecord('farmer', ${f.id})">✏️</button>
+                    <button class="btn-sm del" onclick="deleteRecord('farmers', ${f.id})">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
     }
 
-    function openModal(id) {
-        document.getElementById(id).classList.add('active');
-        if(id === 'farmerModal') {
-            document.getElementById('farmerForm').reset();
-            document.getElementById('farmerId').value = '';
-            document.getElementById('farmerModalTitle').innerHTML = '➕ Register Farmer / Coop Member';
-        }
+    // 2. Load Coops
+    const { data: coops, error: cErr } = await vbsClient.from('cooperatives').select('*');
+    if(cErr) console.error(cErr);
+    else document.getElementById('totalCoops').innerText = coops.length;
+
+    // 3. Load Traceability Batches (Inventory)
+    const { data: batches, error: bErr } = await vbsClient.from('traceability_batches').select('*').order('created_at', { ascending: false });
+    if(bErr) console.error(bErr);
+    else {
+        document.getElementById('totalBatches').innerText = batches.length;
+        const totalVol = batches.reduce((sum, b) => sum + parseFloat(b.quantity_kg || 0), 0);
+        document.getElementById('totalVolume').innerText = totalVol.toLocaleString() + ' kg';
+        document.getElementById('readyShipments').innerText = batches.filter(b => b.status === 'Ready' || b.status === 'Dispatched').length;
+
+        document.getElementById('batchTableBody').innerHTML = batches.map(b => `
+            <tr>
+                <td><strong>${b.batch_number}</strong></td>
+                <td>${b.farmer_name || '-'}</td>
+                <td>${b.crop || '-'}</td>
+                <td><span class="tag gold">${b.grade || '-'}</span></td>
+                <td>${b.quantity_kg || 0}</td>
+                <td>${b.destination || '-'}</td>
+                <td>${getStatus(b.status)}</td>
+            </tr>
+        `).join('');
     }
 
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-    function refreshData() { loadData(); }
+    document.getElementById('dbStatus').innerHTML = '✅ Live Data Connected';
+}
 
-    // Close modal on background click
-    document.querySelectorAll('.modal-overlay').forEach(el => {
-        el.addEventListener('click', function(e) { if(e.target === this) this.classList.remove('active'); });
-    });
+// =============================================================
+// CRUD OPERATIONS
+// =============================================================
+async function editRecord(type, id) {
+    const table = type === 'farmer' ? 'farmers' : 'cooperatives';
+    const { data, error } = await vbsClient.from(table).select('*').eq('id', id).single();
+    if(error) return alert('Error loading record');
 
-    // Init
-    document.addEventListener('DOMContentLoaded', loadData);
+    if(type === 'farmer') {
+        document.getElementById('farmerId').value = data.id;
+        document.getElementById('fName').value = data.name;
+        document.getElementById('fCoop').value = data.cooperative || '';
+        document.getElementById('fProvince').value = data.province || 'Sanma';
+        document.getElementById('fDard').value = data.dard_permit || 'pending';
+        document.getElementById('fVanipo').value = data.vanipo || 'pending';
+        document.getElementById('fVbs').value = data.vbs_certification || 'pending';
+        document.getElementById('fCrop').value = data.crop || '';
+        document.getElementById('farmerModalTitle').innerHTML = '✏️ Edit Farmer';
+        document.getElementById('farmerModal').classList.add('active');
+    }
+}
+
+document.getElementById('farmerForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('farmerId').value;
+    const data = { 
+        name: document.getElementById('fName').value,
+        cooperative: document.getElementById('fCoop').value,
+        province: document.getElementById('fProvince').value,
+        dard_permit: document.getElementById('fDard').value,
+        vanipo: document.getElementById('fVanipo').value,
+        vbs_certification: document.getElementById('fVbs').value,
+        crop: document.getElementById('fCrop').value
+    };
+    
+    let error;
+    if(id) error = (await vbsClient.from('farmers').update(data).eq('id', id)).error;
+    else error = (await vbsClient.from('farmers').insert(data)).error;
+    
+    if(error) alert('Error: ' + error.message);
+    else { document.getElementById('farmerModal').classList.remove('active'); loadData(); }
+};
+
+async function deleteRecord(table, id) {
+    if(!confirm('Permanently delete this record?')) return;
+    const { error } = await vbsClient.from(table).delete().eq('id', id);
+    if(error) alert('Error: ' + error.message);
+    else loadData();
+}
+
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+    if(id === 'farmerModal') {
+        document.getElementById('farmerForm').reset();
+        document.getElementById('farmerId').value = '';
+        document.getElementById('farmerModalTitle').innerHTML = '➕ Register Farmer / Coop Member';
+    }
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// Make refreshData globally accessible for the HTML button
+window.refreshData = function() { loadData(); };
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.editRecord = editRecord;
+window.deleteRecord = deleteRecord;
+
+// Close modal on background click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', function(e) { if(e.target === this) this.classList.remove('active'); });
+});
+
+// Init
+document.addEventListener('DOMContentLoaded', loadData);
 </script>
 </body>
 </html>
-
