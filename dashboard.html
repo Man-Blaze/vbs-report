@@ -4,14 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VBS Digital Shield - Central Hub</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ===== RESET & BASE ===== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #0f1a12;
@@ -19,11 +15,8 @@
             min-height: 100vh;
             padding: 20px;
         }
-        
-        .container {
-            max-width: 1300px;
-            margin: 0 auto;
-        }
+
+        .container { max-width: 1300px; margin: 0 auto; }
 
         /* ===== HEADER ===== */
         .header {
@@ -31,25 +24,13 @@
             padding: 30px 20px 20px 20px;
             border-bottom: 2px solid #1a3a2a;
             margin-bottom: 30px;
+            position: relative;
         }
-        
-        .header h1 {
-            font-size: 34px;
-            font-weight: 600;
-            color: #ffffff;
-            letter-spacing: 1px;
-        }
-        
-        .header h1 span {
-            color: #ffc107;
-        }
-        
-        .header p {
-            font-size: 16px;
-            color: #a0b8a8;
-            margin-top: 6px;
-        }
-        
+
+        .header h1 { font-size: 34px; font-weight: 600; color: #ffffff; letter-spacing: 1px; }
+        .header h1 span { color: #ffc107; }
+        .header p { font-size: 16px; color: #a0b8a8; margin-top: 6px; }
+
         .badge {
             background: #1a3a2a;
             color: #ffc107;
@@ -60,6 +41,42 @@
             display: inline-block;
             margin-top: 10px;
             border: 1px solid #2a5a3a;
+        }
+
+        .user-bar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-email {
+            background: #1a3a2a;
+            color: #a0d8a8;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            border: 1px solid #2a5a3a;
+        }
+
+        .logout-btn {
+            background: #3a1010;
+            color: #ef5350;
+            border: 1px solid #5a2020;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover { background: #5a2020; color: #ff8888; }
+
+        @media (max-width: 700px) {
+            .user-bar { position: static; justify-content: center; margin-top: 15px; }
         }
 
         /* ===== STATS BANNER ===== */
@@ -74,17 +91,9 @@
             border: 1px solid #1a3a2a;
         }
 
-        .stat-item {
-            text-align: center;
-            padding: 6px 0;
-        }
+        .stat-item { text-align: center; padding: 6px 0; }
 
-        .stat-item .number {
-            font-size: 26px;
-            font-weight: 700;
-            color: #ffc107;
-        }
-
+        .stat-item .number { font-size: 26px; font-weight: 700; color: #ffc107; }
         .stat-item .number.green { color: #66bb6a; }
         .stat-item .number.red { color: #ef5350; }
         .stat-item .number.blue { color: #42a5f5; }
@@ -99,10 +108,8 @@
         }
 
         /* ===== SECTION TITLES ===== */
-        .role-section {
-            margin-bottom: 30px;
-        }
-        
+        .role-section { margin-bottom: 30px; }
+
         .role-title {
             color: #ffffff;
             font-size: 20px;
@@ -112,12 +119,7 @@
             border-left: 4px solid #ffc107;
         }
 
-        hr {
-            margin: 24px 0;
-            border: none;
-            height: 1px;
-            background: #1a3a2a;
-        }
+        hr { margin: 24px 0; border: none; height: 1px; background: #1a3a2a; }
 
         /* ===== CARDS ===== */
         .card-grid {
@@ -125,7 +127,7 @@
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 14px;
         }
-        
+
         .card {
             background: #16201a;
             border-radius: 12px;
@@ -136,31 +138,17 @@
             display: block;
             border: 1px solid #1a3a2a;
         }
-        
+
         .card:hover {
             background: #1c2a22;
             transform: translateY(-2px);
             border-color: #2a5a3a;
         }
-        
-        .card-icon {
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-        
-        .card-title {
-            font-size: 17px;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: #ffffff;
-        }
-        
-        .card-desc {
-            font-size: 13px;
-            color: #a0b8a8;
-            line-height: 1.4;
-        }
-        
+
+        .card-icon { font-size: 32px; margin-bottom: 10px; }
+        .card-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; color: #ffffff; }
+        .card-desc { font-size: 13px; color: #a0b8a8; line-height: 1.4; }
+
         .card-badge {
             display: inline-block;
             background: #1a3a2a;
@@ -172,50 +160,17 @@
             font-weight: 500;
         }
 
-        /* ===== SPECIAL CARDS ===== */
-        .card-manager {
-            background: #16222a;
-            border-color: #1a3a4a;
-        }
-        
-        .card-manager .card-title {
-            color: #66bbaa;
-        }
-        
-        .card-manager .card-badge {
-            background: #1a3a3a;
-            color: #66ddaa;
-        }
-        
-        .card-ceo {
-            background: #141e22;
-            border-color: #1a3a3a;
-        }
-        
-        .card-ceo .card-title {
-            color: #ffc107;
-        }
-        
-        .card-ceo .card-badge {
-            background: #1a3a2a;
-            color: #ffc107;
-        }
+        .card-manager { background: #16222a; border-color: #1a3a4a; }
+        .card-manager .card-title { color: #66bbaa; }
+        .card-manager .card-badge { background: #1a3a3a; color: #66ddaa; }
 
-        /* ===== SUPPLY CHAIN CARD ===== */
-        .card-supply {
-            background: #121f18;
-            border-color: #ffc107;
-            border-width: 2px;
-        }
-        
-        .card-supply .card-title {
-            color: #ffc107;
-        }
-        
-        .card-supply .card-badge {
-            background: #1a3a2a;
-            color: #ffc107;
-        }
+        .card-ceo { background: #141e22; border-color: #1a3a3a; }
+        .card-ceo .card-title { color: #ffc107; }
+        .card-ceo .card-badge { background: #1a3a2a; color: #ffc107; }
+
+        .card-supply { background: #121f18; border-color: #ffc107; border-width: 2px; }
+        .card-supply .card-title { color: #ffc107; }
+        .card-supply .card-badge { background: #1a3a2a; color: #ffc107; }
 
         .card-supply .live-dot {
             display: inline-block;
@@ -227,59 +182,17 @@
             margin-right: 4px;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-        /* ===== QUICK REFERENCE ===== */
-        .card-ref {
-            background: #121c16;
-            border-color: #1a2a1a;
-            cursor: default;
-        }
-        
-        .card-ref .card-title {
-            color: #a0b8a8;
-            font-size: 15px;
-        }
-        
-        .card-ref .card-desc {
-            font-size: 13px;
-        }
+        .card-ref { background: #121c16; border-color: #1a2a1a; cursor: default; }
+        .card-ref .card-title { color: #a0b8a8; font-size: 15px; }
+        .card-ref .card-desc { font-size: 13px; }
+        .card-ref:hover { transform: none; background: #121c16; border-color: #1a2a1a; }
 
-        .card-ref:hover {
-            transform: none;
-            background: #121c16;
-            border-color: #1a2a1a;
-        }
+        .status-pending { background: #4a3a00; padding: 1px 8px; border-radius: 10px; color: #ffc107; font-size: 11px; }
+        .status-approved { background: #003a1a; padding: 1px 8px; border-radius: 10px; color: #66bb6a; font-size: 11px; }
+        .status-rejected { background: #3a1010; padding: 1px 8px; border-radius: 10px; color: #ef5350; font-size: 11px; }
 
-        /* ===== STATUS LABELS ===== */
-        .status-pending {
-            background: #4a3a00;
-            padding: 1px 8px;
-            border-radius: 10px;
-            color: #ffc107;
-            font-size: 11px;
-        }
-        
-        .status-approved {
-            background: #003a1a;
-            padding: 1px 8px;
-            border-radius: 10px;
-            color: #66bb6a;
-            font-size: 11px;
-        }
-        
-        .status-rejected {
-            background: #3a1010;
-            padding: 1px 8px;
-            border-radius: 10px;
-            color: #ef5350;
-            font-size: 11px;
-        }
-
-        /* ===== FOOTER ===== */
         .footer {
             text-align: center;
             padding: 24px 20px 10px 20px;
@@ -288,72 +201,122 @@
             border-top: 1px solid #1a2a1a;
             margin-top: 10px;
         }
-        
-        .footer span {
-            margin: 0 8px;
-        }
 
-        /* ===== RESPONSIVE ===== */
+        .footer span { margin: 0 8px; }
+
         @media (max-width: 768px) {
             .header h1 { font-size: 26px; }
             .card-grid { grid-template-columns: 1fr 1fr; }
             .stats-banner { grid-template-columns: repeat(3, 1fr); }
         }
-        
+
         @media (max-width: 500px) {
             .card-grid { grid-template-columns: 1fr; }
             .stats-banner { grid-template-columns: repeat(2, 1fr); }
             .header h1 { font-size: 22px; }
             .role-title { font-size: 17px; }
         }
+
+        /* Auth loading overlay */
+        #authOverlay {
+            position: fixed;
+            inset: 0;
+            background: #0f1a12;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: #ffc107;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+
+        #authOverlay .spinner {
+            width: 20px; height: 20px;
+            border: 3px solid #ffc107;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
+
+    <!-- ========================================================= -->
+    <!-- GUARD SCRIPT - must run FIRST, before body renders -->
+    <!-- ========================================================= -->
+    <script>
+        (function guard() {
+            const token = localStorage.getItem('vbs_token');
+            if (!token) {
+                // No token — kick out immediately
+                window.location.replace('index.html');
+                return;
+            }
+
+            // Verify token with Supabase (async)
+            window.addEventListener('DOMContentLoaded', async function() {
+                const overlay = document.getElementById('authOverlay');
+                try {
+                    const client = window.supabase.createClient(
+                        'https://pdwctzueksfuspwwumdy.supabase.co',
+                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY'
+                    );
+                    await client.auth.setSession({ access_token: token, refresh_token: localStorage.getItem('vbs_refresh') || '' });
+                    const { data: { session } } = await client.auth.getSession();
+
+                    if (!session) {
+                        localStorage.clear();
+                        window.location.replace('index.html');
+                        return;
+                    }
+
+                    // Valid — remove overlay, show user email
+                    if (overlay) overlay.remove();
+                    const emailEl = document.getElementById('userEmail');
+                    if (emailEl) emailEl.textContent = '👤 ' + (session.user.email || 'User');
+                    console.log('✅ Session verified for', session.user.email);
+                } catch (e) {
+                    console.error('Guard error:', e);
+                    localStorage.clear();
+                    window.location.replace('index.html');
+                }
+            });
+        })();
+    </script>
 </head>
 <body>
 
+<!-- Auth overlay (visible only while verifying) -->
+<div id="authOverlay">
+    <span class="spinner"></span> Verifying session...
+</div>
+
 <div class="container">
 
-    <!-- ========================================================== -->
     <!-- HEADER -->
-    <!-- ========================================================== -->
     <header class="header">
+        <div class="user-bar">
+            <span class="user-email" id="userEmail">👤 Loading...</span>
+            <button class="logout-btn" onclick="logoutUser()">🚪 Logout</button>
+        </div>
         <h1>🛡️ VBS <span>Digital Shield</span></h1>
         <p>Vanuatu Bureau of Standards · Digital Reporting System</p>
         <div class="badge">🔒 Sovereign Data · Real-time · Audit Ready</div>
     </header>
 
-    <!-- ========================================================== -->
     <!-- STATS BANNER -->
-    <!-- ========================================================== -->
     <div class="stats-banner" id="statsBanner">
-        <div class="stat-item">
-            <div class="number blue" id="statFarmers">--</div>
-            <div class="label">Registered Farmers</div>
-        </div>
-        <div class="stat-item">
-            <div class="number green" id="statCompliant">--</div>
-            <div class="label">Fully Compliant</div>
-        </div>
-        <div class="stat-item">
-            <div class="number red" id="statNonCompliant">--</div>
-            <div class="label">Non-Compliant</div>
-        </div>
-        <div class="stat-item">
-            <div class="number green" id="statExportReady">--</div>
-            <div class="label">Export Ready</div>
-        </div>
-        <div class="stat-item">
-            <div class="number blue" id="statCooperatives">--</div>
-            <div class="label">Cooperatives</div>
-        </div>
-        <div class="stat-item">
-            <div class="number gold" id="statPackhouseAccess">--</div>
-            <div class="label">Packhouse Access</div>
-        </div>
+        <div class="stat-item"><div class="number blue" id="statFarmers">--</div><div class="label">Registered Farmers</div></div>
+        <div class="stat-item"><div class="number green" id="statCompliant">--</div><div class="label">Fully Compliant</div></div>
+        <div class="stat-item"><div class="number red" id="statNonCompliant">--</div><div class="label">Non-Compliant</div></div>
+        <div class="stat-item"><div class="number green" id="statExportReady">--</div><div class="label">Export Ready</div></div>
+        <div class="stat-item"><div class="number blue" id="statCooperatives">--</div><div class="label">Cooperatives</div></div>
+        <div class="stat-item"><div class="number gold" id="statPackhouseAccess">--</div><div class="label">Packhouse Access</div></div>
     </div>
 
-    <!-- ========================================================== -->
-    <!-- OFFICERS SECTION -->
-    <!-- ========================================================== -->
+    <!-- OFFICERS -->
     <section class="role-section">
         <div class="role-title">📝 Officers · Submit Daily Reports</div>
         <div class="card-grid">
@@ -367,16 +330,17 @@
             <a href="lab_inventory.html" class="card"><div class="card-icon">🧪</div><div class="card-title">Lab Inventory</div><div class="card-desc">Chemicals, glassware, equipment, stock levels</div><div class="card-badge">Focal Points</div></a>
             <a href="my_reports.html" class="card"><div class="card-icon">👥</div><div class="card-title">Team Reports</div><div class="card-desc">View division reports, approvals, and rejections</div><div class="card-badge">All Staff</div></a>
             <a href="admin_report.html" class="card"><div class="card-icon">💰</div><div class="card-title">Admin Report</div><div class="card-desc">Financial, supplies, vehicles, operations</div><div class="card-badge">Admin Only</div></a>
-            <a href="login.html" class="card"><div class="card-icon">⏰</div><div class="card-title">Timesheet</div><div class="card-desc">Clock In / Clock Out · Kam In / Kam Out</div><div class="card-badge">Login Required</div></a>
+
+            <!-- TIMESHEET card now points to timesheet.html (not login) -->
+            <a href="timesheet.html" class="card"><div class="card-icon">⏰</div><div class="card-title">Timesheet</div><div class="card-desc">Clock In / Clock Out · Kam In / Kam Out</div><div class="card-badge">Login Required</div></a>
+
             <a href="leave_application.html" class="card"><div class="card-icon">📋</div><div class="card-title">Leave Application</div><div class="card-desc">Annual, sick, maternity, compassionate leave</div><div class="card-badge">All Staff</div></a>
         </div>
     </section>
 
     <hr>
 
-    <!-- ========================================================== -->
-    <!-- MANAGERS SECTION -->
-    <!-- ========================================================== -->
+    <!-- MANAGERS -->
     <section class="role-section">
         <div class="role-title">👔 Managers · Review & Approve</div>
         <div class="card-grid">
@@ -391,9 +355,7 @@
 
     <hr>
 
-    <!-- ========================================================== -->
-    <!-- CEO & LEADERSHIP SECTION -->
-    <!-- ========================================================== -->
+    <!-- CEO & LEADERSHIP -->
     <section class="role-section">
         <div class="role-title">👑 CEO & Leadership · Live Dashboard</div>
         <div class="card-grid">
@@ -420,18 +382,13 @@
 
     <hr>
 
-    <!-- ========================================================== -->
-    <!-- SUPPLY CHAIN SECTION - CLEAN SINGLE ENTRY POINT -->
-    <!-- ========================================================== -->
+    <!-- SUPPLY CHAIN -->
     <section class="role-section">
         <div class="role-title">🏭 Supply Chain · Farm to Institution</div>
         <div class="card-grid">
-            <!-- MAIN SUPPLY CHAIN DASHBOARD (Single Entry Point) -->
             <a href="supply_chain_compliance.html" class="card card-supply" style="grid-column: 1 / -1;">
                 <div class="card-icon">🌾</div>
-                <div class="card-title">
-                    <span class="live-dot"></span> Supply Chain Dashboard
-                </div>
+                <div class="card-title"><span class="live-dot"></span> Supply Chain Dashboard</div>
                 <div class="card-desc">
                     <strong>DARD · Cooperative · Biosecurity · Packhouse · Inventory · Orders</strong><br>
                     One unified page showing the complete Farm to Institution pipeline. Includes Farmer Registry (DARD, Biosecurity & Coop status), Packhouse Intake, Live Inventory, and Order Fulfillment.
@@ -441,18 +398,13 @@
         </div>
     </section>
 
-        <!-- ========================================================== -->
-    <!-- PACKHOUSE MANAGEMENT SECTION -->
-    <!-- ========================================================== -->
+    <!-- PACKHOUSE MANAGEMENT -->
     <section class="role-section">
         <div class="role-title">📦 Santo Pack House · Operations</div>
         <div class="card-grid">
-            <!-- PACKHOUSE MANAGEMENT DASHBOARD -->
             <a href="packhouse_management.html" class="card card-supply" style="grid-column: 1 / -1;">
                 <div class="card-icon">📦</div>
-                <div class="card-title">
-                    <span class="live-dot"></span> Packhouse Management System
-                </div>
+                <div class="card-title"><span class="live-dot"></span> Packhouse Management System</div>
                 <div class="card-desc">
                     <strong>Producer Coop · Farmer Registry · Traceability · Inventory</strong><br>
                     Operational hub for the Santo Pack House. Manage producer cooperatives, farmer registrations, and track all farm-to-market batch processing and inventory.
@@ -464,9 +416,7 @@
 
     <hr>
 
-    <!-- ========================================================== -->
     <!-- QUICK REFERENCE -->
-    <!-- ========================================================== -->
     <section class="role-section">
         <div class="role-title">📌 Quick Reference</div>
         <div class="card-grid">
@@ -499,16 +449,11 @@
             <div class="card card-ref" style="border-left: 3px solid #66bb6a;">
                 <div class="card-icon">🏭</div>
                 <div class="card-title">Supply Chain Quick Stats</div>
-                <div class="card-desc" id="quickStats">
-                    <strong>Loading stats...</strong>
-                </div>
+                <div class="card-desc" id="quickStats"><strong>Loading stats...</strong></div>
             </div>
         </div>
     </section>
 
-    <!-- ========================================================== -->
-    <!-- FOOTER -->
-    <!-- ========================================================== -->
     <footer class="footer">
         <span>© 2026 Vanuatu Bureau of Standards</span>
         <span>·</span>
@@ -521,12 +466,24 @@
 
 </div>
 
-<!-- ========================================================== -->
-<!-- JAVASCRIPT -->
-<!-- ========================================================== -->
 <script>
     // =============================================================
-    // Power BI Dashboard Link
+    // LOGOUT
+    // =============================================================
+    async function logoutUser() {
+        try {
+            const client = window.supabase.createClient(
+                'https://pdwctzueksfuspwwumdy.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY'
+            );
+            await client.auth.signOut();
+        } catch (e) { console.warn('Signout warning:', e); }
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+
+    // =============================================================
+    // Power BI link
     // =============================================================
     document.getElementById('powerBILink').addEventListener('click', function(e) {
         e.preventDefault();
@@ -539,27 +496,16 @@
     });
 
     // =============================================================
-    // LOAD STATS FROM LOCAL STORAGE
+    // STATS
     // =============================================================
     function loadStats() {
         let stats = localStorage.getItem('vbsSupplyChainStats');
-        
         if (stats) {
-            try {
-                stats = JSON.parse(stats);
-                updateStatsUI(stats);
-                return;
-            } catch(e) {}
+            try { stats = JSON.parse(stats); updateStatsUI(stats); return; } catch(e) {}
         }
-
-        // Sample data
         const sampleStats = {
-            farmers: 8,
-            compliant: 1,
-            nonCompliant: 2,
-            exportReady: 2,
-            cooperatives: 5,
-            packhouseAccess: 3
+            farmers: 8, compliant: 1, nonCompliant: 2,
+            exportReady: 2, cooperatives: 5, packhouseAccess: 3
         };
         updateStatsUI(sampleStats);
     }
@@ -585,31 +531,19 @@
         }
     }
 
-    // =============================================================
-    // LISTEN FOR STATS UPDATES
-    // =============================================================
     window.addEventListener('storage', function(e) {
         if (e.key === 'vbsSupplyChainStats') {
-            try {
-                const stats = JSON.parse(e.newValue);
-                updateStatsUI(stats);
-            } catch(e) {}
+            try { updateStatsUI(JSON.parse(e.newValue)); } catch(e) {}
         }
     });
 
     window.addEventListener('message', function(e) {
-        if (e.data && e.data.type === 'vbsStatsUpdate') {
-            updateStatsUI(e.data.stats);
-        }
+        if (e.data && e.data.type === 'vbsStatsUpdate') updateStatsUI(e.data.stats);
     });
 
-    // =============================================================
-    // INIT
-    // =============================================================
     document.addEventListener('DOMContentLoaded', function() {
         loadStats();
         console.log('🛡️ VBS Digital Shield · Central Hub loaded');
-        console.log('🏭 Farm to Institution Supply Chain module integrated');
     });
 </script>
 
