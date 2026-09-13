@@ -1,118 +1,312 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>VBS Timesheet Login</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VBS Digital Shield · Secure Access</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', Arial; max-width: 400px; margin: 50px auto; padding: 20px; background: linear-gradient(135deg, #1a5a3a, #0d3b24); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .container { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        h1 { color: #2c7a4d; text-align: center; margin-bottom: 20px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
-        button { width: 100%; padding: 12px; background: #2c7a4d; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        button:hover { background: #1e5a38; }
-        button:disabled { background: #aaa; cursor: not-allowed; }
-        .error { color: #dc3545; text-align: center; margin-top: 10px; font-size: 13px; }
-        .info { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-        .loading { display: none; text-align: center; margin-top: 10px; font-size: 12px; color: #2c7a4d; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f1a12;
+            color: #e0e6ed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .login-container {
+            background: #16201a;
+            border: 1px solid #1a3a2a;
+            border-radius: 24px;
+            padding: 40px 32px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+            transition: border-color 0.3s;
+        }
+
+        .login-container:hover { border-color: #2a5a3a; }
+
+        .shield-icon {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 600;
+            color: #ffffff;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        h1 span { color: #ffc107; }
+
+        .subtitle {
+            text-align: center;
+            font-size: 13px;
+            color: #8aa09a;
+            margin-top: 4px;
+            margin-bottom: 28px;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-secure {
+            display: block;
+            text-align: center;
+            background: #1a3a2a;
+            color: #ffc107;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            margin: 0 auto 24px auto;
+            width: fit-content;
+            border: 1px solid #2a5a3a;
+            letter-spacing: 0.5px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: #a0b8a8;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            margin-bottom: 18px;
+            background: #0f1a12;
+            border: 1px solid #1a3a2a;
+            border-radius: 12px;
+            color: #e0e6ed;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+
+        input:focus {
+            border-color: #ffc107;
+            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.15);
+        }
+
+        input::placeholder { color: #4a6a5a; }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #2c7a4d;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.2s, transform 0.1s;
+            font-family: inherit;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        button:hover:not(:disabled) { background: #1e5a38; }
+        button:active:not(:disabled) { transform: scale(0.98); }
+        button:disabled { background: #2a3a2a; color: #5a7a6a; cursor: not-allowed; }
+
+        .error {
+            color: #ef5350;
+            text-align: center;
+            margin-top: 16px;
+            font-size: 13px;
+            min-height: 20px;
+            line-height: 1.4;
+            padding: 0 4px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 14px;
+            font-size: 13px;
+            color: #ffc107;
+        }
+
+        .loading.active { display: block; }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #1a2a1a;
+            font-size: 11px;
+            color: #4a6a5a;
+            line-height: 1.6;
+        }
+
+        .footer-note span { margin: 0 6px; }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #ffc107;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 480px) {
+            .login-container { padding: 28px 20px; }
+            h1 { font-size: 22px; }
+            .shield-icon { font-size: 38px; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔐 VBS Timesheet</h1>
-        <input type="email" id="email" placeholder="Email Address" autocomplete="email">
-        <input type="password" id="password" placeholder="Password" autocomplete="current-password">
-        <button id="loginBtn">Login</button>
-        <div id="loading" class="loading">⏳ Logging in...</div>
+    <div class="login-container">
+        <div class="shield-icon">🛡️</div>
+        <h1>VBS <span>Digital Shield</span></h1>
+        <p class="subtitle">Vanuatu Bureau of Standards · Secure Access</p>
+        <div class="badge-secure">🔒 Authorised Personnel Only</div>
+
+        <label for="email">Email Address</label>
+        <input type="email" id="email" placeholder="you@vanuatu.gov.vu" autocomplete="email" autofocus>
+
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+
+        <button id="loginBtn">Sign In</button>
+
+        <div id="loading" class="loading">
+            <span class="spinner"></span> Authenticating...
+        </div>
         <div id="errorMsg" class="error"></div>
-        <div class="info">
-            🔒 Secure login using Supabase Auth<br>
-            📧 Use your registered email and password
+
+        <div class="footer-note">
+            <span>🔐 Supabase Auth</span>
+            <span>·</span>
+            <span>🇻🇺 Sovereign Data</span>
+            <br>
+            <span style="font-size:10px; color:#3a5a4a;">Unauthorised access is prohibited and monitored.</span>
         </div>
     </div>
-    
+
     <script>
-        // Use a different variable name to avoid conflict
         const VBS_SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const VBS_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-        
-        // Create supabase client with unique variable name
-        let vbsClient = null;
-        
-        // Wait for page to fully load
+
+        let supabaseClient = null;
+
+        // Init Supabase
         window.addEventListener('load', function() {
             if (typeof window.supabase !== 'undefined') {
-                vbsClient = window.supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
-                console.log('Supabase client initialized');
+                supabaseClient = window.supabase.createClient(VBS_SUPABASE_URL, VBS_SUPABASE_KEY);
+                console.log('✅ Supabase client initialised');
             } else {
-                console.error('Supabase not loaded');
-                document.getElementById('errorMsg').innerHTML = '❌ Loading error. Please refresh page.';
+                console.error('❌ Supabase library not loaded');
+                document.getElementById('errorMsg').textContent = 'System error: Authentication service unavailable. Please refresh.';
             }
         });
-        
-        // Login function
-        window.login = async function() {
+
+        // Login
+        async function login() {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('errorMsg');
             const loginBtn = document.getElementById('loginBtn');
             const loadingDiv = document.getElementById('loading');
-            
-            errorDiv.innerHTML = '';
-            
+
+            errorDiv.textContent = '';
+
             if (!email || !password) {
-                errorDiv.innerHTML = '❌ Please enter email and password';
+                errorDiv.textContent = '❌ Please enter both email and password.';
                 return;
             }
-            
-            if (!vbsClient) {
-                errorDiv.innerHTML = '❌ System loading. Please wait and try again.';
+            if (!supabaseClient) {
+                errorDiv.textContent = '❌ System loading. Please wait and try again.';
                 return;
             }
-            
-            // Show loading state
+
             loginBtn.disabled = true;
-            loadingDiv.style.display = 'block';
-            
+            loginBtn.textContent = 'Verifying...';
+            loadingDiv.classList.add('active');
+
             try {
-                const { data, error } = await vbsClient.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-                
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
                 if (error) throw error;
-                
+
                 if (data.session) {
                     localStorage.setItem('vbs_token', data.session.access_token);
                     localStorage.setItem('vbs_user', email);
-                    window.location.href = 'timesheet.html';
+                    localStorage.setItem('vbs_refresh', data.session.refresh_token);
+
+                    console.log('✅ Login successful → dashboard.html');
+                    setTimeout(() => { window.location.href = 'dashboard.html'; }, 200);
+                } else {
+                    throw new Error('No session returned. Contact support.');
                 }
             } catch (error) {
-                errorDiv.innerHTML = `❌ ${error.message}`;
+                console.error('Login error:', error);
+                let msg = error.message || 'Authentication failed.';
+                if (msg.includes('Invalid login credentials')) msg = 'Invalid email or password. Please try again.';
+                else if (msg.includes('Email not confirmed')) msg = 'Email not confirmed. Check your inbox.';
+                else if (msg.includes('Too many requests')) msg = 'Too many attempts. Please wait a moment.';
+
+                errorDiv.textContent = '❌ ' + msg;
                 loginBtn.disabled = false;
-                loadingDiv.style.display = 'none';
+                loginBtn.textContent = 'Sign In';
+                loadingDiv.classList.remove('active');
             }
-        };
-        
-        // Attach event listeners after DOM loads
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const loginBtn = document.getElementById('loginBtn');
             const passwordField = document.getElementById('password');
             const emailField = document.getElementById('email');
-            
-            if (loginBtn) loginBtn.onclick = window.login;
-            
+
+            if (loginBtn) loginBtn.addEventListener('click', login);
+
             if (passwordField) {
                 passwordField.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') window.login();
+                    if (e.key === 'Enter') { e.preventDefault(); login(); }
                 });
             }
-            
             if (emailField) {
                 emailField.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') window.login();
+                    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('password').focus(); }
                 });
             }
+
+            console.log('🛡️ VBS Digital Shield · Secure Login loaded');
+        });
+
+        // If already authenticated → skip login
+        window.addEventListener('load', function() {
+            setTimeout(async () => {
+                if (!supabaseClient) return;
+                try {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session) {
+                        console.log('✅ Existing session found → dashboard.html');
+                        window.location.href = 'dashboard.html';
+                    }
+                } catch (e) {}
+            }, 500);
         });
     </script>
 </body>
