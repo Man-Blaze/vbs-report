@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pending Tests - VBS Lab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 10px; }
+        h1 { color: #2c7a4d; }
+        .test-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fafafa; }
+        .test-card.overdue { border-left: 5px solid #d32f2f; background: #ffebee; }
+        .test-card.due-soon { border-left: 5px solid #f57c00; background: #fff3e0; }
+        .test-card.on-track { border-left: 5px solid #388e3c; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .badge-progress { background: #e3f2fd; color: #1976d2; }
+        .badge-awaiting { background: #fff3e0; color: #f57c00; }
+        .badge-hold { background: #fce4ec; color: #c2185b; }
+        .meta { color: #666; font-size: 13px; margin: 5px 0; }
+        button { padding: 8px 16px; background: #2c7a4d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 8px; }
+        button.secondary { background: #666; }
+        textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; margin-top: 5px; }
+        .update-form { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #ccc; display: none; }
+        .update-form.open { display: block; }
+        .empty { text-align: center; padding: 40px; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏳ Pending & Ongoing Tests</h1>
+        <p><a href="lab_report.html">← Back to new report</a></p>
+        <div id="list"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const VBS_SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
+        const VBS_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
+
+        const token = localStorage.getItem('vbs_token');
+        const user = localStorage.getItem('vbs_user');
+        if (!token || !user) {
+            document.getElementById('list').innerHTML = 
+                '<div class="empty">Please <a href="login.html">login</a> first.</div>';
+            throw new Error('Not logged in');
+        }
+        const officerName = user.split('@')[0];
+        const headers = {
+            'apikey': VBS_SUPABASE_KEY,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
+
+        function classify(expectedDate) {
+            if (!expectedDate) return 'on-track';
+            const today = new Date(); today.setHours(0,0,0,0);
+            const exp = new Date(expectedDate); exp.setHours(0,0,0,0);
+            const diffDays = Math.ceil((exp - today) / (1000*60*60*24));
+            if (diffDays < 0) return 'overdue';
+            if (diffDays <= 3) return 'due-soon';
+            return 'on-track';
+        }
+
+        function badgeFor(status) {
+            const map = {
+                'IN_PROGRESS': ['badge-progress', '🔄 In Progress'],
+                'AWAITING_RESULT': ['badge-awaiting', '⏰ Awaiting Result'],
+                'ON_HOLD': ['badge-hold', '⏸️ On Hold']
+            };
+            const [cls, label] = map[status] || ['badge-progress', status];
+            return `<span class="badge ${cls}">${label}</span>`;
+        }
+
+        async function loadPending() {
+            const res = await fetch(
+                `${VBS_SUPABASE_URL}/rest/v1/laboratory_reports?officer_name=eq.${encodeURIComponent(officerName)}&test_status=in.(IN_PROGRESS,AWAITING_RESULT,ON_HOLD)&order=expected_completion_date.asc.nullslast&select=*`,
+                { headers }
+            );
+            const tests = await res.json();
+            const list = document.getElementById('list');
+
+            if (!tests.length) {
+                list.innerHTML = '<div class="empty">🎉 No pending tests. All caught up!</div>';
+                return;
+            }
+
+            list.innerHTML = tests.map(t => {
+                const cls = classify(t.expected_completion_date);
+                return `
+                <div class="test-card ${cls}" id="card-${t.id}">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <strong>${t.sample_id || 'N/A'} — ${t.test_type}</strong>
+                        ${badgeFor(t.test_status)}
+                    </div>
+                    <div class="meta">
+                        Location: ${t.lab_location} | Sample type: ${t.sample_type}<br>
+                        Started: ${t.report_date || 'N/A'} | Expected: ${t.expected_completion_date || 'Not set'}
+                    </div>
+                    ${t.progress_notes ? `<div class="meta"><em>Last note:</em> ${t.progress_notes}</div>` : ''}
+                    
+                    <button onclick="toggleForm(${t.id})">✏️ Update Progress</button>
+                    <button class="secondary" onclick="markComplete(${t.id})">✅ Mark Complete</button>
+                    
+                    <div class="update-form" id="form-${t.id}">
+                        <label><strong>New status:</strong></label>
+                        <select id="status-${t.id}" style="width:100%;padding:8px;margin-top:5px;border-radius:5px;border:1px solid #ccc;">
+                            <option value="IN_PROGRESS">🔄 In Progress</option>
+                            <option value="AWAITING_RESULT">⏰ Awaiting Result</option>
+                            <option value="ON_HOLD">⏸️ On Hold</option>
+                        </select>
+                        
+                        <label style="display:block;margin-top:10px;"><strong>Expected completion date:</strong></label>
+                        <input type="date" id="date-${t.id}" value="${t.expected_completion_date || ''}" 
+                            style="width:100%;padding:8px;margin-top:5px;border-radius:5px;border:1px solid #ccc;">
+                        
+                        <label style="display:block;margin-top:10px;"><strong>Progress note:</strong></label>
+                        <textarea id="note-${t.id}" rows="2" placeholder="What happened since last update?"></textarea>
+                        
+                        <button onclick="saveUpdate(${t.id})" style="margin-top:10px;">💾 Save Update</button>
+                        <button class="secondary" onclick="toggleForm(${t.id})" style="margin-top:10px;">Cancel</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleForm(id) {
+            document.getElementById(`form-${id}`).classList.toggle('open');
+        }
+
+        async function saveUpdate(id) {
+            const status = document.getElementById(`status-${id}`).value;
+            const date = document.getElementById(`date-${id}`).value || null;
+            const note = document.getElementById(`note-${id}`).value.trim();
+
+            const body = {
+                test_status: status,
+                expected_completion_date: date,
+                last_updated: new Date().toISOString()
+            };
+            if (note) body.progress_notes = note;
+
+            const res = await fetch(
+                `${VBS_SUPABASE_URL}/rest/v1/laboratory_reports?id=eq.${id}`,
+                { method: 'PATCH', headers, body: JSON.stringify(body) }
+            );
+            if (res.ok) {
+                alert('✅ Updated!');
+                loadPending();
+            } else {
+                alert('❌ Update failed: ' + await res.text());
+            }
+        }
+
+        async function markComplete(id) {
+            if (!confirm('Mark this test as complete? You will need to submit a final report.')) return;
+            
+            // Send them back to the form pre-filled with the same sample info
+            const res = await fetch(
+                `${VBS_SUPABASE_URL}/rest/v1/laboratory_reports?id=eq.${id}&select=*`,
+                { headers }
+            );
+            const [record] = await res.json();
+            
+            localStorage.setItem('resubmit_mode', 'true');
+            localStorage.setItem('resubmit_data', JSON.stringify({
+                comment: 'Finalising long-term test. Please fill in the final result.',
+                report: { ...record, test_status: 'COMPLETED', test_result: '' }
+            }));
+            window.location.href = 'lab_report.html';
+        }
+
+        loadPending();
+    </script>
+</body>
+</html>
