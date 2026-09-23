@@ -23,21 +23,93 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .login-prompt { background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; display: none; }
         .login-prompt a { color: #2c7a4d; font-weight: bold; }
+
+        /* NEW: Pending tests banner */
+        .pending-banner {
+            background: #fff3e0;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid orange;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .pending-banner a {
+            color: white;
+            background: #e65100;
+            padding: 8px 14px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .pending-banner a:hover { background: #bf360c; }
+
+        /* NEW: Header link button */
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .header-actions a {
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+            padding: 10px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .btn-pending {
+            background: #fff3e0;
+            color: #e65100;
+            border: 2px solid #e65100;
+        }
+        .btn-pending:hover { background: #ffe0b2; }
+        .btn-dashboard {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 2px solid #0d47a1;
+        }
+        .btn-dashboard:hover { background: #bbdefb; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔬 Laboratory Report</h1>
         <p>Santo Lab (Galana Siro) | Port Vila Lab (Rollina Kelep)</p>
-        
+
+        <!-- NEW: Quick navigation buttons -->
+        <div class="header-actions">
+            <a href="pending_tests.html" class="btn-pending">
+                ⏳ View Pending Tests <span id="pendingBadge"></span>
+            </a>
+            <a href="dashboard.html" class="btn-dashboard">
+                📊 My Dashboard
+            </a>
+        </div>
+
         <div id="loginPrompt" class="login-prompt">
             ⚠️ Your session has expired. Please <a href="login.html">click here to login again</a>.
         </div>
-        
+
+        <!-- NEW: Pending tests banner (shown when officer has ongoing tests) -->
+        <div id="pendingBanner" class="pending-banner">
+            <strong>📌 You have <span id="pendingCount">0</span> ongoing test(s) being tracked.</strong>
+            <a href="pending_tests.html">View / Update →</a>
+        </div>
+
         <div id="errorMsg" class="error-msg"></div>
         <div id="successMsg" class="success-msg"></div>
         <div id="warningMsg" class="warning-msg"></div>
-        
+
         <form id="reportForm">
             <!-- Basic Info -->
             <div class="section">
@@ -58,7 +130,7 @@
                     <option value="Santo">Santo Laboratory</option>
                 </select>
             </div>
-            
+
             <!-- Sample Information -->
             <div class="section">
                 <h3>🧪 Sample Information</h3>
@@ -84,14 +156,14 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Test Details -->
             <div class="section">
                 <h3>🔬 Test Details</h3>
                 <div class="row">
                     <div>
                         <label>Test Type:</label>
-                        <select name="test_type" required>
+                        <select name="test_type" id="testType" required>
                             <option value="Chemical">Chemical</option>
                             <option value="Microbiology">Microbiology</option>
                             <option value="DNA/GMO">DNA/GMO</option>
@@ -109,15 +181,15 @@
                         <input name="lab_tests_conducted" type="number" value="1" min="1">
                     </div>
                 </div>
-                
+
                 <div class="row">
                     <div>
                         <label>Test Result:</label>
-                        <select name="test_result" required>
+                        <select name="test_result" id="testResult" required>
+                            <option value="Pending">⏳ Pending</option>
                             <option value="Pass">✅ Pass</option>
                             <option value="Fail">❌ Fail</option>
                             <option value="Inconclusive">⚠️ Inconclusive</option>
-                            <option value="Pending">⏳ Pending</option>
                         </select>
                     </div>
                     <div>
@@ -129,11 +201,40 @@
                         </select>
                     </div>
                 </div>
-                
+
+                <!-- NEW: Lifecycle tracking -->
+                <div class="row">
+                    <div>
+                        <label>Test Progress Status:</label>
+                        <select name="test_status" id="testStatus" required>
+                            <option value="COMPLETED">✅ Completed — result is final</option>
+                            <option value="IN_PROGRESS">🔄 In Progress — still running</option>
+                            <option value="AWAITING_RESULT">⏰ Awaiting Result — sent to external lab</option>
+                            <option value="ON_HOLD">⏸️ On Hold — waiting on equipment/reagent</option>
+                            <option value="CANCELLED">🚫 Cancelled</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Expected Completion Date:</label>
+                        <input name="expected_completion_date" type="date" id="expectedDate">
+                    </div>
+                </div>
+
+                <!-- Auto-detected long-term warning -->
+                <div id="longTermNotice" class="warning-msg" style="display:none;">
+                    ⚠️ This test typically takes a long time. Please set an expected completion date
+                    so it can be tracked. You can update this report later via
+                    <a href="pending_tests.html">Pending Tests</a>.
+                </div>
+
+                <label>Progress Notes / Interim Update:</label>
+                <textarea name="progress_notes" rows="2"
+                    placeholder="e.g., Incubation day 3 of 14 — no growth yet. Next check: 22/04."></textarea>
+
                 <label>Equipment Issues:</label>
                 <textarea name="equipment_issues" rows="2" placeholder="e.g., Colorimeter, centrifuge issues..."></textarea>
             </div>
-            
+
             <!-- Dates -->
             <div class="section">
                 <h3>📅 Dates</h3>
@@ -158,7 +259,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Certificate -->
             <div class="section">
                 <h3>📜 Certificate</h3>
@@ -173,14 +274,14 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Comments -->
             <div class="section">
                 <h3>📝 Comments</h3>
                 <label>Inspector Notes:</label>
                 <textarea name="inspector_notes" rows="3" placeholder="Enter your analysis comments..."></textarea>
             </div>
-            
+
             <!-- Working Hours -->
             <div class="section">
                 <h3>⏰ Working Hours</h3>
@@ -205,22 +306,32 @@
                     </div>
                 </div>
             </div>
-            
+
             <button type="submit" id="submitBtn">Submit Laboratory Report</button>
+
+            <!-- NEW: Secondary link to pending tests at the bottom too -->
+            <a href="pending_tests.html" style="display:block; text-align:center; margin-top:15px; padding:10px;
+               background:#fff3e0; color:#e65100; border-radius:5px; text-decoration:none; font-weight:bold;
+               border:2px dashed #e65100;">
+                ⏳ Go to Pending Tests Dashboard
+            </a>
         </form>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Supabase configuration
         const VBS_SUPABASE_URL = 'https://pdwctzueksfuspwwumdy.supabase.co';
         const VBS_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkd2N0enVla3NmdXNwd3d1bWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTA3NDQsImV4cCI6MjA5MjM4Njc0NH0.Xi7MH3MLuxDx1FK6BKLJi-n47SQn-gPgWxq35NuRpZY';
-        
+
+        // Long-term test types that need tracking
+        const LONG_TERM_TESTS = ['DNA/GMO', 'Nobility', 'Cocoa Quality', 'NPK Test', 'Microbiology'];
+
         // Check if user is logged in
         function checkLogin() {
             const token = localStorage.getItem('vbs_token');
             const user = localStorage.getItem('vbs_user');
-            
+
             if (!token || !user) {
                 document.getElementById('loginPrompt').style.display = 'block';
                 document.getElementById('submitBtn').disabled = true;
@@ -228,22 +339,22 @@
             }
             return true;
         }
-        
+
         // Set default date
         document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
-        
+
         // Try to get user info from localStorage
         const storedUserEmail = localStorage.getItem('vbs_user');
         const officerNameField = document.getElementById('officerName');
         if (storedUserEmail && officerNameField) {
             officerNameField.value = storedUserEmail.split('@')[0];
         }
-        
+
         // Auto-calculate turnaround days
         function calculateTurnaround() {
             const received = document.querySelector('input[name="date_sample_received"]').value;
             const completed = document.querySelector('input[name="date_result_completed"]').value;
-            
+
             if (received && completed) {
                 const start = new Date(received);
                 const end = new Date(completed);
@@ -252,15 +363,15 @@
                 document.querySelector('input[name="turnaround_days"]').value = diffDays;
             }
         }
-        
+
         document.querySelector('input[name="date_sample_received"]').addEventListener('change', calculateTurnaround);
         document.querySelector('input[name="date_result_completed"]').addEventListener('change', calculateTurnaround);
-        
+
         // Calculate hours worked
         function calculateHours() {
             const timeIn = document.querySelector('input[name="time_in"]').value;
             const timeOut = document.querySelector('input[name="time_out"]').value;
-            
+
             if (timeIn && timeOut) {
                 const inParts = timeIn.split(':');
                 const outParts = timeOut.split(':');
@@ -273,23 +384,84 @@
                 }
             }
         }
-        
+
         document.querySelector('input[name="time_in"]').addEventListener('change', calculateHours);
         document.querySelector('input[name="time_out"]').addEventListener('change', calculateHours);
-        
+
+        // ===== NEW: Long-term test detection =====
+        const testTypeSelect = document.getElementById('testType');
+        const testStatusSelect = document.getElementById('testStatus');
+        const expectedDateInput = document.getElementById('expectedDate');
+        const longTermNotice = document.getElementById('longTermNotice');
+        const testResultSelect = document.getElementById('testResult');
+
+        testTypeSelect.addEventListener('change', () => {
+            const isLong = LONG_TERM_TESTS.includes(testTypeSelect.value);
+            longTermNotice.style.display = isLong ? 'block' : 'none';
+
+            // Auto-suggest status for long-term tests
+            if (isLong && testStatusSelect.value === 'COMPLETED') {
+                testStatusSelect.value = 'IN_PROGRESS';
+            }
+
+            // Auto-suggest expected date (+30 days) for long-term tests
+            if (isLong && !expectedDateInput.value) {
+                const d = new Date();
+                d.setDate(d.getDate() + 30);
+                expectedDateInput.value = d.toISOString().split('T')[0];
+            }
+        });
+
+        // When status is IN_PROGRESS/AWAITING/ON_HOLD, result should stay Pending
+        testStatusSelect.addEventListener('change', () => {
+            const ongoing = ['IN_PROGRESS', 'AWAITING_RESULT', 'ON_HOLD'];
+            if (ongoing.includes(testStatusSelect.value)) {
+                testResultSelect.value = 'Pending';
+                expectedDateInput.required = true;
+            } else {
+                expectedDateInput.required = false;
+            }
+        });
+
+        // ===== NEW: Load pending tests count =====
+        async function loadPendingCount() {
+            const token = localStorage.getItem('vbs_token');
+            const user = localStorage.getItem('vbs_user');
+            if (!token || !user) return;
+
+            const officerName = user.split('@')[0];
+
+            try {
+                const res = await fetch(
+                    `${VBS_SUPABASE_URL}/rest/v1/laboratory_reports?officer_name=eq.${encodeURIComponent(officerName)}&test_status=in.(IN_PROGRESS,AWAITING_RESULT,ON_HOLD)&select=id`,
+                    { headers: { 'apikey': VBS_SUPABASE_KEY, 'Authorization': `Bearer ${token}` } }
+                );
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    document.getElementById('pendingCount').textContent = data.length;
+                    document.getElementById('pendingBanner').style.display = 'flex';
+                    // Also show badge next to the header button
+                    const badge = document.getElementById('pendingBadge');
+                    if (badge) badge.textContent = `(${data.length})`;
+                }
+            } catch (e) {
+                console.warn('Could not load pending count:', e);
+            }
+        }
+
         // Form submission
         document.getElementById('reportForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const errorDiv = document.getElementById('errorMsg');
             const successDiv = document.getElementById('successMsg');
             const warningDiv = document.getElementById('warningMsg');
             const submitBtn = document.getElementById('submitBtn');
-            
+
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
             warningDiv.style.display = 'none';
-            
+
             // Check login first
             if (!checkLogin()) {
                 errorDiv.innerHTML = '❌ Please login first. Redirecting to login page...';
@@ -297,7 +469,7 @@
                 setTimeout(() => { window.location.href = 'login.html'; }, 2000);
                 return;
             }
-            
+
             let authToken = localStorage.getItem('vbs_token');
             if (!authToken) {
                 errorDiv.innerHTML = '❌ You are not logged in. Redirecting to login page...';
@@ -305,11 +477,11 @@
                 setTimeout(() => { window.location.href = 'login.html'; }, 2000);
                 return;
             }
-            
+
             // Collect form data
             const formData = new FormData(e.target);
             const reportData = {};
-            
+
             for (let [key, value] of formData.entries()) {
                 if (value !== null && value !== '') {
                     if (key === 'lab_tests_conducted' || key === 'non_compliance_cases' || key === 'tasks_completed' || key === 'turnaround_days') {
@@ -321,30 +493,33 @@
                     }
                 }
             }
-            
+
+            // Ensure lifecycle fields
+            if (!reportData.test_status) reportData.test_status = 'COMPLETED';
+            reportData.last_updated = new Date().toISOString();
             reportData.status = 'PENDING';
             reportData.created_at = new Date().toISOString();
-            
+
             console.log('Submitting data:', reportData);
-            
+
             submitBtn.disabled = true;
             submitBtn.innerHTML = 'Submitting... <span class="loading"></span>';
-            
+
             try {
                 const response = await fetch(`${VBS_SUPABASE_URL}/rest/v1/laboratory_reports`, {
                     method: 'POST',
-                    headers: { 
-                        'apikey': VBS_SUPABASE_KEY, 
-                        'Authorization': `Bearer ${authToken}`, 
-                        'Content-Type': 'application/json'
+                    headers: {
+                        'apikey': VBS_SUPABASE_KEY,
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
                     },
                     body: JSON.stringify(reportData)
                 });
-                
+
                 console.log('Response status:', response.status);
-                
+
                 if (response.status === 401) {
-                    // Token expired
                     localStorage.removeItem('vbs_token');
                     localStorage.removeItem('vbs_user');
                     errorDiv.innerHTML = '❌ Your session has expired. Redirecting to login page...';
@@ -352,10 +527,19 @@
                     setTimeout(() => { window.location.href = 'login.html'; }, 2000);
                     return;
                 }
-                
+
                 if (response.ok) {
-                    successDiv.innerHTML = '✅ Laboratory report submitted successfully! Manager will review.';
+                    // Success message — customise based on test status
+                    const ongoing = ['IN_PROGRESS', 'AWAITING_RESULT', 'ON_HOLD'];
+                    if (ongoing.includes(reportData.test_status)) {
+                        successDiv.innerHTML = `✅ Report submitted! This is a <strong>long-term test</strong> — it will now be tracked in 
+                            <a href="pending_tests.html" style="color:#2c7a4d;font-weight:bold;">Pending Tests</a> until completed.`;
+                    } else {
+                        successDiv.innerHTML = '✅ Laboratory report submitted successfully! Manager will review.';
+                    }
                     successDiv.style.display = 'block';
+
+                    // Reset the form
                     document.getElementById('reportForm').reset();
                     document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
                     document.querySelector('input[name="hours_worked"]').value = 8;
@@ -363,11 +547,18 @@
                     document.querySelector('input[name="non_compliance_cases"]').value = 0;
                     document.querySelector('input[name="tasks_completed"]').value = 1;
                     document.querySelector('select[name="reagent_status"]').value = 'Good';
-                    
+                    document.getElementById('testStatus').value = 'COMPLETED';
+                    document.getElementById('testResult').value = 'Pending';
+                    document.getElementById('longTermNotice').style.display = 'none';
+                    expectedDateInput.required = false;
+
                     if (storedUserEmail && officerNameField) {
                         officerNameField.value = storedUserEmail.split('@')[0];
                     }
-                    
+
+                    // Refresh pending count
+                    loadPendingCount();
+
                     successDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } else {
                     const errorText = await response.text();
@@ -384,12 +575,13 @@
                 submitBtn.innerHTML = 'Submit Laboratory Report';
             }
         });
-        
+
         // Check login on page load
         window.addEventListener('DOMContentLoaded', () => {
             checkLogin();
+            loadPendingCount();
         });
-        
+
         // Handle resubmit from rejected reports
         window.onload = function() {
             const resubmitMode = localStorage.getItem('resubmit_mode');
@@ -397,7 +589,7 @@
                 const resubmitData = JSON.parse(localStorage.getItem('resubmit_data'));
                 if (resubmitData) {
                     alert(`⚠️ This report was previously rejected.\n\nManager comment: ${resubmitData.comment || 'No comment'}\n\nPlease fix the issue and resubmit.`);
-                    
+
                     const form = document.getElementById('reportForm');
                     if (form && resubmitData.report) {
                         for (let key in resubmitData.report) {
